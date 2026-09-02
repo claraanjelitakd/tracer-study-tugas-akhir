@@ -1,0 +1,67 @@
+DOKUMENTASI SETUP PROJECT TRACER STUDY
+
+- Tujuan Project: Project ini untuk membuat Sistem Informasi Tracer Study Alumni (SERU).
+- Backend: Laravel digunakan sebagai backend framework.
+- Frontend: Vue 3 digunakan sebagai frontend framework (menggantikan Blade).
+- Bridge: Inertia.js digunakan sebagai bridge antara Laravel dan Vue, memungkinkan SPA (Single Page Application) tanpa perlu membuat API secara terpisah.
+- Styling: Tailwind CSS digunakan untuk styling.
+- Bundler: Vite digunakan untuk asset bundling dan development.
+- Database: Database menggunakan MySQL/MariaDB.
+- Local Environment: Local environment menggunakan Laragon.
+- Lokasi Project: c:\ALL FILES\Tugas Akhir\tracer\tracer-study
+
+CARA MENJALANKAN PROJECT
+1. Buka dua terminal.
+2. Di terminal pertama, jalankan backend Laravel: php artisan serve
+3. Di terminal kedua, jalankan Vite development server: npm run dev
+4. Akses http://localhost:8000 di browser.
+
+FUNGSI FOLDER UTAMA LARAVEL
+- app/: Berisi inti kode aplikasi seperti Controller, Model, dan Middleware.
+- bootstrap/: Berisi script untuk inisialisasi aplikasi (contoh: app.php).
+- config/: Berisi semua file konfigurasi aplikasi.
+- database/: Berisi migration, seeder, dan factory untuk database.
+- public/: Folder root untuk web server, berisi file entry index.php serta aset yang sudah dicompile.
+- resources/: Berisi raw asset seperti view Blade (app.blade.php), CSS, dan file Javascript/Vue.
+- routes/: Berisi definisi routing aplikasi (contoh: web.php).
+- storage/: Berisi file yang digenerate oleh Laravel seperti log, cache, dan file upload.
+- vendor/: Berisi dependensi Composer.
+
+FUNGSI FOLDER resources/js
+Folder ini merupakan pusat pengembangan frontend Vue dalam arsitektur Inertia.
+- app.js: Entry point utama untuk inisialisasi Vue dan Inertia.
+- Pages/: Berisi komponen Vue yang merepresentasikan halaman secara penuh (dirender oleh controller Laravel).
+- Layouts/: (Opsional) Berisi komponen layout untuk membungkus halaman.
+- Components/: (Opsional) Berisi reusable komponen Vue yang lebih kecil.
+
+ARSITEKTUR DATABASE (STEP 3)
+1. Tabel `users`:
+   - Menyimpan kredensial autentikasi utama.
+   - Field: id, name, username (unik), email (nullable), role, must_change_password, password.
+   - Relasi: hasOne(Alumni::class)
+2. Tabel `alumnis`:
+   - Menyimpan data spesifik profil alumni.
+   - Field: id, user_id (FK), F1 (NIM), F2A (Nama), F2B (Telepon), F2C (Email), F2D (Alamat), ipk, sac_points.
+   - Relasi: belongsTo(User::class)
+
+MANAJEMEN OTORISASI (ROLES)
+- Terdapat 4 peran utama: `alumni`, `admin_biro3`, `admin_prodi`, `superadmin`.
+- `RoleMiddleware` digunakan untuk memproteksi akses dashboard berdasarkan role.
+- `CheckMustChangePassword` menahan user (khususnya alumni baru) agar mengganti password sebelum bisa masuk sistem.
+
+ATURAN PENGEMBANGAN (CODING GUIDELINES)
+1. **Update Log**: Setiap update atau fitur baru HARUS selalu dicatat ke dalam `UPDATE_LOG.md`.
+2. **Komentar Kode**: Setiap perintah code, routes, functions, view, dan logika krusial HARUS memiliki comment penjelasan yang deskriptif di dalam kodenya.
+3. **Penamaan Konsisten**: Nama file HARUS disesuaikan dengan fungsinya dengan jelas. Hal ini berlaku untuk nama Controller, nama routes, view, fungsi, variabel, dll.
+4. **Pemisahan Tanggung Jawab (Separation of Concerns)**: Semuanya (business logic, query, security, manipulasi data berat) HARUS melalui Backend (Laravel). Frontend (Vue) difungsikan murni HANYA sebagai tampilan (UI/Presentation Layer) saja.
+
+ARSITEKTUR KUESIONER (STEP 4 & 5)
+1. Tabel Dinamis (Hierarkis):
+   - `questionnaires` -> `question_sections` -> `questions` -> `question_options`
+   - Jawaban disimpan di tabel `responses` dengan format kolom `answer_text` (untuk jawaban tunggal) dan `answer_json` (untuk checkbox / matriks).
+2. Format Jump Logic (Google Forms Style):
+   - Untuk mengaktifkan loncatan halaman (jumping logic), pertanyaan pemicu (seperti F3) HARUS ditempatkan pada `question_sections` tersendiri dan menjadi satu-satunya pertanyaan di halaman tersebut.
+   - Field `jump_logic` di tabel `questions` menggunakan JSON object yang me-mapping pilihan jawaban mutlak ke kode pertanyaan tujuan (misal: `{"Saya tidak mencari kerja (Jump ke F8)": "F8"}`).
+   - Sistem Vue akan membaca JSON ini, mendeteksi target *section* dari `targetCodeToJump`, dan melakukan _bypass_ melewati halaman-halaman berikutnya secara otomatis.
+3. Manajemen Tipe Data Input:
+   - Komponen UI dipetakan murni berdasarkan atribut `type` dari DB: `text`, `number`, `radio`, `checkbox`, `radio_input` (dengan inputan ekstra), `multiple_number`, `matrix`, `matrix_dual`.

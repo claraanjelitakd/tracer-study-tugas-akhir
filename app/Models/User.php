@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+#[Fillable(['name', 'email', 'username', 'password', 'role', 'must_change_password'])]
+#[Hidden(['password', 'remember_token'])]
+class User extends Authenticatable
+{
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable;
+
+    /**
+     * Get the attributes that should be cast.
+     * Mengatur tipe data atribut saat diakses atau disimpan.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'must_change_password' => 'boolean', // Pastikan bertipe boolean
+            'password' => 'hashed', // Password otomatis di-hash
+        ];
+    }
+
+    /**
+     * Get the alumni record associated with the user.
+     */
+    public function alumni()
+    {
+        return $this->hasOne(Alumni::class);
+    }
+}
