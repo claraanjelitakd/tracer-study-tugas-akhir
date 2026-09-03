@@ -14,7 +14,7 @@ class AuthController extends Controller
      */
     public function showLogin()
     {
-        return Inertia::render('Auth/Login');
+        return Inertia::render('auth/login');
     }
 
     /**
@@ -81,7 +81,7 @@ class AuthController extends Controller
             return $this->redirectByRole(Auth::user()->role);
         }
 
-        return Inertia::render('Auth/ChangePassword');
+        return Inertia::render('auth/change-password');
     }
 
     /**

@@ -1,7 +1,7 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import LoadingButton from '../../Components/UI/LoadingButton.vue';
+import LoadingButton from '../../components/ui/loading-button.vue';
 
 const form = useForm({
     username: '',
@@ -20,42 +20,57 @@ const submit = () => {
 <template>
     <Head title="Login - SERU UKDW" />
 
-    <div class="min-h-screen flex flex-col sm:flex-row bg-gray-50">
-        <!-- Bagian Kiri: Visual Branding -->
-        <div class="hidden sm:flex sm:w-1/2 bg-green-700 items-center justify-center p-12 text-white flex-col relative overflow-hidden">
-            <!-- Dekorasi Sederhana -->
-            <div class="absolute top-[-10%] left-[-10%] w-64 h-64 rounded-full bg-green-600 opacity-50 mix-blend-multiply blur-2xl"></div>
-            <div class="absolute bottom-[-10%] right-[-10%] w-80 h-80 rounded-full bg-yellow-400 opacity-20 mix-blend-multiply blur-3xl"></div>
-            
-            <div class="z-10 text-center">
-                <h1 class="text-5xl font-bold mb-4 tracking-tight">SERU</h1>
-                <p class="text-xl font-light text-green-100 max-w-md mx-auto">Sistem Ekosistem Rekam Jejak Alumni Universitas Kristen Duta Wacana</p>
+    <div class="min-h-screen flex flex-col lg:flex-row bg-white">
+        
+        <!-- Bagian Kiri: Visual Branding (SIMASTER Style) -->
+        <div class="hidden lg:flex lg:w-7/12 relative bg-gray-900 flex-col justify-center p-12 xl:p-24 text-white">
+            <!-- Background Image with Overlay -->
+            <div class="absolute inset-0 z-0">
+                <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80" alt="Campus Building" class="w-full h-full object-cover opacity-40 mix-blend-overlay" />
+                <div class="absolute inset-0 bg-gradient-to-b from-green-900/90 to-gray-900/95"></div>
+            </div>
+
+            <!-- Content -->
+            <div class="z-10 w-full max-w-2xl mt-auto mb-auto">
+                <!-- Logos -->
+                <div class="flex items-center gap-6 mb-8">
+                    <!-- Logo Pigo diperbesar (w-48 h-48) -->
+                    <img src="/uploads/landing/1.png" alt="Pigo Mascot" class="w-40 h-40 sm:w-48 sm:h-48 object-contain filter drop-shadow-2xl" />
+                </div>
+
+                <h1 class="text-5xl lg:text-6xl font-black mb-4 tracking-tight">
+                    PORTAL TRACER <span class="text-yellow-400">UKDW</span>
+                </h1>
+                
+                <p class="text-lg lg:text-xl font-light text-gray-300 max-w-xl mb-12 leading-relaxed">
+                    Sistem informasi Ekosistem Rekam Jejak Alumni, untuk Mendukung Tercapainya Lulusan Unggul dan Berkarakter di Universitas Kristen Duta Wacana.
+                </p>
             </div>
         </div>
 
-        <!-- Bagian Kanan: Form Login -->
-        <div class="flex-1 flex items-center justify-center p-8 sm:p-12">
-            <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        <!-- Bagian Kanan: Form Login (Clean White Panel) -->
+        <div class="w-full lg:w-5/12 flex items-center justify-center p-8 sm:p-12 lg:p-16">
+            <div class="w-full max-w-sm">
                 
-                <div class="mb-8 text-center sm:text-left">
-                    <h2 class="text-2xl font-bold text-gray-900">Selamat Datang di SERU</h2>
-                    <p class="text-gray-500 mt-1">Silakan masuk menggunakan akun Anda</p>
+                <div class="mb-12 text-center">
+                    <h2 class="text-3xl font-black text-slate-900 mb-2 tracking-tight">SIGN IN</h2>
+                    <p class="text-gray-500 font-medium">Akun Tracer Study Anda</p>
                 </div>
 
-                <!-- Notifikasi Error Global (Misal: kredensial salah) -->
-                <div v-if="form.errors.username" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p class="text-sm text-red-600 font-medium">{{ form.errors.username }}</p>
+                <!-- Notifikasi Error Global -->
+                <div v-if="form.errors.username" class="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-600 font-medium text-center">{{ form.errors.username }}</p>
                 </div>
 
                 <form @submit.prevent="submit" class="space-y-6">
                     <div>
-                        <label for="username" class="block text-sm font-medium text-gray-700">Username atau NIM</label>
+                        <label for="username" class="block text-sm font-semibold text-slate-700 mb-2">NIM atau Username</label>
                         <input
                             id="username"
                             type="text"
                             v-model="form.username"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm px-4 py-2 border"
-                            placeholder="Masukkan username atau NIM"
+                            class="block w-full rounded-xl border-gray-300 bg-gray-50 shadow-sm focus:bg-white focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-4 py-3 transition-colors"
+                            placeholder="Alumni gunakan NIM, Admin gunakan username"
                             required
                             autofocus
                             autocomplete="username"
@@ -63,14 +78,14 @@ const submit = () => {
                     </div>
 
                     <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <div class="mt-1 relative">
+                        <label for="password" class="block text-sm font-semibold text-slate-700 mb-2">Kata Sandi / Tanggal Lahir</label>
+                        <div class="relative">
                             <input
                                 id="password"
                                 :type="showPassword ? 'text' : 'password'"
                                 v-model="form.password"
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm px-4 py-2 border pr-10"
-                                placeholder="Masukkan password"
+                                class="block w-full rounded-xl border-gray-300 bg-gray-50 shadow-sm focus:bg-white focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-4 py-3 pr-10 transition-colors"
+                                placeholder="Alumni gunakan format YYYY-MM-DD"
                                 required
                                 autocomplete="current-password"
                             />
@@ -90,15 +105,32 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <div>
+                    <div class="pt-2">
                         <LoadingButton 
                             type="submit" 
-                            class="w-full" 
+                            class="w-full bg-[#0074b7] hover:bg-[#005f96] text-white py-3 rounded-xl shadow-md transition-all font-bold tracking-wide" 
                             :isLoading="form.processing"
                         >
-                            Masuk
+                            Masuk ke Sistem
                         </LoadingButton>
                     </div>
+
+                    <!-- Divider -->
+                    <div class="relative py-4">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-3 bg-white text-gray-500">Atau</span>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="button" class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-slate-700 font-semibold rounded-xl transition-colors">
+                            Lupa Kata Sandi
+                        </button>
+                    </div>
+
                 </form>
             </div>
         </div>

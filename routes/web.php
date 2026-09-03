@@ -6,7 +6,7 @@ use App\Http\Controllers\AuthController;
 
 // Landing Page
 Route::get('/', function () {
-    return Inertia::render('Landing');
+    return Inertia::render('landing');
 });
 
 // Guest Routes
@@ -32,7 +32,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/alumni/dashboard', function () {
                 $alumni = \App\Models\Alumni::where('user_id', auth()->id())->first();
                 $responsesCount = $alumni ? \App\Models\Response::where('alumni_id', $alumni->id)->count() : 0;
-                return Inertia::render('Alumni/Dashboard', [
+                return Inertia::render('alumni/dashboard', [
                     'alumni' => $alumni,
                     'responsesCount' => $responsesCount,
                 ]);
@@ -43,17 +43,17 @@ Route::middleware('auth')->group(function () {
         
         // Dashboard Admin Biro 3
         Route::middleware('role:admin_biro3')->get('/biro3/dashboard', function () {
-            return Inertia::render('Biro3/Dashboard');
+            return Inertia::render('biro3/dashboard');
         });
         
         // Dashboard Admin Prodi
         Route::middleware('role:admin_prodi')->get('/prodi/dashboard', function () {
-            return Inertia::render('Prodi/Dashboard');
+            return Inertia::render('prodi/dashboard');
         });
         
         // Dashboard Superadmin
         Route::middleware('role:superadmin')->get('/superadmin/dashboard', function () {
-            return Inertia::render('Superadmin/Dashboard');
+            return Inertia::render('superadmin/dashboard');
         });
         
     });
