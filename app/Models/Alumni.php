@@ -33,14 +33,23 @@ class Alumni extends Model
         'minat',
         'company_id',
         'zipcode',
+        'atasan_id', // Tambahan relasi atasan
     ];
 
     /**
-     * Get the user that owns the alumni record.
+     * Relasi ke User
      */
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relasi ke Atasan (Pimpinan)
+     */
+    public function atasan()
+    {
+        return $this->belongsTo(Atasan::class);
     }
 
     /**

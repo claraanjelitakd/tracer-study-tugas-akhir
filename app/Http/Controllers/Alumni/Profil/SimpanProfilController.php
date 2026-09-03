@@ -83,7 +83,21 @@ class SimpanProfilController extends Controller
             $idPerusahaan = $perusahaan->id;
         }
 
-        // 5. Simpan data sosial media & profesional ke tabel alumnis
+        // 5. Tangani Data Atasan (Supervisor)
+        $idAtasan = $alumni->atasan_id;
+        if (!empty($dataTervalidasi['email_atasan']) && !empty($dataTervalidasi['nama_atasan'])) {
+            $atasan = \App\Models\Atasan::firstOrCreate(
+                ['email' => $dataTervalidasi['email_atasan']],
+                [
+                    'nama' => $dataTervalidasi['nama_atasan'],
+                    'telepon' => $dataTervalidasi['telepon_atasan'] ?? null,
+                ]
+            );
+            // Update nama/telepon jika sudah ada tapi beda? (opsional, untuk sekarang firstOrCreate cukup)
+            $idAtasan = $atasan->id;
+        }
+
+        // 6. Simpan data sosial media & profesional ke tabel alumnis
         $alumni->update([
             'instagram_url' => $dataTervalidasi['instagram_url'],
             'facebook_url' => $dataTervalidasi['facebook_url'],
@@ -93,6 +107,7 @@ class SimpanProfilController extends Controller
             'minat' => $dataTervalidasi['minat'],
             'zipcode' => $dataTervalidasi['zipcode'],
             'company_id' => $idPerusahaan,
+            'atasan_id' => $idAtasan,
         ]);
 
         return redirect()->back()->with('success', 'Profil dan Data Akademik berhasil diperbarui.');

@@ -15,6 +15,7 @@ class Company extends Model
         'kabupaten_id',
         'alamat',
         'sektor',
+        'status_verifikasi',
     ];
 
     public function province()

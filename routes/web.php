@@ -33,6 +33,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/alumni/dashboard', [\App\Http\Controllers\Alumni\Dashboard\DashboardController::class, 'tampilkanDashboard']);
             
             // Profil
+            // API Tambahan
+            Route::get('/api/companies', [\App\Http\Controllers\Api\CompanyController::class, 'search'])->name('api.companies.search');
             Route::get('/alumni/profile', [\App\Http\Controllers\Alumni\Profil\ProfilController::class, 'tampilkanHalamanProfil'])->name('alumni.profile');
             Route::post('/alumni/profile', [\App\Http\Controllers\Alumni\Profil\SimpanProfilController::class, 'simpanPerubahanProfil']);
             

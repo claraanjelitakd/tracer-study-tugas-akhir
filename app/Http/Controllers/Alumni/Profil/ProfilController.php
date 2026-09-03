@@ -25,14 +25,14 @@ class ProfilController extends Controller
     public function tampilkanHalamanProfil(Request $request)
     {
         $pengguna = $request->user();
-        $alumni = $pengguna->alumni()->with(['prodi', 'company', 'company.province', 'company.kabupaten', 'dataAkademik.yudisium', 'dataAkademik.orangTua'])->first();
+        $alumni = $pengguna->alumni()->with(['prodi', 'company', 'company.province', 'company.kabupaten', 'dataAkademik.yudisium', 'dataAkademik.orangTua', 'atasan'])->first();
         
         $provinsi = Province::all();
         $kabupaten = Kabupaten::all();
-        
-        $dataAkademik = clone $alumni?->dataAkademik;
-        $orangTua = clone $alumni?->dataAkademik?->orangTua;
-        $yudisium = clone $alumni?->dataAkademik?->yudisium;
+        $dataAkademik = $alumni?->dataAkademik;
+        $orangTua = $alumni?->dataAkademik?->orangTua;
+        $yudisium = $alumni?->dataAkademik?->yudisium;
+        $atasan = $alumni?->atasan;
 
         // Merakit formData murni di backend agar frontend Vue tidak perlu logika inisialisasi / pengecekan manual
         $formData = [
@@ -95,7 +95,7 @@ class ProfilController extends Controller
             'kode_pos_orang_tua' => $orangTua?->kode_pos ?? '',
             'nomor_telepon_orang_tua' => $orangTua?->nomor_telepon ?? '',
             
-            // Profil Tambahan / Tracer
+            // Karier / Profil Profesional
             'instagram_url' => $alumni?->instagram_url ?? '',
             'facebook_url' => $alumni?->facebook_url ?? '',
             'linkedin_url' => $alumni?->linkedin_url ?? '',
@@ -108,6 +108,12 @@ class ProfilController extends Controller
             'nama_perusahaan' => $alumni?->company?->nama_perusahaan ?? '',
             'company_province_id' => $alumni?->company?->province_id ?? '',
             'company_kabupaten_id' => $alumni?->company?->kabupaten_id ?? '',
+            'company_status_verifikasi' => $alumni?->company?->status_verifikasi ?? '',
+            
+            // Data Atasan
+            'nama_atasan' => $atasan?->nama ?? '',
+            'email_atasan' => $atasan?->email ?? '',
+            'telepon_atasan' => $atasan?->telepon ?? '',
         ];
         
         return Inertia::render('Alumni/Profil/Index', [
