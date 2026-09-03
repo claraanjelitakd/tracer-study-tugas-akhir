@@ -38,7 +38,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? $request->user()->only('id', 'name', 'username', 'role', 'must_change_password') : null,
+                'user' => $request->user() ? array_merge(
+                    $request->user()->only('id', 'name', 'username', 'email', 'role', 'must_change_password'),
+                    ['alumni' => $request->user()->alumni()->with(['prodi', 'company', 'company.province', 'company.kabupaten', 'dataAkademik'])->first()]
+                ) : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

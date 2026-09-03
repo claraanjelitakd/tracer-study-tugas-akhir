@@ -15,29 +15,28 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             
-            // F1: Nomor Mahasiswa / NIM (Primary identifier for alumni)
-            $table->string('F1')->unique()->comment('Nomor Mahasiswa / NIM');
+            // Relasi ke tabel data_akademiks (NIM)
+            $table->string('nim')->unique()->comment('NIM - referensi ke data_akademiks');
+            $table->foreign('nim')->references('nim')->on('data_akademiks')->cascadeOnDelete();
             
-            // Relasi ke Master Prodi & Kolom Angkatan
+            // Relasi ke Master Prodi
             $table->foreignId('prodi_id')->nullable()->constrained('prodis')->nullOnDelete();
-            $table->year('angkatan')->nullable()->comment('Tahun Angkatan');
             
-            // F2A: Nama Mahasiswa
-            $table->string('F2A')->comment('Nama Mahasiswa');
+            // Tambahan (Profil)
+            // (tanggal_lahir, ipk, dan sac_points telah dihapus atau dipindah)
+            // Data Akademik Tambahan dipindah ke tabel data_akademiks
             
-            // F2B: Nomor Telepon/HP
-            $table->string('F2B')->nullable()->comment('Nomor Telepon/HP');
+            // Sosial Media
+            $table->string('instagram_url')->nullable();
+            $table->string('facebook_url')->nullable();
+            $table->string('linkedin_url')->nullable();
+            $table->string('linkedin_username')->nullable();
             
-            // F2C: Alamat Email
-            $table->string('F2C')->nullable()->comment('Alamat Email');
-            
-            // F2D: Alamat Sekarang
-            $table->text('F2D')->nullable()->comment('Alamat Sekarang');
-            
-            // Tambahan
-            $table->date('tanggal_lahir')->nullable()->comment('Tanggal Lahir Alumni');
-            $table->decimal('ipk', 3, 2)->nullable()->comment('Indeks Prestasi Kumulatif');
-            $table->integer('sac_points')->nullable()->comment('Poin Student Activity Center');
+            // Profesional & Pekerjaan
+            $table->string('expert')->nullable()->comment('Keahlian Spesifik');
+            $table->string('minat')->nullable()->comment('Minat/Interest');
+            $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete()->comment('Perusahaan tempat bekerja');
+            $table->string('zipcode')->nullable()->comment('Kode Pos Wilayah Kerja');
             
             $table->timestamps();
         });

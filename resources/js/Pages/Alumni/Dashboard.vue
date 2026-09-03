@@ -267,6 +267,28 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <!-- Profil & Biodata Card -->
+                <div class="gsap-card bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-transparent to-blue-50 opacity-50"></div>
+                    
+                    <div class="relative z-10 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Data Profil</h3>
+                            <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 mb-6 flex-grow">Lengkapi Data Akademik dan Profil Profesional Anda agar kuesioner terisi lebih cepat (auto-fill).</p>
+                        
+                        <div class="mt-auto">
+                            <Link href="/alumni/profile" class="block w-full text-center px-4 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-600 hover:text-white transition-colors duration-300">
+                                Lengkapi Biodata
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Status Update Card -->
                 <div class="gsap-card bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-b from-transparent to-gray-50 opacity-50"></div>

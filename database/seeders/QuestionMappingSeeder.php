@@ -13,18 +13,18 @@ class QuestionMappingSeeder extends Seeder
     public function run(): void
     {
         $mappings = [
-            ['column_name' => 'F1', 'question_code' => 'F1'],
-            ['column_name' => 'F2A', 'question_code' => 'F2A'],
-            ['column_name' => 'F2B', 'question_code' => 'F2B'],
-            ['column_name' => 'F2C', 'question_code' => 'F2C'],
-            ['column_name' => 'F2D', 'question_code' => 'F2D'],
+            ['column_name' => 'nim', 'question_code' => 'F1'],
+            ['column_name' => 'nama', 'question_code' => 'F2A'],
+            ['column_name' => 'nomor_telepon', 'question_code' => 'F2B'],
+            ['column_name' => 'email', 'question_code' => 'F2C'],
+            ['column_name' => 'alamat_saat_ini', 'question_code' => 'F2D'],
         ];
 
         foreach ($mappings as $map) {
             $question = \App\Models\Question::where('code', $map['question_code'])->first();
             if ($question) {
                 \App\Models\QuestionMapping::updateOrCreate(
-                    ['table_name' => 'alumnis', 'column_name' => $map['column_name']],
+                    ['table_name' => 'data_akademiks', 'column_name' => $map['column_name']],
                     ['question_id' => $question->id]
                 );
             }

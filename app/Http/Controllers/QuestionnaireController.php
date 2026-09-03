@@ -21,9 +21,13 @@ class QuestionnaireController extends Controller
             abort(403, 'Profil Alumni tidak ditemukan.');
         }
 
-        // Ambil kuesioner aktif
+        // Ambil kuesioner aktif (Kecuali Section 1 yang dipindah ke Biodata)
         $questionnaire = Questionnaire::where('is_active', true)
-            ->with(['sections.questions.options'])
+            ->with(['sections' => function($query) {
+                $query->where('order', '>', 1)
+                      ->orderBy('order', 'asc')
+                      ->with('questions.options');
+            }])
             ->first();
 
         if (!$questionnaire) {
@@ -38,15 +42,61 @@ class QuestionnaireController extends Controller
             ->keyBy('question_id');
             
         // Ambil mapping untuk prefill otomatis dari database
-        $mappings = \App\Models\QuestionMapping::where('table_name', 'alumnis')
+        $mappings = \App\Models\QuestionMapping::whereIn('table_name', ['alumnis', 'data_akademiks'])
             ->get()
             ->keyBy('question_id');
 
+        // Merakit default jawaban di backend agar Vue murni sebagai UI
+        $initialAnswers = [];
+        if ($questionnaire) {
+            foreach ($questionnaire->sections as $section) {
+                foreach ($section->questions as $q) {
+                    if (isset($responses[$q->id])) {
+                        if (in_array($q->type, ['checkbox', 'matrix_dual', 'matrix', 'multiple_number'])) {
+                            $initialAnswers[$q->id] = $responses[$q->id]->answer_json ?? [];
+                        } else if (in_array($q->type, ['radio_input', 'radio_text'])) {
+                            $initialAnswers[$q->id] = $responses[$q->id]->answer_json ?? ['selected' => '', 'input' => ''];
+                        } else {
+                            $initialAnswers[$q->id] = $responses[$q->id]->answer_text ?? '';
+                        }
+                    } else {
+                        if ($q->type === 'checkbox') {
+                            $initialAnswers[$q->id] = [];
+                        } else if ($q->type === 'matrix_dual') {
+                            $obj = [];
+                            foreach ($q->options as $o) { $obj[$o->id] = ['A' => null, 'B' => null]; }
+                            $initialAnswers[$q->id] = $obj;
+                        } else if ($q->type === 'matrix') {
+                            $obj = [];
+                            foreach ($q->options as $o) { $obj[$o->id] = null; }
+                            $initialAnswers[$q->id] = $obj;
+                        } else if ($q->type === 'multiple_number') {
+                            $initialAnswers[$q->id] = (object)[]; 
+                        } else if (in_array($q->type, ['radio_input', 'radio_text'])) {
+                            $initialAnswers[$q->id] = ['selected' => '', 'input' => ''];
+                        } else {
+                            $initialAnswers[$q->id] = '';
+                            
+                            // Auto-fill dari database alumni atau data_akademiks jika ada mapping
+                            if (isset($mappings[$q->id])) {
+                                $colName = $mappings[$q->id]->column_name;
+                                $tableName = $mappings[$q->id]->table_name;
+                                if ($tableName === 'data_akademiks') {
+                                    $initialAnswers[$q->id] = $alumni->dataAkademik->$colName ?? '';
+                                } else {
+                                    $initialAnswers[$q->id] = $alumni->$colName ?? '';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return Inertia::render('alumni/kuesioner/index', [
             'questionnaire' => $questionnaire,
-            'responses' => $responses,
-            'alumniData' => $alumni,
-            'mappings' => $mappings
+            'initialAnswers' => $initialAnswers,
+            'error' => null
         ]);
     }
 
@@ -59,19 +109,22 @@ class QuestionnaireController extends Controller
         
         $questionIds = array_keys($answers);
         
-        // Ambil mapping kolom khusus untuk tabel alumnis
-        $mappings = \App\Models\QuestionMapping::where('table_name', 'alumnis')
+        // Ambil mapping kolom khusus untuk tabel alumnis dan data_akademiks
+        $mappings = \App\Models\QuestionMapping::whereIn('table_name', ['alumnis', 'data_akademiks'])
             ->whereIn('question_id', $questionIds)
             ->get()
             ->keyBy('question_id');
             
         $alumniUpdateData = [];
-        $fillableColumns = $alumni->getFillable();
+        $dataAkademikUpdateData = [];
+        
+        $alumniFillable = $alumni->getFillable();
+        $dataAkademikFillable = $alumni->dataAkademik ? $alumni->dataAkademik->getFillable() : (new \App\Models\DataAkademik)->getFillable();
 
         foreach ($answers as $questionId => $answer) {
             $isJson = is_array($answer) || is_object($answer);
             
-            Response::updateOrCreate(
+            \App\Models\Response::updateOrCreate(
                 ['alumni_id' => $alumni->id, 'question_id' => $questionId],
                 [
                     'answer_text' => $isJson ? null : $answer,
@@ -82,8 +135,11 @@ class QuestionnaireController extends Controller
             // Jika ada relasi mapping yang resmi tercatat di database, sinkronisasi datanya
             if (isset($mappings[$questionId]) && !$isJson) {
                 $column = $mappings[$questionId]->column_name;
-                // Double check keamanan (harus fillable di model)
-                if (in_array($column, $fillableColumns)) {
+                $table = $mappings[$questionId]->table_name;
+                
+                if ($table === 'data_akademiks' && in_array($column, $dataAkademikFillable)) {
+                    $dataAkademikUpdateData[$column] = $answer;
+                } else if ($table === 'alumnis' && in_array($column, $alumniFillable)) {
                     $alumniUpdateData[$column] = $answer;
                 }
             }
@@ -91,6 +147,13 @@ class QuestionnaireController extends Controller
 
         if (!empty($alumniUpdateData)) {
             $alumni->update($alumniUpdateData);
+        }
+        
+        if (!empty($dataAkademikUpdateData)) {
+            \App\Models\DataAkademik::updateOrCreate(
+                ['nim' => $alumni->nim],
+                $dataAkademikUpdateData
+            );
         }
 
         return redirect()->back()->with('success', 'Jawaban berhasil disimpan.');

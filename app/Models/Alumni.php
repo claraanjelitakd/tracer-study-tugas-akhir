@@ -16,16 +16,23 @@ class Alumni extends Model
      */
     protected $fillable = [
         'user_id',
+        'nim',
         'prodi_id',
-        'angkatan',
-        'F1',
-        'F2A',
-        'F2B',
-        'F2C',
-        'F2D',
-        'ipk',
-        'tanggal_lahir',
-        'sac_points',
+        // Data Akademik Tambahan dipindah ke tabel data_akademiks
+        
+        // Data Akademik Tambahan dipindah ke tabel data_akademiks
+        
+        // Sosial Media
+        'instagram_url',
+        'facebook_url',
+        'linkedin_url',
+        'linkedin_username',
+        
+        // Profesional & Pekerjaan
+        'expert',
+        'minat',
+        'company_id',
+        'zipcode',
     ];
 
     /**
@@ -62,5 +69,21 @@ class Alumni extends Model
             ];
         }
         return null;
+    }
+
+    /**
+     * Relasi ke DataAkademik (menggunakan NIM)
+     */
+    public function dataAkademik()
+    {
+        return $this->belongsTo(DataAkademik::class, 'nim', 'nim');
+    }
+
+    /**
+     * Relasi ke Company (Perusahaan)
+     */
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 }

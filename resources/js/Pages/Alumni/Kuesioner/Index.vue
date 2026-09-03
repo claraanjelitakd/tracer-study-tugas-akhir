@@ -8,9 +8,7 @@ import gsap from 'gsap';
 // Mendefinisikan properti yang diterima dari controller (Inertia)
 const props = defineProps({
     questionnaire: Object,   // Data kuesioner aktif (judul, seksi, pertanyaan)
-    responses: Object,       // Jawaban yang sudah pernah disimpan (jika ada)
-    alumniData: Object,      // Data profil alumni (untuk pre-fill otomatis)
-    mappings: Object,        // Pemetaan pertanyaan ke kolom tabel alumni (contoh: pertanyaan NAMA -> kolom name)
+    initialAnswers: Object,  // Jawaban yang sudah dirakit 100% oleh backend
     error: String,           // Pesan error jika kuesioner tidak valid
 });
 
@@ -21,57 +19,8 @@ const activeSectionIndex = ref(0);
 const showPointsAnimation = ref(false);
 const earnedPoints = ref(''); // Berisi teks pujian seperti "MANTAP!", "HEBAT!"
 
-// Mempersiapkan kerangka awal form (State)
-const initialFormState = { answers: {} };
-
-// Jika ada kuesioner, kita loop semua pertanyaan untuk menyiapkan data jawaban default
-if (props.questionnaire) {
-    props.questionnaire.sections.forEach(section => {
-        section.questions.forEach(q => {
-            // Jika jawaban sudah ada di database, kita gunakan jawaban tersebut
-            if (props.responses && props.responses[q.id]) {
-                if (q.type === 'checkbox' || q.type === 'matrix_dual' || q.type === 'matrix' || q.type === 'multiple_number') {
-                    // Tipe kompleks (array/objek) disimpan dalam bentuk JSON di database
-                    initialFormState.answers[q.id] = props.responses[q.id].answer_json || [];
-                } else if (q.type === 'radio_input' || q.type === 'radio_text') {
-                    // Tipe radio dengan input teks tambahan
-                    initialFormState.answers[q.id] = props.responses[q.id].answer_json || { selected: '', input: '' };
-                } else {
-                    // Tipe teks biasa
-                    initialFormState.answers[q.id] = props.responses[q.id].answer_text || '';
-                }
-            } else {
-                // Jika belum ada jawaban, kita siapkan struktur kosong sesuai tipenya
-                if (q.type === 'checkbox') {
-                    initialFormState.answers[q.id] = [];
-                } else if (q.type === 'matrix_dual') {
-                    let obj = {};
-                    q.options.forEach(o => { obj[o.id] = { A: null, B: null }; });
-                    initialFormState.answers[q.id] = obj;
-                } else if (q.type === 'matrix') {
-                    let obj = {};
-                    q.options.forEach(o => { obj[o.id] = null; });
-                    initialFormState.answers[q.id] = obj;
-                } else if (q.type === 'multiple_number') {
-                    initialFormState.answers[q.id] = {}; // Format: { 'utama': val, 'lembur': val, 'lainnya': val }
-                } else if (q.type === 'radio_input' || q.type === 'radio_text') {
-                    initialFormState.answers[q.id] = { selected: '', input: '' };
-                } else {
-                    initialFormState.answers[q.id] = '';
-                    
-                    // Fitur otomatis mengisi Identitas berdasarkan data Alumni yang login
-                    if (props.mappings && props.mappings[q.id]) {
-                        const colName = props.mappings[q.id].column_name;
-                        initialFormState.answers[q.id] = props.alumniData?.[colName] || '';
-                    }
-                }
-            }
-        });
-    });
-}
-
-// Inisialisasi useForm Inertia untuk mengirim request AJAX ke server
-const form = useForm(initialFormState);
+// Inisialisasi useForm Inertia dengan data murni dari backend
+const form = useForm({ answers: props.initialAnswers || {} });
 
 // Computed property untuk mendapatkan objek seksi (tahap) yang sedang aktif
 const currentSection = computed(() => {

@@ -39,6 +39,10 @@ Route::middleware('auth')->group(function () {
             });
             Route::get('/alumni/kuesioner', [\App\Http\Controllers\QuestionnaireController::class, 'index']);
             Route::post('/alumni/kuesioner', [\App\Http\Controllers\QuestionnaireController::class, 'saveSection']);
+            
+            // Profile & Biodata Alumni
+            Route::get('/alumni/profile', [\App\Http\Controllers\AlumniProfileController::class, 'edit'])->name('alumni.profile');
+            Route::post('/alumni/profile', [\App\Http\Controllers\AlumniProfileController::class, 'update']);
         });
         
         // Dashboard Admin Biro 3
