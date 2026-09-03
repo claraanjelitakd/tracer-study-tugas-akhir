@@ -27,7 +27,7 @@ class QuestionnaireController extends Controller
             ->first();
 
         if (!$questionnaire) {
-            return Inertia::render('Alumni/Kuesioner/Index', [
+            return Inertia::render('alumni/kuesioner/index', [
                 'error' => 'Tidak ada kuesioner aktif saat ini.'
             ]);
         }
@@ -42,7 +42,7 @@ class QuestionnaireController extends Controller
             ->get()
             ->keyBy('question_id');
 
-        return Inertia::render('Alumni/Kuesioner/Index', [
+        return Inertia::render('alumni/kuesioner/index', [
             'questionnaire' => $questionnaire,
             'responses' => $responses,
             'alumniData' => $alumni,

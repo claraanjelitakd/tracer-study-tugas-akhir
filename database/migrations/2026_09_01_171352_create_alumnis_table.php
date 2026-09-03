@@ -18,6 +18,10 @@ return new class extends Migration
             // F1: Nomor Mahasiswa / NIM (Primary identifier for alumni)
             $table->string('F1')->unique()->comment('Nomor Mahasiswa / NIM');
             
+            // Relasi ke Master Prodi & Kolom Angkatan
+            $table->foreignId('prodi_id')->nullable()->constrained('prodis')->nullOnDelete();
+            $table->year('angkatan')->nullable()->comment('Tahun Angkatan');
+            
             // F2A: Nama Mahasiswa
             $table->string('F2A')->comment('Nama Mahasiswa');
             

@@ -5,7 +5,7 @@ import { Link } from '@inertiajs/vue3';
 <template>
     <!-- Tambahkan pt-40 untuk memberi ruang bagi card yang overlap dari atas -->
     <section class="py-24 pt-40 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 gsap-fade-up">
             <div class="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start">
                 
                 <!-- Kiri: Thumbnails Video -->
