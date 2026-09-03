@@ -70,9 +70,16 @@ class SimpanProfilController extends Controller
             );
         }
 
-        // 4. Tangani Perusahaan (Company)
+        // =========================================================================================
+        // 4. TANGANI PERUSAHAAN (COMPANY)
+        // =========================================================================================
         $idPerusahaan = $alumni->company_id;
+        
+        // Cek apakah alumni mengisi nama perusahaan pada FormKarier
         if (!empty($dataTervalidasi['nama_perusahaan'])) {
+            // Gunakan firstOrCreate untuk mencari perusahaan berdasarkan nama.
+            // Jika nama perusahaan sudah ada (dibuat admin atau alumni lain), maka akan me-return ID nya.
+            // Jika belum ada, sistem akan membuat data perusahaan baru (dengan status default 'Menunggu Verifikasi')
             $perusahaan = Company::firstOrCreate(
                 ['nama_perusahaan' => $dataTervalidasi['nama_perusahaan']],
                 [
@@ -97,7 +104,9 @@ class SimpanProfilController extends Controller
             $idAtasan = $atasan->id;
         }
 
-        // 6. Simpan data sosial media & profesional ke tabel alumnis
+        // =========================================================================================
+        // 5. UPDATE PROFIL ALUMNI UTAMA
+        // =========================================================================================
         $alumni->update([
             'instagram_url' => $dataTervalidasi['instagram_url'],
             'facebook_url' => $dataTervalidasi['facebook_url'],

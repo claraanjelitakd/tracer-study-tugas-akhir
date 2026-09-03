@@ -11,13 +11,15 @@ const props = defineProps({
 const inputClass = "block w-full border-gray-200 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm focus:border-[#005B3C] focus:ring focus:ring-[#005B3C]/20 px-4 py-3.5 text-gray-800 font-medium transition-all duration-300 hover:border-gray-300";
 const labelClass = "block text-sm font-bold text-gray-700 mb-2 ml-1";
 
-// Autocomplete Logic
-const searchResults = ref([]);
-const showDropdown = ref(false);
-const isSearching = ref(false);
-const companyStatus = ref(props.form.company_status_verifikasi || null); // 'Menunggu Verifikasi', 'Terverifikasi'
+// ============================================================================
+// LOGIKA AUTOCOMPLETE PERUSAHAAN
+// ============================================================================
+const searchResults = ref([]);      // Menyimpan hasil pencarian dari API
+const showDropdown = ref(false);    // Mengontrol visibilitas UI dropdown list
+const isSearching = ref(false);     // State untuk menampilkan spinner loading
+const companyStatus = ref(props.form.company_status_verifikasi || null); // State lencana verifikasi (Terverifikasi/Menunggu Verifikasi/Ditolak)
 
-let searchTimeout;
+let searchTimeout;                  // Variabel untuk debouncing (mencegah spam API)
 
 const onSearchCompany = () => {
     clearTimeout(searchTimeout);
