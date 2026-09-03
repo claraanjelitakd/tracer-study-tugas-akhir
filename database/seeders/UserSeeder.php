@@ -38,17 +38,19 @@ class UserSeeder extends Seeder
             $randomProdi = $prodiList->random();
             $angkatanKode = str_pad(rand(20, 24), 2, '0', STR_PAD_LEFT);
             $nomorUrut = str_pad($i, 4, '0', STR_PAD_LEFT);
-            $nim = $randomProdi->kode_prodi . $angkatanKode . $nomorUrut;
-            $passwordAlumni = Hash::make('01012001');
+            $nim = $randomProdi->kode_prodi . '1' . $angkatanKode . $nomorUrut;
 
+            // Password format DDMMYYYY
+            $tglLahir = '15082001';
+            
             User::updateOrCreate(
                 ['username' => $nim],
                 [
-                    'name' => 'Alumni ' . $randomProdi->nama_prodi . ' ' . $i,
-                    'password' => $passwordAlumni,
+                    'name' => null, // Dikosongkan agar tidak reduksi dengan DataAkademik
+                    'email' => null, // Dikosongkan, pakai email_pribadi di DataAkademik
+                    'password' => Hash::make($tglLahir),
                     'role' => 'alumni',
                     'must_change_password' => true,
-                    'email' => 'alumni' . $i . '@example.com',
                 ]
             );
         }

@@ -41,8 +41,8 @@ return new class extends Migration
             $table->string('no_bpjs', 30)->nullable()->comment('Nomor BPJS Kesehatan');
 
             // Data Kelulusan Akademik
-            $table->string('judul_ta')->nullable();
             $table->enum('status_mahasiswa', ['Tidak Aktif', 'Aktif', 'Lulus'])->default('Lulus');
+            $table->string('tahun_akademik_lulus')->nullable()->comment('Periode lulus, contoh: Gasal 2026/2027');
             $table->year('tahun_lulus')->nullable();
             $table->decimal('ipk', 3, 2)->nullable()->comment('Indeks Prestasi Kumulatif');
             $table->integer('total_sks')->nullable();

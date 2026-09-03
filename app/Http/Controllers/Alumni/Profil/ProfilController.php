@@ -1,26 +1,38 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Alumni\Profil;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Province;
 use App\Models\Kabupaten;
 use App\Models\Company;
 use App\Models\DataAkademik;
+use App\Models\DataOrangTua;
 
-class AlumniProfileController extends Controller
+/**
+ * ProfilController
+ * 
+ * Fungsi: Mengelola halaman pengisian profil alumni (biodata diri, data akademik, dan orang tua).
+ * Tujuan: Menyediakan antarmuka bagi alumni untuk memperbarui data pribadi dan pekerjaan mereka.
+ */
+class ProfilController extends Controller
 {
-    public function edit(Request $request)
+    /**
+     * Menampilkan Halaman Profil
+     */
+    public function tampilkanHalamanProfil(Request $request)
     {
-        $user = $request->user();
-        $alumni = $user->alumni()->with(['prodi', 'company', 'company.province', 'company.kabupaten', 'dataAkademik'])->first();
+        $pengguna = $request->user();
+        $alumni = $pengguna->alumni()->with(['prodi', 'company', 'company.province', 'company.kabupaten', 'dataAkademik.yudisium', 'dataAkademik.orangTua'])->first();
         
-        $provinces = Province::all();
-        $kabupatens = Kabupaten::all();
+        $provinsi = Province::all();
+        $kabupaten = Kabupaten::all();
         
         $dataAkademik = clone $alumni?->dataAkademik;
         $orangTua = clone $alumni?->dataAkademik?->orangTua;
+        $yudisium = clone $alumni?->dataAkademik?->yudisium;
 
         // Merakit formData murni di backend agar frontend Vue tidak perlu logika inisialisasi / pengecekan manual
         $formData = [
@@ -49,12 +61,29 @@ class AlumniProfileController extends Controller
             'email_students' => $dataAkademik?->email_students ?? '',
             
             // Data Akademik Utama
-            'judul_ta' => $dataAkademik?->judul_ta ?? '',
+            'angkatan_masuk' => $dataAkademik?->angkatan_masuk ?? '',
             'status_mahasiswa' => $dataAkademik?->status_mahasiswa ?? 'Lulus',
+            'tahun_akademik_lulus' => $dataAkademik?->tahun_akademik_lulus ?? '',
             'tahun_lulus' => $dataAkademik?->tahun_lulus ?? '',
             'ipk' => $dataAkademik?->ipk ?? '',
             'total_sks' => $dataAkademik?->total_sks ?? '',
             'total_angka_kualitas' => $dataAkademik?->total_angka_kualitas ?? '',
+            
+            // Yudisium (Skripsi & Dosen)
+            'judul_ta' => $yudisium?->judul_ta ?? '',
+            'judul_ta_inggris' => $yudisium?->judul_ta_inggris ?? '',
+            'dosen_pembimbing_1' => $yudisium?->dosen_pembimbing_1 ?? '',
+            'dosen_pembimbing_2' => $yudisium?->dosen_pembimbing_2 ?? '',
+            'dosen_pembimbing_3' => $yudisium?->dosen_pembimbing_3 ?? '',
+            'dosen_penguji_1' => $yudisium?->dosen_penguji_1 ?? '',
+            'dosen_penguji_2' => $yudisium?->dosen_penguji_2 ?? '',
+            'dosen_penguji_3' => $yudisium?->dosen_penguji_3 ?? '',
+            'dosen_penguji_4' => $yudisium?->dosen_penguji_4 ?? '',
+            'url_publikasi' => $yudisium?->url_publikasi ?? '',
+            'jenis_publikasi' => $yudisium?->jenis_publikasi ?? '',
+            'status_publikasi' => $yudisium?->status_publikasi ?? '',
+            'keterangan_hasil_yudisium' => $yudisium?->keterangan_hasil_yudisium ?? '',
+            'proses_yudisium' => $yudisium?->proses_yudisium ?? '',
             
             // Data Orang Tua
             'nama_orang_tua' => $orangTua?->nama_orang_tua ?? '',
@@ -81,81 +110,12 @@ class AlumniProfileController extends Controller
             'company_kabupaten_id' => $alumni?->company?->kabupaten_id ?? '',
         ];
         
-        return Inertia::render('alumni/profile/index', [
+        return Inertia::render('Alumni/Profil/Index', [
             'alumniData' => $alumni,
             'formData' => $formData,
-            'provinces' => $provinces,
-            'kabupatens' => $kabupatens,
+            'provinces' => $provinsi,
+            'kabupatens' => $kabupaten,
         ]);
-    }
-
-    public function update(Request $request)
-    {
-        $user = $request->user();
-        $alumni = $user->alumni;
-
-        // Validasi belum mencakup semua, untuk saat ini dibebaskan karena jumlahnya masif
-        // Idealnya tiap step di-validasi
-        $validated = $request->all();
-
-        // 1. Simpan ke Data Akademik (tabel terpisah, dihubungkan via NIM/F1)
-        $dataAkademik = \App\Models\DataAkademik::firstOrCreate(
-            ['nim' => $alumni->nim],
-            [
-                'nama' => $user->name,
-                'email_students' => $user->email,
-            ]
-        );
-        
-        // Filter out fields that belong to DataAkademik
-        $akademikData = array_intersect_key($validated, array_flip((new \App\Models\DataAkademik)->getFillable()));
-        if (!empty($akademikData)) {
-            $dataAkademik->update($akademikData);
-        }
-        
-        // 1b. Simpan Data Orang Tua
-        $orangTuaData = [
-            'nama_orang_tua' => $validated['nama_orang_tua'] ?? null,
-            'pekerjaan' => $validated['pekerjaan_orang_tua'] ?? null,
-            'alamat' => $validated['alamat_orang_tua'] ?? null,
-            'kota' => $validated['kota_orang_tua'] ?? null,
-            'kabupaten_id' => $validated['kabupaten_id_orang_tua'] ?? null,
-            'provinsi_id' => $validated['provinsi_id_orang_tua'] ?? null,
-            'kode_pos' => $validated['kode_pos_orang_tua'] ?? null,
-            'nomor_telepon' => $validated['nomor_telepon_orang_tua'] ?? null,
-        ];
-        if (array_filter($orangTuaData)) {
-            \App\Models\DataOrangTua::updateOrCreate(
-                ['nim' => $alumni->nim],
-                $orangTuaData
-            );
-        }
-
-        // 2. Tangani Perusahaan (Company)
-        $companyId = $alumni->company_id;
-        if (!empty($validated['nama_perusahaan'])) {
-            $company = Company::firstOrCreate(
-                ['nama_perusahaan' => $validated['nama_perusahaan']],
-                [
-                    'province_id' => $validated['company_province_id'] ?? null,
-                    'kabupaten_id' => $validated['company_kabupaten_id'] ?? null,
-                ]
-            );
-            $companyId = $company->id;
-        }
-
-        // 3. Simpan data sosial media & profesional ke tabel alumnis
-        $alumni->update([
-            'instagram_url' => $validated['instagram_url'],
-            'facebook_url' => $validated['facebook_url'],
-            'linkedin_url' => $validated['linkedin_url'],
-            'linkedin_username' => $validated['linkedin_username'],
-            'expert' => $validated['expert'],
-            'minat' => $validated['minat'],
-            'zipcode' => $validated['zipcode'],
-            'company_id' => $companyId,
-        ]);
-
-        return redirect()->back()->with('success', 'Profil dan Data Akademik berhasil diperbarui.');
     }
 }
+

@@ -1,63 +1,69 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\AuthController;
 
-// Landing Page
-Route::get('/', function () {
-    return Inertia::render('landing');
-});
+// =========================================================================
+// Rute Tamu (Guest)
+// =========================================================================
+Route::get('/', [\App\Http\Controllers\Tamu\BerandaController::class, 'tampilkanBeranda']);
 
-// Guest Routes
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/login', [\App\Http\Controllers\Otentikasi\LoginController::class, 'tampilkanHalamanLogin'])->name('login');
+    Route::post('/login', [\App\Http\Controllers\Otentikasi\LoginController::class, 'prosesLogin']);
 });
 
-// Authenticated Routes
+// =========================================================================
+// Rute Terotentikasi (Authenticated)
+// =========================================================================
 Route::middleware('auth')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/logout', [\App\Http\Controllers\Otentikasi\LoginController::class, 'prosesLogout'])->name('logout');
     
-    // Change password routes (diizinkan saat must_change_password = true)
-    Route::get('/change-password', [AuthController::class, 'showChangePassword'])->name('change-password');
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    // Ganti kata sandi wajib
+    Route::get('/change-password', [\App\Http\Controllers\Otentikasi\UbahKataSandiController::class, 'tampilkanUbahKataSandi'])->name('change-password');
+    Route::post('/change-password', [\App\Http\Controllers\Otentikasi\UbahKataSandiController::class, 'prosesUbahKataSandi']);
 
-    // Protected dashboard routes
-    // Harus sudah mengganti password jika disyaratkan
+    // Rute yang mengharuskan password bawaan sudah diganti
     Route::middleware('must_change_password')->group(function () {
         
-        // Dashboard Alumni
+        // -----------------------------------------------------------------
+        // Rute Alumni
+        // -----------------------------------------------------------------
         Route::middleware('role:alumni')->group(function () {
-            Route::get('/alumni/dashboard', function () {
-                $alumni = \App\Models\Alumni::where('user_id', auth()->id())->first();
-                $responsesCount = $alumni ? \App\Models\Response::where('alumni_id', $alumni->id)->count() : 0;
-                return Inertia::render('alumni/dashboard', [
-                    'alumni' => $alumni,
-                    'responsesCount' => $responsesCount,
-                ]);
-            });
-            Route::get('/alumni/kuesioner', [\App\Http\Controllers\QuestionnaireController::class, 'index']);
-            Route::post('/alumni/kuesioner', [\App\Http\Controllers\QuestionnaireController::class, 'saveSection']);
+            // Dashboard
+            Route::get('/alumni/dashboard', [\App\Http\Controllers\Alumni\Dashboard\DashboardController::class, 'tampilkanDashboard']);
             
-            // Profile & Biodata Alumni
-            Route::get('/alumni/profile', [\App\Http\Controllers\AlumniProfileController::class, 'edit'])->name('alumni.profile');
-            Route::post('/alumni/profile', [\App\Http\Controllers\AlumniProfileController::class, 'update']);
+            // Profil
+            Route::get('/alumni/profile', [\App\Http\Controllers\Alumni\Profil\ProfilController::class, 'tampilkanHalamanProfil'])->name('alumni.profile');
+            Route::post('/alumni/profile', [\App\Http\Controllers\Alumni\Profil\SimpanProfilController::class, 'simpanPerubahanProfil']);
+            
+            // Kuesioner
+            Route::get('/alumni/kuesioner', [\App\Http\Controllers\Alumni\Kuesioner\KuesionerController::class, 'tampilkanKuesioner']);
+            Route::post('/alumni/kuesioner', [\App\Http\Controllers\Alumni\Kuesioner\SimpanJawabanController::class, 'simpanJawabanKuesioner']);
         });
         
-        // Dashboard Admin Biro 3
-        Route::middleware('role:admin_biro3')->get('/biro3/dashboard', function () {
-            return Inertia::render('biro3/dashboard');
+        // -----------------------------------------------------------------
+        // Rute Admin Biro 3
+        // -----------------------------------------------------------------
+        Route::middleware('role:admin_biro3')->group(function () {
+            // Kelola Alumni & Sinkronisasi
+            Route::get('/biro3/alumni', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DaftarAlumniController::class, 'tampilkanDaftarAlumni'])->name('biro3.alumni.index');
+            Route::get('/biro3/alumni/{id}', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DetailAlumniController::class, 'tampilkanDetailAlumni'])->name('biro3.alumni.show');
+            Route::post('/biro3/alumni/{id}/sync-linkedin', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController::class, 'sinkronisasiDataLinkedin'])->name('biro3.alumni.sync');
+            Route::post('/biro3/alumni/{id}/save-linkedin', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController::class, 'simpanDataLinkedin'])->name('biro3.alumni.save');
         });
         
-        // Dashboard Admin Prodi
-        Route::middleware('role:admin_prodi')->get('/prodi/dashboard', function () {
-            return Inertia::render('prodi/dashboard');
+        // -----------------------------------------------------------------
+        // Rute Admin Prodi
+        // -----------------------------------------------------------------
+        Route::middleware('role:admin_prodi')->group(function () {
+            Route::get('/prodi/dashboard', [\App\Http\Controllers\AdminProdi\Dashboard\DashboardController::class, 'tampilkanDashboard']);
         });
         
-        // Dashboard Superadmin
-        Route::middleware('role:superadmin')->get('/superadmin/dashboard', function () {
-            return Inertia::render('superadmin/dashboard');
+        // -----------------------------------------------------------------
+        // Rute Superadmin
+        // -----------------------------------------------------------------
+        Route::middleware('role:superadmin')->group(function () {
+            Route::get('/superadmin/dashboard', [\App\Http\Controllers\SuperAdmin\Dashboard\DashboardController::class, 'tampilkanDashboard']);
         });
         
     });

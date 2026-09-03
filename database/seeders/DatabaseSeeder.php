@@ -56,6 +56,7 @@ class DatabaseSeeder extends Seeder
             DataAkademikSeeder::class,
             AlumniSeeder::class,
             DataOrangTuaSeeder::class,
+            YudisiumSeeder::class,
         ]);
 
         // 4. Seed Questionnaire Data

@@ -1,19 +1,20 @@
 <template>
     <transition name="fade">
-        <div v-if="isLoading" class="fixed inset-0 z-[100] flex items-center justify-center bg-white">
-            <div class="flex flex-col sm:flex-row items-center gap-6 p-8">
-                <!-- Gambar Pigo -->
-                <div class="relative w-32 h-32 sm:w-40 sm:h-40 shrink-0">
-                    <img src="/uploads/landing/1.png" alt="Pigo Mascot" class="w-full h-full object-contain mix-blend-multiply animate-pulse-slow drop-shadow-xl" />
-                </div>
+        <div v-if="isLoading" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 transition-opacity">
+            <div class="bg-white py-4 px-6 rounded-xl shadow-2xl flex items-center space-x-5 animate-bounce-short">
                 
-                <!-- Spinner & Text -->
-                <div class="flex flex-col items-center sm:items-start gap-3">
-                    <div class="flex items-center gap-4">
-                        <div class="w-8 h-8 rounded-full border-4 border-gray-200 border-t-purple-600 animate-spin"></div>
-                        <h2 class="text-2xl font-bold text-gray-800 tracking-wider">Memuat...</h2>
-                    </div>
-                    <p class="text-gray-500 text-sm">Menyiapkan Tracer Study UKDW</p>
+                <!-- Pigo Mascot dengan Spinner mengelilinginya -->
+                <div class="relative flex items-center justify-center w-12 h-12 shrink-0">
+                    <svg class="absolute inset-0 w-full h-full text-gray-100 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-100" cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2"></circle>
+                        <path class="opacity-100 text-[#005B3C]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 1A11 11 0 001 12"></path>
+                    </svg>
+                    <img src="/uploads/landing/2.png" alt="Pigo Mascot" class="w-8 h-8 object-contain z-10 animate-pulse" onerror="this.src='/uploads/landing/3.png'" />
+                </div>
+
+                <div class="flex flex-col">
+                    <span class="text-gray-900 font-bold text-base">Memproses...</span>
+                    <span class="text-gray-500 text-xs font-medium">Harap tunggu sebentar...</span>
                 </div>
             </div>
         </div>
@@ -53,5 +54,17 @@ const props = defineProps({
         opacity: .8;
         transform: scale(0.95);
     }
+}
+</style>
+
+<style scoped>
+/* Animasi ringan untuk popup */
+.animate-bounce-short {
+    animation: bounce-short 0.3s ease-out 1;
+}
+@keyframes bounce-short {
+    0% { transform: translateY(20px); opacity: 0; }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); opacity: 1; }
 }
 </style>

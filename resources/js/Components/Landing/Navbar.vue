@@ -3,6 +3,16 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const isOpen = ref(false);
+
+const getDashboardUrl = (role) => {
+    switch(role) {
+        case 'superadmin': return '/superadmin/dashboard';
+        case 'admin_biro3': return '/biro3/alumni';
+        case 'admin_prodi': return '/prodi/dashboard';
+        case 'alumni': return '/alumni/dashboard';
+        default: return '/';
+    }
+};
 </script>
 
 <template>
@@ -35,7 +45,7 @@ const isOpen = ref(false);
                     </Link>
                     <Link
                         v-else
-                        href="/login"
+                        :href="getDashboardUrl($page.props.auth.user.role)"
                         class="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 active:scale-95"
                     >
                         Dashboard
@@ -71,7 +81,7 @@ const isOpen = ref(false);
                 </Link>
                 <Link
                     v-else
-                    href="/login"
+                    :href="getDashboardUrl($page.props.auth.user.role)"
                     class="block w-full text-center mt-4 bg-green-600 text-white px-3 py-2 rounded-md text-base font-medium hover:bg-green-700"
                 >
                     Dashboard

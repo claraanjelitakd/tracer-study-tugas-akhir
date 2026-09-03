@@ -39,4 +39,26 @@ class User extends Authenticatable
     {
         return $this->hasOne(Alumni::class);
     }
+
+    /**
+     * Accessor untuk nama pengguna
+     */
+    public function getNameAttribute($value)
+    {
+        if ($this->role === 'alumni' && $this->alumni && $this->alumni->dataAkademik) {
+            return $this->alumni->dataAkademik->nama;
+        }
+        return $value;
+    }
+
+    /**
+     * Accessor untuk email pengguna
+     */
+    public function getEmailAttribute($value)
+    {
+        if ($this->role === 'alumni' && $this->alumni && $this->alumni->dataAkademik) {
+            return $this->alumni->dataAkademik->email_pribadi;
+        }
+        return $value;
+    }
 }

@@ -17,7 +17,7 @@ import { Link } from '@inertiajs/vue3';
             </p>
             
             <Link
-                href="/login"
+                href="/alumni/kuesioner"
                 class="inline-flex justify-center items-center px-8 py-4 border border-transparent text-lg font-bold rounded-xl text-green-900 bg-yellow-400 hover:bg-yellow-300 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all duration-300"
             >
                 Mulai Tracer Study Sekarang

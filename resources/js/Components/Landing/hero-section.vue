@@ -95,7 +95,9 @@ const handleSearch = () => {
                             <p class="text-gray-200 mb-8 text-sm leading-relaxed">
                                 Ditujukan kepada seluruh alumni UKDW dalam rentang waktu 1-2 tahun setelah lulus guna mengevaluasi proses pendidikan.
                             </p>
-                            <a href="/login" class="inline-flex items-center justify-center w-full py-3 px-4 rounded-xl bg-yellow-400/10 text-yellow-400 font-semibold border border-yellow-400/30 hover:bg-yellow-400 hover:text-gray-900 transition-all duration-300">
+                            <!-- bukannya harusnya ke login ya? terus kalau href ke alumni kuesioner gimana alumni yang belum login -->
+                            
+                            <a href="/alumni/kuesioner" class="inline-flex items-center justify-center w-full py-3 px-4 rounded-xl bg-yellow-400/10 text-yellow-400 font-semibold border border-yellow-400/30 hover:bg-yellow-400 hover:text-gray-900 transition-all duration-300"> 
                                 Selengkapnya 
                                 <svg class="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </a>

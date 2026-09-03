@@ -32,8 +32,8 @@ class DataAkademik extends Model
         'no_kk',
         'nisn',
         'no_bpjs',
-        'judul_ta',
         'status_mahasiswa',
+        'tahun_akademik_lulus',
         'tahun_lulus',
         'ipk',
         'total_sks',
@@ -46,6 +46,11 @@ class DataAkademik extends Model
     public function alumni()
     {
         return $this->hasOne(Alumni::class, 'nim', 'nim');
+    }
+
+    public function yudisium()
+    {
+        return $this->hasOne(Yudisium::class, 'nim', 'nim');
     }
     
     /**
