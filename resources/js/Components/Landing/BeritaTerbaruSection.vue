@@ -30,7 +30,7 @@ const beritaData = [
 
 <template>
     <section class="py-20 bg-white border-t border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 gsap-fade-up">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
                 <div class="max-w-2xl">
                     <h2 class="text-3xl font-black text-gray-900 sm:text-4xl uppercase tracking-tight">Berita Terbaru</h2>
