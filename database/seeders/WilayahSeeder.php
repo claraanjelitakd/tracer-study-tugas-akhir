@@ -1,0 +1,77 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\Province;
+use App\Models\Kabupaten;
+use Illuminate\Support\Facades\DB;
+
+class WilayahSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // 1. Data Provinsi sudah masuk, jangan diubah
+        $this->command->info('Melewati proses seeding Provinsi sesuai instruksi...');
+
+        // 2. Load semua provinsi ke memory agar tidak query berulang-ulang
+        $provinces = Province::whereNotNull('kode_provinsi')->get()->keyBy('kode_provinsi');
+        $this->command->info('Berhasil memuat ' . $provinces->count() . ' provinsi dari database.');
+
+        // 3. Impor Data Kabupaten/Kota
+        $kabupatenCsvFile = base_path('kabupaten_kota.csv');
+        if (file_exists($kabupatenCsvFile)) {
+            $kabupatenData = array_map('str_getcsv', file($kabupatenCsvFile));
+            // Hapus header
+            $headerKabupaten = array_shift($kabupatenData);
+
+            $this->command->info('Mulai memasukkan ' . count($kabupatenData) . ' data kabupaten/kota...');
+            
+            $inserted = 0;
+            $updated = 0;
+
+            // Kita proses satu per satu agar updateOrCreate berjalan aman tanpa duplicate
+            foreach ($kabupatenData as $row) {
+                if (count($row) >= 2) {
+                    $kodeKabupaten = $row[0]; // contoh: "11.01"
+                    $namaKabupaten = $row[1]; // contoh: "Aceh Selatan"
+
+                    // Ekstrak kode provinsi
+                    $kodeProvinsiArr = explode('.', $kodeKabupaten);
+                    $kodeProvinsi = $kodeProvinsiArr[0]; // contoh: "11"
+
+                    // Ambil dari collection yang sudah di-load di memory (Sangat Cepat)
+                    $provinsi = $provinces->get($kodeProvinsi);
+
+                    if ($provinsi) {
+                        $kab = Kabupaten::where('kode_kabupaten', $kodeKabupaten)->first();
+                        if (!$kab) {
+                            Kabupaten::create([
+                                'kode_kabupaten' => $kodeKabupaten,
+                                'province_id' => $provinsi->id,
+                                'nama_kabupaten' => $namaKabupaten
+                            ]);
+                            $inserted++;
+                        } else {
+                            $kab->update([
+                                'province_id' => $provinsi->id,
+                                'nama_kabupaten' => $namaKabupaten
+                            ]);
+                            $updated++;
+                        }
+                    }
+                }
+            }
+
+            $this->command->info("Selesai! $inserted kabupaten baru ditambahkan, $updated kabupaten diperbarui.");
+            $total = Kabupaten::count();
+            $this->command->info("Total keseluruhan kabupaten di database sekarang: $total");
+            
+        } else {
+            $this->command->error('File kabupaten_kota.csv tidak ditemukan di direktori root!');
+        }
+    }
+}
