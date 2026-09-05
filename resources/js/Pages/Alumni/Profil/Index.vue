@@ -17,6 +17,7 @@ const props = defineProps({
     formData: Object,
     provinces: Array,
     kabupatens: Array,
+    companies: Array,
 });
 
 const page = usePage();
@@ -138,7 +139,7 @@ const submit = () => {
                     </div>
                     
                     <div v-show="activeTab === 'karier'">
-                        <FormKarier :form="form" :provinces="provinces" :kabupatens="kabupatens" />
+                        <FormKarier v-show="activeTab === 'karier'" :form="form" :provinces="provinces" :kabupatens="kabupatens" :companies="companies" />
                     </div>
                 </div>
 

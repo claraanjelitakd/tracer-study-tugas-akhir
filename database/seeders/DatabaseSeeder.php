@@ -41,15 +41,9 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // Seed Dummy Province & Kabupaten
-        $provinsi = \App\Models\Province::updateOrCreate(
-            ['id' => 1],
-            ['nama_provinsi' => 'DI Yogyakarta']
-        );
-        \App\Models\Kabupaten::updateOrCreate(
-            ['id' => 1],
-            ['province_id' => $provinsi->id, 'nama_kabupaten' => 'Sleman']
-        );
+        $this->call([
+            WilayahSeeder::class,
+        ]);
 
         $this->call([
             UserSeeder::class,
@@ -57,6 +51,7 @@ class DatabaseSeeder extends Seeder
             AlumniSeeder::class,
             DataOrangTuaSeeder::class,
             YudisiumSeeder::class,
+            CompanySeeder::class,
         ]);
 
         // 4. Seed Questionnaire Data

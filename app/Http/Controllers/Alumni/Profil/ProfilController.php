@@ -116,12 +116,15 @@ class ProfilController extends Controller
             'telepon_atasan' => $atasan?->telepon ?? '',
         ];
         
-        return Inertia::render('Alumni/Profil/Index', [
+        // Get all companies for Autocomplete (id, name, province_id, kabupaten_id, status_verifikasi)
+        $companies = Company::select('id', 'nama_perusahaan', 'province_id', 'kabupaten_id', 'status_verifikasi')->get();
+
+        return inertia('Alumni/Profil/Index', [
             'alumniData' => $alumni,
             'formData' => $formData,
             'provinces' => $provinsi,
             'kabupatens' => $kabupaten,
+            'companies' => $companies,
         ]);
     }
 }
-

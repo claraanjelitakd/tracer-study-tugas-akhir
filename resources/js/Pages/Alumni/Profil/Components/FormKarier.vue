@@ -1,10 +1,11 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
     form: Object,
     provinces: Array,
-    kabupatens: Array
+    kabupatens: Array,
+    companies: Array
 });
 
 // Common input class for Gen Z style
@@ -12,17 +13,61 @@ const inputClass = "block w-full border-gray-200 bg-white/90 backdrop-blur-sm ro
 const labelClass = "block text-sm font-bold text-gray-700 mb-2 ml-1";
 
 // ============================================================================
-// LOGIKA AUTOCOMPLETE PERUSAHAAN
+// LOGIKA SEARCHABLE PROVINSI & KABUPATEN
 // ============================================================================
-const searchResults = ref([]);      // Menyimpan hasil pencarian dari API
-const showDropdown = ref(false);    // Mengontrol visibilitas UI dropdown list
-const isSearching = ref(false);     // State untuk menampilkan spinner loading
-const companyStatus = ref(props.form.company_status_verifikasi || null); // State lencana verifikasi (Terverifikasi/Menunggu Verifikasi/Ditolak)
+const searchProvinsiQuery = ref('');
+const showProvinsiDropdown = ref(false);
+const filteredProvinces = computed(() => {
+    if (!searchProvinsiQuery.value) return props.provinces;
+    return props.provinces.filter(p => p.nama_provinsi.toLowerCase().includes(searchProvinsiQuery.value.toLowerCase()));
+});
+const selectProvinsi = (prov) => {
+    props.form.company_province_id = prov.id;
+    searchProvinsiQuery.value = prov.nama_provinsi;
+    showProvinsiDropdown.value = false;
+    
+    // Reset kabupaten when province changes
+    props.form.company_kabupaten_id = '';
+    searchKabupatenQuery.value = '';
+    onSearchCompany();
+};
 
-let searchTimeout;                  // Variabel untuk debouncing (mencegah spam API)
+const searchKabupatenQuery = ref('');
+const showKabupatenDropdown = ref(false);
+const filteredKabupatens = computed(() => {
+    let kabs = props.kabupatens;
+    if (props.form.company_province_id) {
+        kabs = kabs.filter(k => k.province_id == props.form.company_province_id);
+    }
+    if (!searchKabupatenQuery.value) return kabs;
+    return kabs.filter(k => k.nama_kabupaten.toLowerCase().includes(searchKabupatenQuery.value.toLowerCase()));
+});
+const selectKabupaten = (kab) => {
+    props.form.company_kabupaten_id = kab.id;
+    searchKabupatenQuery.value = kab.nama_kabupaten;
+    showKabupatenDropdown.value = false;
+    onSearchCompany();
+};
+
+onMounted(() => {
+    if (props.form.company_province_id) {
+        const prov = props.provinces.find(p => p.id == props.form.company_province_id);
+        if (prov) searchProvinsiQuery.value = prov.nama_provinsi;
+    }
+    if (props.form.company_kabupaten_id) {
+        const kab = props.kabupatens.find(k => k.id == props.form.company_kabupaten_id);
+        if (kab) searchKabupatenQuery.value = kab.nama_kabupaten;
+    }
+});
+
+// ============================================================================
+// LOGIKA AUTOCOMPLETE PERUSAHAAN (INERTIA LOKAL)
+// ============================================================================
+const searchResults = ref([]);
+const showDropdown = ref(false);
+const companyStatus = ref(props.form.company_status_verifikasi || null);
 
 const onSearchCompany = () => {
-    clearTimeout(searchTimeout);
     companyStatus.value = null; // Reset status when typing
     
     if (!props.form.nama_perusahaan || props.form.nama_perusahaan.length < 2) {
@@ -31,27 +76,23 @@ const onSearchCompany = () => {
         return;
     }
     
-    searchTimeout = setTimeout(async () => {
-        isSearching.value = true;
-        try {
-            let url = `/api/companies?q=${encodeURIComponent(props.form.nama_perusahaan)}`;
-            if (props.form.company_province_id) url += `&province_id=${props.form.company_province_id}`;
-            if (props.form.company_kabupaten_id) url += `&kabupaten_id=${props.form.company_kabupaten_id}`;
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            searchResults.value = data;
-            showDropdown.value = data.length > 0;
-        } catch (error) {
-            console.error("Error fetching companies:", error);
-        } finally {
-            isSearching.value = false;
-        }
-    }, 400);
+    const query = props.form.nama_perusahaan.toLowerCase();
+    
+    // Filter dari props.companies secara lokal
+    searchResults.value = props.companies.filter(company => {
+        const matchName = company.nama_perusahaan.toLowerCase().includes(query);
+        const matchProv = !props.form.company_province_id || company.province_id == props.form.company_province_id;
+        const matchKab = !props.form.company_kabupaten_id || company.kabupaten_id == props.form.company_kabupaten_id;
+        return matchName && matchProv && matchKab;
+    }).slice(0, 15); // Batasi 15 hasil agar rapi
+    
+    showDropdown.value = searchResults.value.length > 0;
 };
 
 const selectCompany = (company) => {
     props.form.nama_perusahaan = company.nama_perusahaan;
+    
+    // Jika alumni memilih perusahaan dari list, otomotis isi provinsi & kabupatennya jika ada
     if (company.province_id) props.form.company_province_id = company.province_id;
     if (company.kabupaten_id) props.form.company_kabupaten_id = company.kabupaten_id;
     
@@ -111,15 +152,35 @@ const selectCompany = (company) => {
                 Data Perusahaan Saat Ini
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="relative">
+                    <label :class="labelClass">Provinsi Perusahaan</label>
+                    <input type="text" v-model="searchProvinsiQuery" @focus="showProvinsiDropdown = true" @blur="setTimeout(() => showProvinsiDropdown = false, 200)" :class="inputClass" placeholder="Cari Provinsi..." autocomplete="off" />
+                    <div v-if="showProvinsiDropdown && filteredProvinces.length > 0" class="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto overflow-hidden">
+                        <ul class="py-2">
+                            <li v-for="prov in filteredProvinces" :key="prov.id" @click="selectProvinsi(prov)" class="px-6 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors font-medium text-gray-700">
+                                {{ prov.nama_provinsi }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <label :class="labelClass">Kabupaten/Kota Perusahaan</label>
+                    <input type="text" v-model="searchKabupatenQuery" @focus="showKabupatenDropdown = true" @blur="setTimeout(() => showKabupatenDropdown = false, 200)" :class="inputClass" placeholder="Cari Kabupaten/Kota..." autocomplete="off" :disabled="!form.company_province_id" />
+                    <div v-if="showKabupatenDropdown && filteredKabupatens.length > 0" class="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto overflow-hidden">
+                        <ul class="py-2">
+                            <li v-for="kab in filteredKabupatens" :key="kab.id" @click="selectKabupaten(kab)" class="px-6 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors font-medium text-gray-700">
+                                {{ kab.nama_kabupaten }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
                 <div class="md:col-span-2 relative">
                     <label :class="labelClass">Nama Perusahaan / Tempat Bekerja</label>
                     <div class="relative">
                         <input type="text" v-model="form.nama_perusahaan" @input="onSearchCompany" :class="inputClass" placeholder="Ketik nama perusahaan..." autocomplete="off" />
-                        
-                        <!-- Loading Indicator -->
-                        <div v-if="isSearching" class="absolute right-4 top-1/2 -translate-y-1/2">
-                            <svg class="animate-spin h-5 w-5 text-[#005B3C]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        </div>
                     </div>
                     
                     <!-- Autocomplete Dropdown -->
@@ -154,25 +215,8 @@ const selectCompany = (company) => {
                         </span>
                     </div>
                 </div>
-                
-                <div>
-                    <label :class="labelClass">Provinsi Perusahaan</label>
-                    <select v-model="form.company_province_id" :class="inputClass" @change="onSearchCompany">
-                        <option value="">-- Pilih Provinsi --</option>
-                        <option v-for="prov in provinces" :key="prov.id" :value="prov.id">{{ prov.nama_provinsi }}</option>
-                    </select>
-                </div>
-                <div>
-                    <label :class="labelClass">Kabupaten/Kota Perusahaan</label>
-                    <select v-model="form.company_kabupaten_id" :class="inputClass">
-                        <option value="">-- Pilih Kabupaten --</option>
-                        <option v-for="kab in kabupatens" :key="kab.id" :value="kab.id" v-show="!form.company_province_id || kab.province_id == form.company_province_id">
-                            {{ kab.nama_kabupaten }}
-                        </option>
-                    </select>
-                </div>
 
-                <div>
+                <div class="md:col-span-2">
                     <label :class="labelClass">Kode Pos Perusahaan (Zipcode)</label>
                     <input type="text" v-model="form.zipcode" :class="inputClass" placeholder="Kode Pos" />
                 </div>
@@ -191,14 +235,14 @@ const selectCompany = (company) => {
             <div class="relative z-10">
                 <div class="bg-white/60 p-6 rounded-2xl shadow-sm text-sm text-gray-700 leading-relaxed mb-8 border border-white backdrop-blur-md">
                     <strong class="text-[#005B3C] text-base">Pimpinan tempat anda bekerja dapat mengisi kuesioner evaluasi tingkat kepuasan dan kinerja lulusan.</strong><br>
-                    Supaya pimpinan anda dapat login ke dalam Sistem Tracer Studi UKDW, anda harus mengirimkan undangan melalui email.<br>
-                    Untuk mengirim undangan melalui email klik tombol <em class="font-bold text-gray-900">"KIRIM FORM EVALUASI PENGGUNA"</em> dibawah.
+                    Data atasan yang Anda berikan di bawah ini akan digunakan oleh <em class="font-bold text-gray-900">Admin Biro 3</em> untuk mengirimkan undangan pengisian form evaluasi kuesioner pengguna (Atasan) secara otomatis melalui email.<br>
+                    Mohon pastikan alamat email yang dimasukkan aktif dan sesuai.
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
-                        <label :class="labelClass">Nama Atasan di Perusahaan/Instansi/Institusi tempat anda bekerja</label>
-                        <input type="text" v-model="form.nama_atasan" :class="inputClass" placeholder="Nama Lengkap Atasan" />
+                        <label :class="labelClass">Nama Lengkap Atasan</label>
+                        <input type="text" v-model="form.nama_atasan" :class="inputClass" placeholder="Contoh: Budi Santoso" />
                     </div>
                     
                     <div>
@@ -210,14 +254,6 @@ const selectCompany = (company) => {
                         <label :class="labelClass">Nomor Telepon Atasan</label>
                         <input type="text" v-model="form.telepon_atasan" :class="inputClass" placeholder="081..." />
                     </div>
-                </div>
-
-                <div class="mt-8">
-                    <button type="button" class="w-full md:w-auto px-8 py-4 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-2xl shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 flex items-center justify-center space-x-3">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                        <span>KIRIM FORM EVALUASI PENGGUNA</span>
-                    </button>
-                    <p class="text-sm font-medium text-gray-500 mt-3 ml-2">* Tombol ini akan mengirimkan email ke atasan Anda setelah Profil disimpan.</p>
                 </div>
             </div>
         </div>
