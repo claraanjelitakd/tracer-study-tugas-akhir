@@ -11,7 +11,8 @@ use App\Models\Alumni;
  * DetailAlumniController
  * 
  * Fungsi: Menampilkan profil rinci dari seorang alumni.
- * Tujuan: Memungkinkan admin Biro 3 untuk meninjau kelengkapan profil dan rekam jejak akademik alumni.
+ * Tujuan: Memungkinkan admin Biro 3 untuk meninjau kelengkapan profil, rekam jejak akademik,
+ *         status kelulusan yudisium, dan riwayat karir LinkedIn.
  */
 class DetailAlumniController extends Controller
 {
@@ -20,11 +21,10 @@ class DetailAlumniController extends Controller
      */
     public function tampilkanDetailAlumni($id)
     {
-        $alumni = Alumni::with(['dataAkademik', 'prodi', 'company', 'user'])->findOrFail($id);
+        $alumni = Alumni::with(['dataAkademik.yudisium', 'yudisium', 'prodi', 'company', 'user'])->findOrFail($id);
 
         return Inertia::render('AdminBiroTiga/AlumniShow', [
             'alumni' => $alumni
         ]);
     }
 }
-

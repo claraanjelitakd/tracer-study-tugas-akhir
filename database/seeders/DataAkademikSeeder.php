@@ -46,7 +46,7 @@ class DataAkademikSeeder extends Seeder
                     'nisn' => '999' . str_pad($index, 7, '0', STR_PAD_LEFT),
                     'no_bpjs' => '0001' . str_pad($index, 9, '0', STR_PAD_LEFT),
                     'status_mahasiswa' => 'Lulus',
-                    'tahun_akademik_lulus' => 'Gasal 2026/2027',
+                    'tahun_akademik_lulus' => ['Gasal 2023/2024', 'Genap 2023/2024', 'Gasal 2024/2025', 'Genap 2024/2025', 'Gasal 2025/2026'][$index % 5],
                     'tahun_lulus' => ($parsedInfo ? $parsedInfo['angkatan'] : 2020) + 4,
                     'ipk' => rand(300, 399) / 100,
                     'total_sks' => 144,

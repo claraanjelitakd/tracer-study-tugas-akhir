@@ -14,8 +14,28 @@ class WilayahSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Data Provinsi sudah masuk, jangan diubah
-        $this->command->info('Melewati proses seeding Provinsi sesuai instruksi...');
+        // 1. Impor Data Provinsi
+        $provinsiCsvFile = base_path('provinsi.csv');
+        if (file_exists($provinsiCsvFile)) {
+            $provinsiData = array_map('str_getcsv', file($provinsiCsvFile));
+            // Hapus header
+            $headerProvinsi = array_shift($provinsiData);
+
+            $this->command->info('Mulai memasukkan data provinsi...');
+            $provInserted = 0;
+            foreach ($provinsiData as $row) {
+                if (count($row) >= 2) {
+                    Province::updateOrCreate(
+                        ['kode_provinsi' => $row[0]],
+                        ['nama_provinsi' => $row[1]]
+                    );
+                    $provInserted++;
+                }
+            }
+            $this->command->info("Selesai! $provInserted provinsi diproses.");
+        } else {
+            $this->command->error('File provinsi.csv tidak ditemukan di direktori root!');
+        }
 
         // 2. Load semua provinsi ke memory agar tidak query berulang-ulang
         $provinces = Province::whereNotNull('kode_provinsi')->get()->keyBy('kode_provinsi');

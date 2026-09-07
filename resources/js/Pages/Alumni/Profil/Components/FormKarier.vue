@@ -61,6 +61,23 @@ onMounted(() => {
 });
 
 // ============================================================================
+// LOGIKA TAMBAH PERUSAHAAN BARU (MODAL)
+// ============================================================================
+const showAddCompanyModal = ref(false);
+const newCompanyName = ref('');
+
+const saveNewCompany = () => {
+    if (!newCompanyName.value.trim()) return;
+    
+    props.form.nama_perusahaan = newCompanyName.value.trim();
+    companyStatus.value = 'Menunggu Verifikasi';
+    
+    newCompanyName.value = '';
+    showAddCompanyModal.value = false;
+    showDropdown.value = false;
+};
+
+// ============================================================================
 // LOGIKA AUTOCOMPLETE PERUSAHAAN (INERTIA LOKAL)
 // ============================================================================
 const searchResults = ref([]);
@@ -179,8 +196,11 @@ const selectCompany = (company) => {
 
                 <div class="md:col-span-2 relative">
                     <label :class="labelClass">Nama Perusahaan / Tempat Bekerja</label>
-                    <div class="relative">
+                    <div class="relative flex items-center">
                         <input type="text" v-model="form.nama_perusahaan" @input="onSearchCompany" :class="inputClass" placeholder="Ketik nama perusahaan..." autocomplete="off" />
+                        <button type="button" @click="showAddCompanyModal = true" class="ml-3 p-3.5 bg-gray-900 text-white rounded-2xl shadow-sm hover:bg-black transition-colors shrink-0" title="Tambah Perusahaan Baru">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
                     </div>
                     
                     <!-- Autocomplete Dropdown -->
@@ -258,5 +278,28 @@ const selectCompany = (company) => {
             </div>
         </div>
         
+        <!-- Modal Tambah Perusahaan -->
+        <div v-if="showAddCompanyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+                <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h3 class="text-lg font-bold text-gray-800">Tambah Perusahaan Baru</h3>
+                    <button type="button" @click="showAddCompanyModal = false" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-500 mb-4">Perusahaan yang Anda tambahkan akan berstatus <strong class="text-yellow-600">Menunggu Verifikasi</strong> oleh admin.</p>
+                    <div class="mb-5">
+                        <label class="block text-sm font-bold text-gray-700 mb-2 ml-1">Nama Perusahaan Baru</label>
+                        <input type="text" v-model="newCompanyName" :class="inputClass" placeholder="Ketik nama perusahaan..." />
+                    </div>
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button type="button" @click="showAddCompanyModal = false" class="px-5 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors">Batal</button>
+                        <button type="button" @click="saveNewCompany" class="px-6 py-2.5 bg-[#005B3C] text-white rounded-xl font-bold shadow-lg shadow-[#005B3C]/30 hover:-translate-y-0.5 transition-all">Simpan Perusahaan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </template>

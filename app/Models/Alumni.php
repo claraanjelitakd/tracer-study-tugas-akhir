@@ -95,4 +95,20 @@ class Alumni extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    /**
+     * Relasi ke Response (Jawaban Kuesioner)
+     */
+    public function responses()
+    {
+        return $this->hasMany(Response::class);
+    }
+
+    /**
+     * Relasi ke Yudisium (Status Kelulusan Akademik)
+     */
+    public function yudisium()
+    {
+        return $this->hasOne(Yudisium::class, 'nim', 'nim');
+    }
 }

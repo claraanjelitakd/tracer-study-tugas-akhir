@@ -45,11 +45,24 @@ Route::middleware('auth')->group(function () {
         // Rute Admin Biro 3
         // -----------------------------------------------------------------
         Route::middleware('role:admin_biro3')->group(function () {
+            // Dashboard Utama Biro 3
+            Route::get('/biro3/dashboard', [\App\Http\Controllers\AdminBiroTiga\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('biro3.dashboard');
+
             // Kelola Alumni & Sinkronisasi
             Route::get('/biro3/alumni', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DaftarAlumniController::class, 'tampilkanDaftarAlumni'])->name('biro3.alumni.index');
             Route::get('/biro3/alumni/{id}', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DetailAlumniController::class, 'tampilkanDetailAlumni'])->name('biro3.alumni.show');
             Route::post('/biro3/alumni/{id}/sync-linkedin', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController::class, 'sinkronisasiDataLinkedin'])->name('biro3.alumni.sync');
             Route::post('/biro3/alumni/{id}/save-linkedin', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController::class, 'simpanDataLinkedin'])->name('biro3.alumni.save');
+
+            // Kelola Pertanyaan & Opsi Kuesioner
+            Route::get('/biro3/pertanyaan', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'index'])->name('biro3.pertanyaan.index');
+            Route::post('/biro3/pertanyaan', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'store'])->name('biro3.pertanyaan.store');
+            Route::post('/biro3/pertanyaan/reorder', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'reorder'])->name('biro3.pertanyaan.reorder');
+            Route::put('/biro3/pertanyaan/{id}', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'update'])->name('biro3.pertanyaan.update');
+            Route::delete('/biro3/pertanyaan/{id}', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'destroy'])->name('biro3.pertanyaan.destroy');
+            Route::post('/biro3/pertanyaan/{questionId}/options', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'storeOption'])->name('biro3.pertanyaan.options.store');
+            Route::put('/biro3/pertanyaan/options/{optionId}', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'updateOption'])->name('biro3.pertanyaan.options.update');
+            Route::delete('/biro3/pertanyaan/options/{optionId}', [\App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan\KelolaPertanyaanController::class, 'destroyOption'])->name('biro3.pertanyaan.options.destroy');
         });
         
         // -----------------------------------------------------------------

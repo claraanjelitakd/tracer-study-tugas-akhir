@@ -28,6 +28,17 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // 1b. Seed Admin Biro 3
+        User::updateOrCreate(
+            ['username' => 'admin_biro3'],
+            [
+                'name' => 'Admin Biro 3 UKDW',
+                'password' => $adminPassword,
+                'role' => 'admin_biro3',
+                'must_change_password' => false,
+            ]
+        );
+
         // 2. Seed 10 Data User Alumni Dummy
         $prodiList = Prodi::all();
         if ($prodiList->isEmpty()) {

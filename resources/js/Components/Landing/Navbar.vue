@@ -7,7 +7,7 @@ const isOpen = ref(false);
 const getDashboardUrl = (role) => {
     switch(role) {
         case 'superadmin': return '/superadmin/dashboard';
-        case 'admin_biro3': return '/biro3/alumni';
+        case 'admin_biro3': return '/biro3/dashboard';
         case 'admin_prodi': return '/prodi/dashboard';
         case 'alumni': return '/alumni/dashboard';
         default: return '/';

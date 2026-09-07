@@ -9,6 +9,12 @@ class QuestionOptionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * Catatan Arsitektur Branching / Jump Logic:
+     * Seluruh alur percabangan kuesioner dikelola secara modular pada kolom 'jump_to' di tabel 'question_options'.
+     * - Jika jump_to diisi kode pertanyaan (misal 'F8', 'F11', 'F17-1'), alumni yang memilih opsi tersebut
+     *   akan diarahkan langsung ke pertanyaan target, dan pertanyaan di antaranya akan dilewati (skipped).
+     * - Jika jump_to bernilai null, alur berjalan normal ke nomor pertanyaan berikutnya.
      */
     public function run(): void
     {
@@ -29,56 +35,64 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F2H', 'code' => 'F2H-02', 'option_text' => 'Nasional'],
             ['question_code' => 'F2H', 'code' => 'F2H-03', 'option_text' => 'Internasional'],
 
-            // F3
-            ['question_code' => 'F3', 'code' => 'F3-01', 'option_text' => 'Kira-kira ... bulan sebelum lulus'],
-            ['question_code' => 'F3', 'code' => 'F3-02', 'option_text' => 'Kira-kira ... bulan sesudah lulus'],
-            ['question_code' => 'F3', 'code' => 'F3-03', 'option_text' => 'Saya tidak mencari kerja (Jump ke F8)'],
+            // F3 (Jika tidak mencari kerja, langsung lompat ke F8)
+            ['question_code' => 'F3', 'code' => 'F3-01', 'option_text' => 'Kira-kira ….. bulan sebelum lulus', 'jump_to' => null],
+            ['question_code' => 'F3', 'code' => 'F3-02', 'option_text' => 'Kira-kira …… bulan sesudah lulus', 'jump_to' => null],
+            ['question_code' => 'F3', 'code' => 'F3-03', 'option_text' => 'Saya tidak mencari kerja', 'jump_to' => 'F8'],
 
             // F4
-            ['question_code' => 'F4', 'code' => 'F4-01', 'option_text' => 'Iklan koran/majalah/brosur'],
-            ['question_code' => 'F4', 'code' => 'F4-02', 'option_text' => 'Melamar tanpa tahu lowongan'],
-            ['question_code' => 'F4', 'code' => 'F4-03', 'option_text' => 'Bursa/pameran kerja'],
-            ['question_code' => 'F4', 'code' => 'F4-04', 'option_text' => 'Internet/iklan online/milis'],
-            ['question_code' => 'F4', 'code' => 'F4-05', 'option_text' => 'Dihubungi perusahaan'],
-            ['question_code' => 'F4', 'code' => 'F4-06', 'option_text' => 'Kemenakertrans'],
-            ['question_code' => 'F4', 'code' => 'F4-07', 'option_text' => 'Agen tenaga kerja swasta'],
-            ['question_code' => 'F4', 'code' => 'F4-08', 'option_text' => 'Pusat karir universitas'],
-            ['question_code' => 'F4', 'code' => 'F4-09', 'option_text' => 'Kantor kemahasiswaan/alumni'],
-            ['question_code' => 'F4', 'code' => 'F4-10', 'option_text' => 'Membangun jejaring/network kuliah'],
-            ['question_code' => 'F4', 'code' => 'F4-11', 'option_text' => 'Relasi (dosen, orang tua, saudara, teman)'],
-            ['question_code' => 'F4', 'code' => 'F4-12', 'option_text' => 'Membangun bisnis sendiri'],
-            ['question_code' => 'F4', 'code' => 'F4-13', 'option_text' => 'Penempatan kerja/magang'],
-            ['question_code' => 'F4', 'code' => 'F4-14', 'option_text' => 'Tempat kerja semasa kuliah'],
-            ['question_code' => 'F4', 'code' => 'F4-15', 'option_text' => 'Lainnya'],
+            ['question_code' => 'F4', 'code' => 'F4-01', 'option_text' => 'Melalui iklan di koran/majalah, brosur', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-02', 'option_text' => 'Melamar ke perusahaan tanpa mengetahui lowongan yang ada', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-03', 'option_text' => 'Pergi ke bursa kerja/job fair', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-04', 'option_text' => 'Mencari lewat internet/iklan online/milis', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-05', 'option_text' => 'Dihubungi oleh perusahaan', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-06', 'option_text' => 'Menghubungi Kemenakertrans', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-07', 'option_text' => 'Menghubungi agen tenaga kerja komersial/swasta', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-08', 'option_text' => 'Memeroleh informasi dari pusat/kantor pengembangan karir fakultas/universitas', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-09', 'option_text' => 'Menghubungi kantor kemahasiswaan/hubungan alumni', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-10', 'option_text' => 'Membangun jejaring (network) sejak masih kuliah', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-11', 'option_text' => 'Melalui relasi (misalnya dosen, orang tua, saudara, teman, dll.)', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-12', 'option_text' => 'Membangun bisnis sendiri', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-13', 'option_text' => 'Melalui penempatan kerja atau magang', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-14', 'option_text' => 'Bekerja di tempat yang sama dengan tempat kerja semasa kuliah', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-15', 'option_text' => 'Lainnya', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-16', 'option_text' => 'Tuliskan', 'jump_to' => null],
 
             // F5
-            ['question_code' => 'F5', 'code' => 'F5-01', 'option_text' => 'Kira-kira ... bulan sebelum lulus'],
-            ['question_code' => 'F5', 'code' => 'F5-02', 'option_text' => 'Kira-kira ... bulan sesudah lulus'],
+            ['question_code' => 'F5', 'code' => 'F5-01', 'option_text' => 'Jumlah bulan', 'jump_to' => null],
+            ['question_code' => 'F5', 'code' => 'F5-02', 'option_text' => 'Sebelum lulus', 'jump_to' => null],
+            ['question_code' => 'F5', 'code' => 'F5-03', 'option_text' => 'Setelah lulus', 'jump_to' => null],
 
             // F8
-            ['question_code' => 'F8', 'code' => 'F8-01', 'option_text' => 'Ya (Jump ke F11)'],
-            ['question_code' => 'F8', 'code' => 'F8-02', 'option_text' => 'Tidak (Lanjut ke F9)'],
+            ['question_code' => 'F8', 'code' => 'F8-01', 'option_text' => 'Ya', 'jump_to' => 'F11'],
+            ['question_code' => 'F8', 'code' => 'F8-02', 'option_text' => 'Tidak', 'jump_to' => 'F9'],
 
             // F9
-            ['question_code' => 'F9', 'code' => 'F9-01', 'option_text' => 'Masih belajar/kuliah profesi/pascasarjana'],
-            ['question_code' => 'F9', 'code' => 'F9-02', 'option_text' => 'Menikah'],
-            ['question_code' => 'F9', 'code' => 'F9-03', 'option_text' => 'Sibuk keluarga dan anak-anak'],
-            ['question_code' => 'F9', 'code' => 'F9-04', 'option_text' => 'Sedang mencari pekerjaan'],
+            ['question_code' => 'F9', 'code' => 'F9-01', 'option_text' => 'Saya masih belajar/melanjutkan kuliah profesi atau pascasarjana'],
+            ['question_code' => 'F9', 'code' => 'F9-02', 'option_text' => 'Saya menikah'],
+            ['question_code' => 'F9', 'code' => 'F9-03', 'option_text' => 'Saya sibuk dengan keluarga dan anak-anak'],
+            ['question_code' => 'F9', 'code' => 'F9-04', 'option_text' => 'Saya sekarang sedang mencari pekerjaan'],
             ['question_code' => 'F9', 'code' => 'F9-05', 'option_text' => 'Lainnya'],
+            ['question_code' => 'F9', 'code' => 'F9-06', 'option_text' => 'Tuliskan'],
 
-            // F10
-            ['question_code' => 'F10', 'code' => 'F10-01', 'option_text' => 'Tidak'],
-            ['question_code' => 'F10', 'code' => 'F10-02', 'option_text' => 'Tidak, tapi menunggu hasil lamaran'],
-            ['question_code' => 'F10', 'code' => 'F10-03', 'option_text' => 'Ya, akan mulai bekerja 2 minggu ke depan (Jump ke F17)'],
-            ['question_code' => 'F10', 'code' => 'F10-04', 'option_text' => 'Ya, tapi belum pasti bekerja 2 minggu ke depan (Jump ke F17)'],
-            ['question_code' => 'F10', 'code' => 'F10-05', 'option_text' => 'Lainnya (aktif mencari) (Jump ke F17)'],
+            // F10 (jump_to = F17-1)
+            ['question_code' => 'F10', 'code' => 'F10-01', 'option_text' => 'Tidak', 'jump_to' => 'F17-1'],
+            ['question_code' => 'F10', 'code' => 'F10-02', 'option_text' => 'Tidak, tapi saya sedang menunggu hasil lamaran kerja', 'jump_to' => 'F17-1'],
+            ['question_code' => 'F10', 'code' => 'F10-03', 'option_text' => 'Ya, saya akan mulai bekerja dalam 2 minggu ke depan', 'jump_to' => 'F17-1'],
+            ['question_code' => 'F10', 'code' => 'F10-04', 'option_text' => 'Ya, tapi saya belum pasti akan bekerja dalam 2 minggu ke depan', 'jump_to' => 'F17-1'],
+            ['question_code' => 'F10', 'code' => 'F10-05', 'option_text' => 'Lainnya, tuliskan', 'jump_to' => 'F17-1'],
 
             // F11
-            ['question_code' => 'F11', 'code' => 'F11-01', 'option_text' => 'Instansi pemerintah/BUMN'],
-            ['question_code' => 'F11', 'code' => 'F11-02', 'option_text' => 'Organisasi non-profit / LSM'],
+            ['question_code' => 'F11', 'code' => 'F11-01', 'option_text' => 'Instansi pemerintah (termasuk BUMN)'],
+            ['question_code' => 'F11', 'code' => 'F11-02', 'option_text' => 'Organisasi non-profit/Lembaga Swadaya Masyarakat'],
             ['question_code' => 'F11', 'code' => 'F11-03', 'option_text' => 'Perusahaan swasta'],
-            ['question_code' => 'F11', 'code' => 'F11-04', 'option_text' => 'Wiraswasta / perusahaan sendiri'],
+            ['question_code' => 'F11', 'code' => 'F11-04', 'option_text' => 'Wiraswasta/perusahaan sendiri'],
             ['question_code' => 'F11', 'code' => 'F11-05', 'option_text' => 'Lainnya'],
+
+            // F13
+            ['question_code' => 'F13', 'code' => 'F13-01', 'option_text' => 'Dari Pekerjaan Utama'],
+            ['question_code' => 'F13', 'code' => 'F13-02', 'option_text' => 'Dari Lembur dan Tips'],
+            ['question_code' => 'F13', 'code' => 'F13-03', 'option_text' => 'Dari Pekerjaan Lainnya'],
 
             // F14
             ['question_code' => 'F14', 'code' => 'F14-01', 'option_text' => 'Sangat Erat'],
@@ -94,27 +108,28 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F15', 'code' => 'F15-04', 'option_text' => 'Tidak Perlu Pendidikan Tinggi'],
 
             // F16
-            ['question_code' => 'F16', 'code' => 'F16-01', 'option_text' => 'Pekerjaan sudah sesuai'],
-            ['question_code' => 'F16', 'code' => 'F16-02', 'option_text' => 'Belum dapat kerja yang lebih sesuai'],
-            ['question_code' => 'F16', 'code' => 'F16-03', 'option_text' => 'Prospek karir baik'],
-            ['question_code' => 'F16', 'code' => 'F16-04', 'option_text' => 'Lebih suka area kerja tak berhubungan'],
-            ['question_code' => 'F16', 'code' => 'F16-05', 'option_text' => 'Dipromosikan ke posisi kurang berhubungan'],
-            ['question_code' => 'F16', 'code' => 'F16-06', 'option_text' => 'Pendapatan lebih tinggi'],
-            ['question_code' => 'F16', 'code' => 'F16-07', 'option_text' => 'Lebih aman/secure'],
-            ['question_code' => 'F16', 'code' => 'F16-08', 'option_text' => 'Lebih menarik'],
-            ['question_code' => 'F16', 'code' => 'F16-09', 'option_text' => 'Jadwal fleksibel / kerja tambahan'],
-            ['question_code' => 'F16', 'code' => 'F16-10', 'option_text' => 'Lokasi dekat rumah'],
-            ['question_code' => 'F16', 'code' => 'F16-11', 'option_text' => 'Menjamin kebutuhan keluarga'],
-            ['question_code' => 'F16', 'code' => 'F16-12', 'option_text' => 'Awal meniti karir terima kerja tak berhubungan'],
+            ['question_code' => 'F16', 'code' => 'F16-01', 'option_text' => 'Pertanyaan tidak sesuai; pekerjaan saya sekarang sudah sesuai dengan pendidikan saya.'],
+            ['question_code' => 'F16', 'code' => 'F16-02', 'option_text' => 'Saya belum mendapatkan pekerjaan yang lebih sesuai.'],
+            ['question_code' => 'F16', 'code' => 'F16-03', 'option_text' => 'Di pekerjaan ini saya memeroleh prospek karir yang baik.'],
+            ['question_code' => 'F16', 'code' => 'F16-04', 'option_text' => 'Saya lebih suka bekerja di area pekerjaan yang tidak ada hubungannya dengan pendidikan saya.'],
+            ['question_code' => 'F16', 'code' => 'F16-05', 'option_text' => 'Saya dipromosikan ke posisi yang kurang berhubungan dengan pendidikan saya dibanding posisi sebelumnya.'],
+            ['question_code' => 'F16', 'code' => 'F16-06', 'option_text' => 'Saya dapat memeroleh pendapatan yang lebih tinggi di pekerjaan ini.'],
+            ['question_code' => 'F16', 'code' => 'F16-07', 'option_text' => 'Pekerjaan saya saat ini lebih aman/terjamin/secure.'],
+            ['question_code' => 'F16', 'code' => 'F16-08', 'option_text' => 'Pekerjaan saya saat ini lebih menarik.'],
+            ['question_code' => 'F16', 'code' => 'F16-09', 'option_text' => 'Pekerjaan saya saat ini lebih memungkinkan saya mengambil pekerjaan tambahan/jadwal yang fleksibel, dll.'],
+            ['question_code' => 'F16', 'code' => 'F16-10', 'option_text' => 'Pekerjaan saya saat ini lokasinya lebih dekat dari rumah saya.'],
+            ['question_code' => 'F16', 'code' => 'F16-11', 'option_text' => 'Pekerjaan saya saat ini dapat lebih menjamin kebutuhan keluarga saya.'],
+            ['question_code' => 'F16', 'code' => 'F16-12', 'option_text' => 'Pada awal meniti karir ini, saya harus menerima pekerjaan yang tidak berhubungan dengan pendidikan saya.'],
             ['question_code' => 'F16', 'code' => 'F16-13', 'option_text' => 'Lainnya'],
+            ['question_code' => 'F16', 'code' => 'F16-14', 'option_text' => 'Tuliskan'],
 
             // F18
-            ['question_code' => 'F18', 'code' => 'F18-01', 'option_text' => '< 25%'],
-            ['question_code' => 'F18', 'code' => 'F18-02', 'option_text' => '> 25% - 50%'],
-            ['question_code' => 'F18', 'code' => 'F18-03', 'option_text' => '> 50%'],
+            ['question_code' => 'F18', 'code' => 'F18-01', 'option_text' => '<25%'],
+            ['question_code' => 'F18', 'code' => 'F18-02', 'option_text' => '>25% - 50%'],
+            ['question_code' => 'F18', 'code' => 'F18-03', 'option_text' => '>50%'],
         ];
 
-        // F12
+        // F12 (89 Opsi KBLI)
         $f12_kbli = [
             'Pertanian tanaman peternakan perburuan dan kegiatan yang berhubungan dengan itu',
             'Kehutanan dan penebangan kayu',
@@ -214,47 +229,82 @@ class QuestionOptionSeeder extends Seeder
                 'option_text' => $aspect
             ];
         }
-        // Untuk F17 (Matrix Dual), options-nya adalah baris aspek (1-27)
-        $f17_aspects = [
-            'Pengetahuan bidang/disiplin ilmu', 'Pengetahuan di luar bidang ilmu', 'Pengetahuan umum',
-            'Keterampilan internet', 'Keterampilan komputer', 'Berpikir kritis', 'Keterampilan riset',
-            'Kemampuan belajar', 'Kemampuan berkomunikasi', 'Bekerja di bawah tekanan', 'Manajemen waktu',
-            'Bekerja secara mandiri', 'Bekerja dalam tim', 'Memecahkan masalah', 'Negosiasi', 'Kemampuan analisis',
-            'Toleransi', 'Kemampuan adaptasi', 'Loyalitas dan integritas', 'Bekerja dengan orang beda budaya',
-            'Kepemimpinan', 'Memegang tanggung jawab', 'Inisiatif', 'Manajemen proyek/program',
-            'Mempresentasikan ide/produk/laporan', 'Menulis laporan, memo, dokumen', 'Belajar sepanjang hayat'
+
+        // F17-1 sampai F17-54 (Rating 1-5)
+        $f17Ratings = [
+            ['code' => '01', 'option_text' => 'Sangat Rendah'],
+            ['code' => '02', 'option_text' => 'Rendah'],
+            ['code' => '03', 'option_text' => 'Cukup'],
+            ['code' => '04', 'option_text' => 'Tinggi'],
+            ['code' => '05', 'option_text' => 'Sangat Tinggi'],
         ];
-        
-        foreach ($f17_aspects as $index => $aspect) {
-            $options[] = [
-                'question_code' => 'F17',
-                'code' => 'F17-'.($index+1),
-                'option_text' => $aspect
-            ];
+
+        for ($i = 1; $i <= 54; $i++) {
+            foreach ($f17Ratings as $r) {
+                $options[] = [
+                    'question_code' => "F17-{$i}",
+                    'code' => "F17-{$i}-{$r['code']}",
+                    'option_text' => $r['option_text'],
+                ];
+            }
         }
 
-        // F19
-        $f19_aspects = ['Perkuliahan', 'Demonstrasi (peragaan)', 'Partisipasi proyek riset', 'Magang', 'Praktikum / kerja lapangan', 'Diskusi'];
-        foreach ($f19_aspects as $index => $aspect) {
-            $options[] = ['question_code' => 'F19', 'code' => 'F19-'.($index+1), 'option_text' => $aspect];
+        // F19-1 sampai F19-6 (Rating 1-5)
+        $f19Ratings = [
+            ['code' => '1', 'option_text' => 'Tidak Sama Sekali'],
+            ['code' => '2', 'option_text' => '2'],
+            ['code' => '3', 'option_text' => '3'],
+            ['code' => '4', 'option_text' => '4'],
+            ['code' => '5', 'option_text' => 'Sangat Besar'],
+        ];
+        for ($i = 1; $i <= 6; $i++) {
+            foreach ($f19Ratings as $r) {
+                $options[] = [
+                    'question_code' => "F19-{$i}",
+                    'code' => "F19-{$i}-{$r['code']}",
+                    'option_text' => $r['option_text'],
+                ];
+            }
         }
 
-        // F20
-        $f20_aspects = ['Perpustakaan', 'TIK', 'Modul Belajar', 'Ruang belajar', 'Laboratorium', 'Akomodasi', 'Kantin', 'Pusat kegiatan mahasiswa & rekreasi', 'Fasilitas layanan kesehatan'];
-        foreach ($f20_aspects as $index => $aspect) {
-            $options[] = ['question_code' => 'F20', 'code' => 'F20-'.($index+1), 'option_text' => $aspect];
+        // F20-1 sampai F20-6 (Rating 1-5)
+        $f20Ratings = [
+            ['code' => '1', 'option_text' => 'Sangat Buruk'],
+            ['code' => '2', 'option_text' => '2'],
+            ['code' => '3', 'option_text' => '3'],
+            ['code' => '4', 'option_text' => '4'],
+            ['code' => '5', 'option_text' => 'Sangat Baik'],
+        ];
+        for ($i = 1; $i <= 6; $i++) {
+            foreach ($f20Ratings as $r) {
+                $options[] = [
+                    'question_code' => "F20-{$i}",
+                    'code' => "F20-{$i}-{$r['code']}",
+                    'option_text' => $r['option_text'],
+                ];
+            }
         }
 
-        // F21
-        $f21_aspects = ['Pembelajaran di kelas', 'Magang / kerja lapangan / praktikum', 'Pengabdian dan penjangkauan masyarakat', 'Pelaksanaan riset / penulisan skripsi', 'Organisasi kemahasiswaan', 'Kegiatan ekstrakurikuler', 'Rekreasi dan olahraga'];
-        foreach ($f21_aspects as $index => $aspect) {
-            $options[] = ['question_code' => 'F21', 'code' => 'F21-'.($index+1), 'option_text' => $aspect];
+        // F21-1 sampai F21-9 (Rating 1-5)
+        for ($i = 1; $i <= 9; $i++) {
+            foreach ($f20Ratings as $r) {
+                $options[] = [
+                    'question_code' => "F21-{$i}",
+                    'code' => "F21-{$i}-{$r['code']}",
+                    'option_text' => $r['option_text'],
+                ];
+            }
         }
 
-        // F22
-        $f22_aspects = ['Interaksi dengan dosen di luar kuliah', 'Pembimbingan Akademik', 'Partisipasi dalam proyek riset', 'Kondisi umum belajar mengajar', 'Jejaring ilmiah profesional', 'Lainnya'];
-        foreach ($f22_aspects as $index => $aspect) {
-            $options[] = ['question_code' => 'F22', 'code' => 'F22-'.($index+1), 'option_text' => $aspect];
+        // F22-1 sampai F22-7 (Rating 1-5)
+        for ($i = 1; $i <= 7; $i++) {
+            foreach ($f20Ratings as $r) {
+                $options[] = [
+                    'question_code' => "F22-{$i}",
+                    'code' => "F22-{$i}-{$r['code']}",
+                    'option_text' => $r['option_text'],
+                ];
+            }
         }
 
         $orderCounter = 1;
@@ -266,6 +316,7 @@ class QuestionOptionSeeder extends Seeder
                     ['question_id' => $q->id, 'code' => $opt['code']],
                     [
                         'option_text' => $opt['option_text'],
+                        'jump_to' => $opt['jump_to'] ?? null,
                         'order' => $orderCounter++
                     ]
                 );

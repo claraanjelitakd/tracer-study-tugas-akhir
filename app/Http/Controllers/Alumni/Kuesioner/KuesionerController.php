@@ -29,12 +29,26 @@ class KuesionerController extends Controller
             abort(403, 'Profil Alumni tidak ditemukan.');
         }
 
-        // Ambil kuesioner aktif (Kecuali Section 1 yang dipindah ke Biodata)
+        $alumniProdiId = $alumni->prodi_id;
+
+        // Ambil kuesioner aktif (Kecuali Section 1 yang dipindah ke Biodata).
+        // Pertanyaan disaring secara dinamis:
+        // - Pertanyaan umum (prodi_id IS NULL)
+        // - Pertanyaan khusus prodi alumni yang sedang login (prodi_id = $alumniProdiId, misal F2E untuk prodi 31)
+        // Dengan cara ini, Frontend tidak perlu melakukan filter hardcode.
         $kuesioner = Questionnaire::where('is_active', true)
-            ->with(['sections' => function($query) {
+            ->with(['sections' => function($query) use ($alumniProdiId) {
                 $query->where('order', '>', 1)
                       ->orderBy('order', 'asc')
-                      ->with('questions.options');
+                      ->with(['questions' => function($qQuery) use ($alumniProdiId) {
+                          $qQuery->where(function($sub) use ($alumniProdiId) {
+                              $sub->whereNull('prodi_id');
+                              if ($alumniProdiId) {
+                                  $sub->orWhere('prodi_id', $alumniProdiId);
+                              }
+                          })->orderBy('order', 'asc')
+                            ->with('options');
+                      }]);
             }])
             ->first();
 
@@ -62,7 +76,7 @@ class KuesionerController extends Controller
             foreach ($kuesioner->sections as $bagian) {
                 foreach ($bagian->questions as $pertanyaan) {
                     if (isset($jawabanTersimpan[$pertanyaan->id])) {
-                        if (in_array($pertanyaan->type, ['checkbox', 'matrix_dual', 'matrix', 'multiple_number'])) {
+                        if (in_array($pertanyaan->type, ['checkbox', 'multiple_choice', 'matrix_dual', 'matrix', 'multiple_number'])) {
                             $jawabanAwal[$pertanyaan->id] = $jawabanTersimpan[$pertanyaan->id]->answer_json ?? [];
                         } else if (in_array($pertanyaan->type, ['radio_input', 'radio_text'])) {
                             $jawabanAwal[$pertanyaan->id] = $jawabanTersimpan[$pertanyaan->id]->answer_json ?? ['selected' => '', 'input' => ''];
@@ -70,7 +84,7 @@ class KuesionerController extends Controller
                             $jawabanAwal[$pertanyaan->id] = $jawabanTersimpan[$pertanyaan->id]->answer_text ?? '';
                         }
                     } else {
-                        if ($pertanyaan->type === 'checkbox') {
+                        if (in_array($pertanyaan->type, ['checkbox', 'multiple_choice'])) {
                             $jawabanAwal[$pertanyaan->id] = [];
                         } else if ($pertanyaan->type === 'matrix_dual') {
                             $obj = [];
@@ -81,7 +95,9 @@ class KuesionerController extends Controller
                             foreach ($pertanyaan->options as $opsi) { $obj[$opsi->id] = null; }
                             $jawabanAwal[$pertanyaan->id] = $obj;
                         } else if ($pertanyaan->type === 'multiple_number') {
-                            $jawabanAwal[$pertanyaan->id] = (object)[]; 
+                            $obj = [];
+                            foreach ($pertanyaan->options as $opsi) { $obj[$opsi->code] = ''; }
+                            $jawabanAwal[$pertanyaan->id] = $obj;
                         } else if (in_array($pertanyaan->type, ['radio_input', 'radio_text'])) {
                             $jawabanAwal[$pertanyaan->id] = ['selected' => '', 'input' => ''];
                         } else {

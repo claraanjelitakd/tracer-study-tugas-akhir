@@ -60,8 +60,26 @@ ARSITEKTUR KUESIONER (STEP 4 & 5)
    - `questionnaires` -> `question_sections` -> `questions` -> `question_options`
    - Jawaban disimpan di tabel `responses` dengan format kolom `answer_text` (untuk jawaban tunggal) dan `answer_json` (untuk checkbox / matriks).
 2. Format Jump Logic (Google Forms Style):
-   - Untuk mengaktifkan loncatan halaman (jumping logic), pertanyaan pemicu (seperti F3) HARUS ditempatkan pada `question_sections` tersendiri dan menjadi satu-satunya pertanyaan di halaman tersebut.
-   - Field `jump_logic` di tabel `questions` menggunakan JSON object yang me-mapping pilihan jawaban mutlak ke kode pertanyaan tujuan (misal: `{"Saya tidak mencari kerja (Jump ke F8)": "F8"}`).
-   - Sistem Vue akan membaca JSON ini, mendeteksi target *section* dari `targetCodeToJump`, dan melakukan _bypass_ melewati halaman-halaman berikutnya secara otomatis.
+   - Kolom `jump_to` di tabel `question_options` mencatat langsung kode pertanyaan tujuan jika opsi tersebut dipilih (misal: 'Saya tidak mencari kerja' -> jump_to: 'F8').
+   - Sistem Vue di halaman kuesioner mendeteksi `jump_to` dari opsi jawaban yang dipilih dan melakukan skip/bypass pertanyaan dan section di antaranya secara dinamis.
+   - Jump logic dapat dikelola dengan mudah oleh admin melalui panel Admin Biro Tiga (Kelola Pertanyaan).
 3. Manajemen Tipe Data Input:
    - Komponen UI dipetakan murni berdasarkan atribut `type` dari DB: `text`, `number`, `radio`, `checkbox`, `radio_input` (dengan inputan ekstra), `multiple_number`, `matrix`, `matrix_dual`.
+4. Scoping Pertanyaan Program Studi:
+   - Kolom `prodi_id` di tabel `questions` (nullable foreign key ke `prodis.id`).
+   - Jika bernilai NULL, pertanyaan berlaku umum untuk semua program studi.
+   - Jika diisi, pertanyaan hanya disajikan untuk alumni prodi terkait (disaring otomatis di `KuesionerController` tanpa hardcode di Vue, misal: F2E untuk prodi Filsafat Keilahian kode 31).
+   - Admin Biro 3 dapat memilih target program studi dan memantau statusnya via badge prodi di panel Kelola Pertanyaan.
+
+PANEL BIRO 3: DIREKTORI ALUMNI & STANDARISASI NAVIGASI (STEP 6)
+1. Syarat Tampil Alumni di Biro 3:
+   - Alumni HANYA ditampilkan apabila telah berstatus yudisium 'Lulus' (relasi `yudisium` atau `dataAkademik` dengan `proses_yudisium = 'Lulus'`).
+   - Query backend di `DaftarAlumniController.php` menyaring langsung dengan `whereHas('yudisium', fn($q) => $q->where('proses_yudisium', 'Lulus'))`.
+2. Dropdown Tahun Yudisium & Penyajian Data per Tahun Kelulusan:
+   - Data alumni TIDAK ditampilkan sekaligus (semua semester ditumpuk), melainkan disajikan terisolasi per tahun / semester kelulusan yang dipilih.
+   - Menggunakan komponen Dropdown "Tahun / Semester Yudisium" (bukan navigasi tab), di mana backend secara default memilih periode kelulusan terbaru.
+   - Backend `DaftarAlumniController.php` memfilter secara langsung `whereHas('dataAkademik', fn($q) => $q->where('tahun_akademik_lulus', $semesterTerpilih))`.
+   - Di dropdown, opsi dilengkapi dengan indikator jumlah wisudawan untuk periode terkait (contoh: "Gasal 2025/2026 (4 Alumni)").
+3. Standarisasi Navigasi & Visual Biro 3:
+   - Seluruh halaman di bawah naungan Biro 3 (`/biro3/dashboard`, `/biro3/alumni`, `/biro3/pertanyaan`, `/biro3/alumni/{id}`) menggunakan navbar atas seragam dengan 3 rute menu utama: Dashboard, Data Alumni, dan Kelola Pertanyaan.
+   - Skema warna formal mengacu pada Hijau Resmi UKDW (`#005B3C`), Kuning Resmi Landing Page (`#FACC15`), dan Putih/Slate bersih. Dilarang menggunakan warna orange atau aksen merah menyala di area Biro 3.
