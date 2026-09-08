@@ -39,6 +39,7 @@ return new class extends Migration
             $table->string('no_kk', 20)->nullable()->comment('Nomor Kartu Keluarga');
             $table->string('nisn', 20)->nullable()->comment('Nomor Induk Siswa Nasional');
             $table->string('no_bpjs', 30)->nullable()->comment('Nomor BPJS Kesehatan');
+            $table->string('npwp', 30)->nullable()->comment('Nomor Pokok Wajib Pajak');
 
             // Data Kelulusan Akademik
             $table->enum('status_mahasiswa', ['Tidak Aktif', 'Aktif', 'Lulus'])->default('Lulus');

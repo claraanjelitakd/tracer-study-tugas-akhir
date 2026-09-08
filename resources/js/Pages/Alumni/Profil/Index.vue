@@ -5,7 +5,7 @@
 -->
 <script setup>
 import { Head, useForm, usePage, Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Swal from 'sweetalert2';
 import FormPribadi from './Components/FormPribadi.vue';
 import FormAkademik from './Components/FormAkademik.vue';
@@ -23,15 +23,55 @@ const props = defineProps({
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 
-// Menerima form data yang sudah dirakit 100% oleh backend
-const form = useForm(props.formData);
+// Storage key untuk mengingat tab aktif saat refresh
+const PROFILE_TAB_STORAGE_KEY = 'tracerstudy_alumni_profile_tab';
+
+// Inisialisasi activeTab dari URL param atau localStorage
+const getInitialTab = () => {
+    if (typeof window !== 'undefined') {
+        // Hapus cache draft profil lama jika pernah tersimpan di browser
+        localStorage.removeItem('tracerstudy_alumni_profile_draft');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam && ['pribadi', 'akademik', 'orangtua', 'karier'].includes(tabParam)) {
+            return tabParam;
+        }
+        const cached = localStorage.getItem(PROFILE_TAB_STORAGE_KEY);
+        if (cached && ['pribadi', 'akademik', 'orangtua', 'karier'].includes(cached)) {
+            return cached;
+        }
+    }
+    return 'pribadi';
+};
+
+// Form data murni dari backend database
+const form = useForm(JSON.parse(JSON.stringify(props.formData || {})));
+
+// Sinkronkan data form jika props berubah dari backend
+watch(() => props.formData, (newData) => {
+    if (newData) {
+        Object.assign(form, JSON.parse(JSON.stringify(newData)));
+    }
+}, { deep: true });
 
 // State untuk active tab
-const activeTab = ref('pribadi');
+const activeTab = ref(getInitialTab());
+
+// Sinkronkan activeTab ke URL dan localStorage
+watch(activeTab, (newTab) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(PROFILE_TAB_STORAGE_KEY, newTab);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', newTab);
+        window.history.replaceState({}, '', url.toString());
+    }
+});
 
 const submit = () => {
     form.post('/alumni/profile', {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             Swal.fire({
                 title: 'Berhasil!',
@@ -139,7 +179,7 @@ const submit = () => {
                     </div>
                     
                     <div v-show="activeTab === 'karier'">
-                        <FormKarier v-show="activeTab === 'karier'" :form="form" :provinces="provinces" :kabupatens="kabupatens" :companies="companies" />
+                        <FormKarier :form="form" :provinces="provinces" :kabupatens="kabupatens" :companies="companies" :alumniData="alumniData" />
                     </div>
                 </div>
 

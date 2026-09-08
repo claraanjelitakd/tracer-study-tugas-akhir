@@ -32,6 +32,7 @@ class DataAkademik extends Model
         'no_kk',
         'nisn',
         'no_bpjs',
+        'npwp',
         'status_mahasiswa',
         'tahun_akademik_lulus',
         'tahun_lulus',

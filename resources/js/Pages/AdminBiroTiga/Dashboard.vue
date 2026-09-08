@@ -4,7 +4,7 @@
   Konsep: Formal, Bersih, dan Berwibawa dengan palet warna resmi UKDW: Hijau Tua (#005B3C) dan Kuning Landing Page (#FACC15 / yellow-400).
 -->
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 
 const props = defineProps({
     user: Object,
@@ -13,8 +13,9 @@ const props = defineProps({
     recentAlumni: Array,
 });
 
+// Method proses logout Admin Biro 3 dan kembali ke halaman beranda (Home)
 const logout = () => {
-    useForm().post('/logout');
+    router.post('/logout');
 };
 </script>
 
@@ -57,12 +58,6 @@ const logout = () => {
                         >
                             Data Alumni
                         </Link>
-                        <Link 
-                            href="/biro3/pertanyaan" 
-                            class="px-3.5 py-2 text-xs uppercase tracking-wider font-medium text-emerald-100 hover:text-white hover:bg-[#003824] rounded transition-all"
-                        >
-                            Kelola Pertanyaan
-                        </Link>
                     </div>
 
                     <!-- Profil Administrator & Logout -->
@@ -88,7 +83,6 @@ const logout = () => {
             <div class="md:hidden bg-[#003B26] px-4 py-2 border-t border-emerald-700/50 flex space-x-3">
                 <Link href="/biro3/dashboard" class="text-xs font-bold text-yellow-400">Dashboard</Link>
                 <Link href="/biro3/alumni" class="text-xs font-medium text-emerald-200">Data Alumni</Link>
-                <Link href="/biro3/pertanyaan" class="text-xs font-medium text-emerald-200">Kelola Pertanyaan</Link>
             </div>
         </header>
 
@@ -248,45 +242,45 @@ const logout = () => {
                         </div>
                     </div>
 
-                    <!-- Modul 2: Kelola Pertanyaan & Kuesioner -->
+                    <!-- Modul 2: Pemantauan Responden & Distribusi Partisipasi -->
                     <div class="bg-white border border-slate-200 hover:border-yellow-400 rounded shadow-sm transition-all duration-200 flex flex-col justify-between">
                         <div class="p-6">
                             <div class="flex items-start justify-between gap-4 mb-4">
                                 <span class="px-2.5 py-1 bg-yellow-50 text-yellow-900 text-[11px] font-bold uppercase tracking-wider rounded border border-yellow-300">
-                                    MODUL 02 — INSTRUMEN
+                                    MODUL 02 — PEMANTAUAN
                                 </span>
                             </div>
 
                             <h3 class="text-xl font-bold text-slate-900 tracking-tight mb-2">
-                                Pengaturan Kuesioner & Alur Branching (Jump Logic)
+                                Pemantauan Partisipasi & Capaian Pelacakan Lulusan
                             </h3>
                             
                             <p class="text-sm text-slate-600 leading-relaxed mb-6">
-                                Konfigurasi instrumen pertanyaan Tracer Study universitas. Atur teks pertanyaan, pilihan opsi ganda/matriks, susun alur lompatan pertanyaan dinamis (Google Forms Jump Logic), serta scoping penargetan program studi spesifik.
+                                Pantau distribusi pengisian kuesioner pada setiap program studi secara real-time. Ketahui persentase respon lulusan, evaluasi data serapan kerja, dan percepat capaian target keterisian tracer study universitas.
                             </p>
 
                             <div class="bg-slate-50 border border-slate-200 rounded p-3 mb-2 space-y-1.5 text-xs text-slate-700">
                                 <div class="flex items-center gap-2 font-medium">
                                     <span class="w-1.5 h-1.5 rounded-full bg-[#005B3C]"></span>
-                                    <span>Penyusunan butir pertanyaan standar Dikti (F1 s/d F22)</span>
+                                    <span>Pemantauan respons per prodi & fakultas secara real-time</span>
                                 </div>
                                 <div class="flex items-center gap-2 font-medium">
                                     <span class="w-1.5 h-1.5 rounded-full bg-[#005B3C]"></span>
-                                    <span>Konfigurasi logika lompatan (Jump Logic) per pilihan opsi</span>
+                                    <span>Status kelengkapan pengisian kuesioner F1 s/d F22</span>
                                 </div>
                                 <div class="flex items-center gap-2 font-medium">
                                     <span class="w-1.5 h-1.5 rounded-full bg-[#005B3C]"></span>
-                                    <span>Penargetan instrumen spesifik per prodi (contoh: F2E khusus Teologi)</span>
+                                    <span>Pengaturan butir kuesioner kini dikelola terpusat oleh Superadmin</span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="p-6 pt-0">
                             <Link 
-                                href="/biro3/pertanyaan" 
+                                href="/biro3/alumni" 
                                 class="w-full inline-flex items-center justify-center px-5 py-3 bg-[#005B3C] hover:bg-[#00432c] text-white text-xs uppercase tracking-wider font-bold rounded shadow transition-colors"
                             >
-                                <span>Buka Manajemen Pertanyaan</span>
+                                <span>Lihat Distribusi Responden</span>
                             </Link>
                         </div>
                     </div>

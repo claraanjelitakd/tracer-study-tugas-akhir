@@ -2,10 +2,11 @@
   Halaman Dashboard Admin Prodi
 -->
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 
+// Method proses logout Admin Prodi dan kembali ke beranda (Home)
 const logout = () => {
-    useForm().post('/logout');
+    router.post('/logout');
 };
 </script>
 

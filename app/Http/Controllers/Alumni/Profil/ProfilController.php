@@ -37,6 +37,7 @@ class ProfilController extends Controller
         // Merakit formData murni di backend agar frontend Vue tidak perlu logika inisialisasi / pengecekan manual
         $formData = [
             // Identitas Pribadi
+            'nim' => $alumni?->nim ?? '',
             'nama' => $dataAkademik?->nama ?? '',
             'tempat_lahir' => $dataAkademik?->tempat_lahir ?? '',
             'tanggal_lahir' => $dataAkademik?->tanggal_lahir ?? '',
@@ -48,6 +49,7 @@ class ProfilController extends Controller
             'no_kk' => $dataAkademik?->no_kk ?? '',
             'nisn' => $dataAkademik?->nisn ?? '',
             'no_bpjs' => $dataAkademik?->no_bpjs ?? '',
+            'npwp' => $dataAkademik?->npwp ?? '',
             
             // Kontak & Alamat Pribadi
             'alamat_saat_ini' => $dataAkademik?->alamat_saat_ini ?? '',
@@ -74,11 +76,8 @@ class ProfilController extends Controller
             'judul_ta_inggris' => $yudisium?->judul_ta_inggris ?? '',
             'dosen_pembimbing_1' => $yudisium?->dosen_pembimbing_1 ?? '',
             'dosen_pembimbing_2' => $yudisium?->dosen_pembimbing_2 ?? '',
-            'dosen_pembimbing_3' => $yudisium?->dosen_pembimbing_3 ?? '',
             'dosen_penguji_1' => $yudisium?->dosen_penguji_1 ?? '',
             'dosen_penguji_2' => $yudisium?->dosen_penguji_2 ?? '',
-            'dosen_penguji_3' => $yudisium?->dosen_penguji_3 ?? '',
-            'dosen_penguji_4' => $yudisium?->dosen_penguji_4 ?? '',
             'url_publikasi' => $yudisium?->url_publikasi ?? '',
             'jenis_publikasi' => $yudisium?->jenis_publikasi ?? '',
             'status_publikasi' => $yudisium?->status_publikasi ?? '',
@@ -103,9 +102,13 @@ class ProfilController extends Controller
             
             'expert' => $alumni?->expert ?? '',
             'minat' => $alumni?->minat ?? '',
+            'posisi_jabatan' => $alumni?->posisi_jabatan ?? '',
+            'jenis_pekerjaan' => $alumni?->jenis_pekerjaan ?? '',
             'zipcode' => $alumni?->zipcode ?? '', // Zipcode untuk perusahaan
             
             'nama_perusahaan' => $alumni?->company?->nama_perusahaan ?? '',
+            'company_alamat' => $alumni?->company?->alamat ?? '',
+            'company_skala' => $alumni?->company?->skala ?? '',
             'company_province_id' => $alumni?->company?->province_id ?? '',
             'company_kabupaten_id' => $alumni?->company?->kabupaten_id ?? '',
             'company_status_verifikasi' => $alumni?->company?->status_verifikasi ?? '',
@@ -116,8 +119,8 @@ class ProfilController extends Controller
             'telepon_atasan' => $atasan?->telepon ?? '',
         ];
         
-        // Get all companies for Autocomplete (id, name, province_id, kabupaten_id, status_verifikasi)
-        $companies = Company::select('id', 'nama_perusahaan', 'province_id', 'kabupaten_id', 'status_verifikasi')->get();
+        // Get all companies for Autocomplete (id, name, province_id, kabupaten_id, alamat, kode_pos, skala, status_verifikasi)
+        $companies = Company::select('id', 'nama_perusahaan', 'province_id', 'kabupaten_id', 'alamat', 'kode_pos', 'skala', 'status_verifikasi')->get();
 
         return inertia('Alumni/Profil/Index', [
             'alumniData' => $alumni,

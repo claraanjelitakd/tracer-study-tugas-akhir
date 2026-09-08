@@ -1,6 +1,117 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
-## [2026-09-07] Penyempurnaan Direktori Alumni Biro 3: Dropdown Tahun Yudisium Kelulusan & Filter Terisolasi per Tahun
+## [2026-09-08] Perbaikan Menyeluruh Fitur Logout ke Halaman Beranda (Home)
+- **Perbaikan Masalah Tombol Logout di Dashboard Alumni & Seluruh Modul**:
+  - Mengidentifikasi akar masalah: pemanggilan composable `useForm().post('/logout')` di dalam callback function click handler Vue 3 menyebabkan error injeksi konteks (`inject() can only be used inside setup()`), sehingga request tidak terkirim.
+  - Memperbaiki seluruh method logout di seluruh komponen aplikasi (`Alumni/Dashboard.vue`, `SuperAdmin/Dashboard.vue`, `SuperAdmin/Pertanyaan/Index.vue`, `AdminProdi/Dashboard.vue`, `AdminBiroTiga/Dashboard.vue`, `AdminBiroTiga/Pertanyaan/Index.vue`, `AdminBiroTiga/AlumniIndex.vue`, `AdminBiroTiga/AlumniShow.vue`) dengan menggunakan `router.post('/logout')` dari `@inertiajs/vue3`.
+- **Dukungan Rute Logout Aman & Fleksibel**:
+  - Mengubah rute logout di `routes/web.php` menjadi `Route::match(['get', 'post'], '/logout', ...)` agar dapat dipanggil baik via POST maupun GET.
+  - Memastikan jika sesi pengguna telah kedaluwarsa saat tombol logout ditekan, pengguna tidak akan terkunci di redirect error melainkan langsung terarah kembali dengan mulus ke Beranda (Home / Landing Page `/`).
+  - Menambahkan komentar dokumentasi lengkap pada method `LoginController::prosesLogout`.
+- **Migrasi Modul Kelola Pertanyaan & Alur Percabangan ke Superadmin**:
+  - Memindahkan seluruh fitur manajemen kuesioner dari Biro 3 ke Superadmin sesuai hak wewenang universitas.
+  - Membuat controller baru `App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController` dengan komentar lengkap dan dokumentatif di setiap method.
+  - Membuat halaman tampilan `resources/js/Pages/SuperAdmin/Pertanyaan/Index.vue` dengan navbar institusional Superadmin, navigasi section per-bagian (horizontal tabs), penyusunan urutan (reorder up/down), CRUD pertanyaan, dan alur percabangan (*Google Forms jump logic*).
+  - Memperbarui rute di `routes/web.php` di bawah middleware `role:superadmin` (`/superadmin/pertanyaan`, `/superadmin/pertanyaan/reorder`, `/superadmin/pertanyaan/{id}`, opsi jawaban).
+- **Pembaruan Dasbor Superadmin & Biro 3**:
+  - Mengembangkan `SuperAdmin/DashboardController.php` dan `resources/js/Pages/SuperAdmin/Dashboard.vue` dengan ringkasan metrik instrumen, total pertanyaan, section, partisipasi responden, serta kartu gerbang langsung menuju modul kelola kuesioner.
+  - Memperbarui `AdminBiroTiga/Dashboard.vue` dengan memfokuskan peran Biro 3 pada Manajemen Data Alumni, Sinkronisasi LinkedIn, dan Pemantauan Partisipasi Responden, serta menghapus tautan kelola pertanyaan dari navbar Biro 3.
+- **Komentar Kode Menyeluruh**:
+  - Menambahkan komentar deskriptif pada setiap rute, controller, dan komponen Vue terkait sesuai pedoman pengembangan.
+
+## [2026-09-08] Fitur Penambahan Perusahaan Baru: SweetAlert2 Modal Popup Bersih, Validasi Wajib Wilayah & Kode Pos Langsung Simpan Database
+- **Popup Tambah Perusahaan Menggunakan SweetAlert2 (Clean & Standar)**:
+  - Menggantikan modal kustom dengan popup dialog **SweetAlert2** (`Swal.fire`) yang rapi, presisi, dan proporsional.
+  - Bebas dari glitch overflow, terpotong, atau efek blur yang tidak diinginkan.
+  - Dilengkapi input Nama Perusahaan (*), Dropdown Provinsi (*), Dropdown Kabupaten/Kota dinamis (*), Kode Pos (*), Skala, dan Alamat.
+  - Pesan validasi interaktif ditampilkan langsung di dalam popup modal (`Swal.showValidationMessage`) tanpa menutup popup jika ada kolom wajib yang belum terisi.
+- **Validasi Ketat Input Perusahaan Baru**:
+  - Mewajibkan pengisian:
+    1. **Nama Perusahaan / Instansi** (*)
+    2. **Provinsi Perusahaan** (*)
+    3. **Kabupaten / Kota Perusahaan** (*) (otomatis menyesuaikan provinsi yang dipilih)
+    4. **Kode Pos Perusahaan** (*)
+    5. Skala dan Alamat Jalan (opsional/pelengkap).
+  - Mengimplementasikan validasi frontend dan backend untuk memastikan data lokasi perusahaan baru terisi lengkap meskipun status verifikasi adalah `Menunggu Verifikasi`.
+- **Penyimpanan Langsung ke Database & Integrasi Otomatis**:
+  - Menambahkan migrasi `2026_09_08_163000_add_kode_pos_to_companies_table.php` dan memperbarui model `Company.php` dengan kolom `kode_pos`.
+  - Menambahkan route `POST /alumni/company` dan method controller `SimpanProfilController::tambahPerusahaanBaru(Request $request)` untuk menyimpan perusahaan baru ke database secara instan.
+  - Setelah perusahaan berhasil disimpan:
+    - Data perusahaan langsung ditambahkan ke daftar opsi dropdown (`localCompanies.unshift`).
+    - Input form profil karier otomatis terpilih dan terisi dengan perusahaan baru tersebut (nama, provinsi, kabupaten/kota, alamat, skala, dan kode pos).
+    - Menampilkan notifikasi sukses SweetAlert yang rapi dan menutup popup modal.
+- **CSRF Token Protection**:
+  - Menambahkan `<meta name="csrf-token" content="{{ csrf_token() }}">` pada layout `resources/views/app.blade.php` untuk memastikan seluruh request fetch aman dan terautentikasi.
+
+## [2026-09-08] Penyempurnaan Profil Alumni: Penambahan NPWP, Pemisahan Data Paten Universitas vs Editable, Relasi Company Wilayah, & Kelengkapan Seeder 100%
+- **Penambahan Kolom NPWP (Nomor Pokok Wajib Pajak)**:
+  - Membuat migrasi baru `2026_09_08_160000_add_npwp_to_data_akademiks_table.php` untuk menambahkan kolom `npwp` (varchar 30, nullable) pada tabel `data_akademiks`.
+  - Mendaftarkan `'npwp'` ke properti `$fillable` di model `DataAkademik.php`.
+  - Menambahkan input NPWP pada kartu **Identitas Diri** di `FormPribadi.vue` dan mengintegrasikannya ke `ProfilController` serta `SimpanProfilController`.
+- **Penghapusan Kolom Ekstra Dosen Pembimbing & Penguji**:
+  - Kolom `dosen_pembimbing_3`, `dosen_penguji_3`, dan `dosen_penguji_4` yang tidak digunakan resmi dihapus dari skema database (`yudisiums`) dan migrasi. Dosen kini terstandarisasi menjadi Pembimbing 1, Pembimbing 2, Penguji 1, dan Penguji 2.
+- **Seluruh Data Yudisium & Skripsi Resmi Paten (Tidak Dapat Diubah Alumni)**:
+  - Data yudisium (Judul TA Indonesia & Inggris, Repositori/URL Publikasi, Jenis/Status Publikasi, Dosen Pembimbing 1-2, Dosen Penguji 1-2, Predikat Yudisium, dan Status Yudisium) ditarik resmi dari pangkalan data kampus dan berstatus paten. Seluruh input disajikan dalam mode terkunci (disabled abu-abu) dan di-bypass dari logika penyimpanan di `SimpanProfilController.php`.
+- **Pembersihan Tampilan Non-AI Slop (Minimalis, Profesional, & Bersih)**:
+  - Menghapus seluruh badge ikon gembok `🔒 Paten Universitas`, tulisan pengumuman panjang, dan dekorasi blur berlebihan.
+  - Seluruh field paten / terkunci disajikan dengan estetika institusional bersih: input abu-abu halus (`bg-gray-100 text-gray-700 border-gray-200 cursor-not-allowed rounded-xl`) tanpa ornamen visual yang berisik.
+- **Searchable Select Dropdown Perusahaan, Provinsi, & Kabupaten (Bergaya Gambar 2)**:
+  - Mengubah input nama perusahaan menjadi **Searchable Select Dropdown** yang dapat diklik langsung kapan saja untuk membuka daftar perusahaan.
+  - Dropdown dilengkapi dengan kotak pencarian sticky di atas (`🔍 Ketik untuk mencari...`) dan daftar opsi yang scrollable dengan penanda aktif hijau lembut (`bg-green-50 text-[#005B3C] font-semibold`), persis seperti pada Gambar 2.
+  - Tetap menyediakan tombol `+ Tambah` di samping kanan input untuk membuka modal penambahan perusahaan baru jika instansi belum terdaftar di database.
+  - Menerapkan pola searchable select yang sama pada pilihan Provinsi Perusahaan dan Kabupaten/Kota Perusahaan dengan penutup otomatis saat klik di luar (click outside).
+  - **Data yang Dapat Diubah Alumni**:
+    - Biodata diri (Nama, NIK, NPWP, Tempat/Tgl Lahir, Agama, Jenis Kelamin, Golongan Darah, Kewarganegaraan).
+    - Kontak & Alamat Domisili lengkap (Telepon, Email, Alamat, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan, Kode Pos).
+    - Skripsi, Tugas Akhir, Repositori, Publikasi Ilmiah, Dosen Pembimbing & Penguji (`FormAkademik.vue`).
+    - Data lengkap Orang Tua / Wali (`FormOrangTua.vue`).
+    - Karier, Perusahaan, Atasan, dan Media Sosial (`FormKarier.vue`).
+- **Sinkronisasi Kunci Form Data Orang Tua & Akademik**:
+  - Memperbaiki ketidaksesuaian kunci (mismatch key) di `FormOrangTua.vue` (`nama_orang_tua`, `pekerjaan_orang_tua`, `nomor_telepon_orang_tua`, dll) dan `FormAkademik.vue` (`angkatan_masuk`, `dosen_pembimbing_1`, `dosen_penguji_1`, `keterangan_hasil_yudisium`) agar data tersinkronisasi 100% dua arah dengan backend.
+- **Relasi Wilayah Perusahaan (Company) Terhubung Lewat ID**:
+  - `CompanySeeder.php` diperbarui untuk menempatkan perusahaan di 3 wilayah spesifik:
+    1. **DI Yogyakarta**: Kabupaten **Sleman** (ID provinsi DIY kode `34`, ID kabupaten Sleman kode `34.04`). Perusahaan: *PT Gameloft Indonesia*, *PT Niagahoster*, *PT Djarum Sleman*, *CV Javan Cipta Solusi*.
+    2. **DKI Jakarta**: **Kota Jakarta Pusat** (ID provinsi DKI Jakarta kode `31`, ID kabupaten Kota Jakarta Pusat kode `31.71`). Perusahaan: *PT Bank Central Asia Tbk*, *PT Telekomunikasi Indonesia Tbk*, *PT Tokopedia*, *PT Astra International Tbk*.
+    3. **Aceh**: Kabupaten **Aceh Selatan** (ID provinsi Aceh kode `11`, ID kabupaten Aceh Selatan kode `11.01`). Perusahaan: *PT Perkebunan Nusantara I (PTPN)*, *PT Bank Aceh Syariah Tapaktuan*, *CV Samudera Selatan Digital*.
+  - Seluruh relasi `province_id` dan `kabupaten_id` terhubung via foreign key yang valid.
+- **Kelengkapan Seeder Data Alumni 100% Rata Terisi**:
+  - `DataAkademikSeeder.php`: Mengisi 100% data untuk seluruh 10 alumni (termasuk NIK, KK, NISN, BPJS, NPWP, domisili lengkap terhubung ke ID wilayah, dan data paten kelulusan).
+  - `DataOrangTuaSeeder.php`: Mengisi lengkap data orang tua untuk seluruh 10 alumni.
+  - `YudisiumSeeder.php`: Mengisi lengkap data skripsi bahasa Indonesia & Inggris, repositori, jenis & status publikasi, nama dosen pembimbing & penguji, serta predikat kelulusan untuk seluruh 10 alumni.
+  - `AlumniSeeder.php`: Mengaitkan `company_id` (terdistribusi ke Sleman, Jakarta Pusat, dan Aceh Selatan), data atasan (`atasan_id`), posisi jabatan, keahlian (`expert`), minat (`minat`), dan tautan media sosial.
+  - `DatabaseSeeder.php`: Mengatur urutan pemanggilan seeder agar `CompanySeeder` dijalankan sebelum `AlumniSeeder`.
+
+- **Tata Letak Kartu Kotak Berdampingan (Kanan-Kiri) Khusus Pertanyaan F6 & F7**:
+  - Mengelompokkan kartu pertanyaan `F6` ("Berapa perusahaan dilamar?") dan `F7` ("Berapa perusahaan merespons?") menjadi grid 2 kolom berdampingan (`grid grid-cols-1 md:grid-cols-2 gap-6`).
+  - Masing-masing disajikan dalam kartu kotak `rounded-[2rem] shadow-sm` proporsional dengan input angka besar di tengah sehingga tampilan lebih rapi, hemat ruang vertikal, dan ergonomis.
+- **Dukungan Input Dinamis untuk Opsi "Lainnya / Tuliskan" di Semua Tipe Pilihan**:
+  - Menyediakan kotak isian teks (`input text`) dinamis yang otomatis muncul saat alumni mencentang atau memilih opsi jawaban yang mengandung kata `"Lainnya"` atau `"Tuliskan"` pada tipe `multiple_choice` / `checkbox` maupun `single_choice` / `radio`.
+  - Input teks terintegrasi langsung ke state pengiriman jawaban `SimpanJawabanController` dan tersimpan rapi ke tabel `responses`.
+- **Pembersihan Teks Pertanyaan F10 & Verifikasi Database Seeding**:
+  - Menghapus teks instruksi legacy `"KEMUDIAN LANJUT KE F17"` dari database. Teks pertanyaan `F10` di database dan seeder kini bersih murni: `"Apakah anda aktif mencari pekerjaan dalam 4 minggu terakhir? Pilihlah Satu Jawaban."`.
+  - Memverifikasi bahwa seluruh alur branching `jump_to` (lompat ke `F17-1` atau lanjut normal) dikendalikan 100% dari kolom `jump_to` di tabel `question_options` di database tanpa hardcode teks di frontend maupun seeder.
+
+## [2026-09-08] Perbaikan Hover Pilihan Kuesioner, Eliminasi Border Kasar, & Persistensi State/Draft saat Refresh Halaman
+- **Perbaikan Visual Opsi Pilihan Saat Hover (Anti-Whiteout)**:
+  - Mengatasi masalah teks dan placeholder input di dalam opsi pilihan kuesioner yang memutih saat kursor mouse di-hover (seperti pada pertanyaan F3).
+  - Mengganti utilitas CSS bentrok Tailwind (`peer-checked:bg-[#005B3C] peer-checked:text-white hover:bg-green-50`) dengan binding reaktif Vue murni.
+  - Opsi belum terpilih: latar `bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C]`.
+  - Opsi terpilih: latar `bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]`.
+  - Kotak input dinamis pada tipe `radio_input`: Latar putih kontras tinggi `bg-white text-gray-900 placeholder-gray-400 font-bold border-0 shadow-inner` sehingga teks input dan placeholder terbaca dengan sangat jelas.
+- **Penghapusan Border Kasar (Clean & Modern UI)**:
+  - Menghapus border tebal (`border-4`, `border-2`) pada kartu pertanyaan, header banner, stepper navigasi bagian, dan floating action button di halaman kuesioner alumni.
+  - Tampilan diganti dengan *subtle shadow* (`shadow-sm`, `shadow-xs`) dan sudut halus (`rounded-[2rem]`) yang bersih dan rapi.
+- **Persistensi Penuh Tampilan & Draft Saat Refresh Halaman (Tidak Pindah Tampilan & Data Tidak Hilang)**:
+  - **Kuesioner Alumni (`/alumni/kuesioner`)**:
+    - Menyimpan section kuesioner aktif ke URL query (`?sec=...`) dan `localStorage`. Saat halaman di-refresh (F5), alumni tetap berada di bagian/section yang sedang dikerjakan, tidak terlempar ke Section 1.
+    - Menyimpan draft jawaban yang sedang diisi secara real-time (*debounced* 250ms) ke `localStorage`. Jika halaman di-refresh sebelum tombol simpan ditekan, seluruh draft isian tidak akan hilang.
+    - Menambahkan `preserveState: true` dan `preserveScroll: true` pada seluruh navigasi step.
+  - **Profil Alumni (`/alumni/profile`)**:
+    - Menyimpan tab aktif (`pribadi`, `akademik`, `orangtua`, `karier`) ke URL query (`?tab=...`) dan `localStorage`. Saat di-refresh, pengguna tetap berada di tab yang sama.
+    - Menyimpan draft input perubahan form profil ke `localStorage` agar data yang belum tersubmit tidak hilang saat halaman di-refresh secara tidak sengaja.
+  - **Kelola Pertanyaan Biro 3 (`/biro3/pertanyaan`)**:
+    - Menyimpan ID section aktif ke URL query (`?sec_id=...`) dan `localStorage`. Saat admin me-refresh halaman, section yang sedang dikelola tidak berpindah kembali ke Bagian 1.
+
 - **Penggantian Navigasi Tab Menjadi Dropdown**:
   - Menghilangkan navigasi horizontal tab per-semester di bagian atas tabel, menggantikannya dengan komponen **Dropdown Tahun / Semester Yudisium** yang terintegrasi di panel filter bersama Program Studi dan Pencarian.
 - **Penyajian Data Terisolasi per Tahun Kelulusan (Tanpa Tumpukan Semua Semester)**:
@@ -36,6 +147,29 @@
   1. *Modul 01 - Basis Data & Direktori Alumni*: Akses langsung ke manajemen alumni, pencarian prodi/NIM, dan sinkronisasi LinkedIn (`/biro3/alumni`).
   2. *Modul 02 - Konfigurasi Instrumen & Jump Logic*: Akses langsung ke pengelolaan pertanyaan kuesioner, opsi jawaban, dan scoping prodi (`/biro3/pertanyaan`).
 - **Tabel Pemantauan Partisipasi per Program Studi**: Menyajikan rekapitulasi data kelulusan, jumlah responden kuesioner, tingkat partisipasi persentase dengan progress bar, dan badge status evaluasi capaian per prodi.
+## [2026-09-08] Standarisasi Format Data Tabel responses & Sinkronisasi Ekspor
+- **Standarisasi Kolom `responses`**:
+  - `answer_json`: Dikhususkan menyimpan JSON array murni untuk pertanyaan pilihan ganda (`multiple_choice`/`checkbox`), associative array/object untuk `radio_input` dan `multiple_number`, serta null untuk pertanyaan berjawaban tunggal.
+  - `answer_text`: Dikhususkan menyimpan format string/varchar bersih yang siap dibaca dan diekspor (Excel/CSV) tanpa perlu parsing JSON di setiap baris laporan.
+- **Dukungan Opsi "Lainnya"**:
+  - Jika alumni memilih opsi "Lainnya" dan mengetikkan teks sendiri:
+    - Pada pertanyaan `single_choice`/`radio`: tersimpan sebagai varchar rapi `"Lainnya: [isi teks]"` di `answer_text`.
+    - Pada pertanyaan `multiple_choice`/`checkbox`: teks dimasukkan ke dalam JSON array di `answer_json` (`["Opsi 1", "Lainnya: [isi teks]"]`) dan digabungkan dengan koma di `answer_text` (`"Opsi 1, Lainnya: [isi teks]"`).
+- **Format Khusus `radio_input` & `multiple_number`**:
+  - Pertanyaan `radio_input` (seperti F3 dan F5): menghasilkan kalimat utuh di `answer_text` (misal: `"Kira-kira 4 bulan sebelum lulus"`).
+  - Pertanyaan `multiple_number` (seperti F13): menghasilkan rincian nominal rupiah terformat dengan label opsi di `answer_text` (misal: `"Dari Pekerjaan Utama: Rp 6.500.000, Dari Lembur dan Tips: Rp 750.000, Dari Pekerjaan Lainnya: Rp 0"`).
+- **Sinkronisasi Otomatis Pertanyaan Profil (F1 s/d F2H)**:
+  - Pertanyaan F1 s/d F2H yang ditarik dari profil alumni (`data_akademiks`, `alumnis`, `companies`, `atasans`) otomatis tersinkronisasi dan tersimpan di tabel `responses` untuk setiap alumni melalui `KuesionerSyncService`.
+  - `QuestionMappingSeeder` diperbarui sehingga saat seeding dijalankan, tabel `responses` langsung terisi lengkap untuk seluruh data alumni.
+- **Prefill Dua Arah (*Roundtrip Persistence*)**:
+  - `KuesionerController.php` diperbarui agar dapat memecah kembali nilai `"Lainnya: [teks]"` ke state form frontend (`_custom`), memastikan data tidak hilang atau rusak saat halaman direfresh atau dibuka kembali.
+- **Isolasi Input Mandiri pada Tipe `radio_input` (F3 & F5)**:
+  - Memperbaiki model input pada kartu bertipe `radio_input` agar terikat ke `inputs[opt.id]` per opsi (bukan satu variabel `input` global). Mengeliminasi bug di mana angka yang diketik di opsi "Sebelum lulus" otomatis ikut terisi ke opsi "Sesudah lulus" saat berganti pilihan.
+- **Eliminasi Mutlak Nilai NULL pada Tabel `responses`**:
+  - `SimpanJawabanController.php` kini menyaring pertanyaan yang belum dijawab / belum sampai di section aktif sehingga tidak ada lagi record kosong (`answer_text: null, answer_json: null`) yang tersimpan ke database.
+  - Nilai rincian numerik (F13) yang tidak diisi otomatis terisi angka `0` (bukan `null`).
+  - Membersihkan seluruh record dummy yang sebelumnya bernilai null di database sehingga tabel `responses` bersih 100% dari nilai null.
+
 - **Alur Login & Rute Terpadu**:
   - Memperbarui `LoginController.php` agar peran `admin_biro3` otomatis dialihkan ke `/biro3/dashboard`.
   - Mendaftarkan rute `Route::get('/biro3/dashboard', ...)->name('biro3.dashboard')` pada `routes/web.php`.

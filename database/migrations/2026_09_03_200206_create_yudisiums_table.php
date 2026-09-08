@@ -21,11 +21,8 @@ return new class extends Migration
             // Dosen
             $table->string('dosen_pembimbing_1')->nullable();
             $table->string('dosen_pembimbing_2')->nullable();
-            $table->string('dosen_pembimbing_3')->nullable();
             $table->string('dosen_penguji_1')->nullable();
             $table->string('dosen_penguji_2')->nullable();
-            $table->string('dosen_penguji_3')->nullable();
-            $table->string('dosen_penguji_4')->nullable();
             
             // Tugas Akhir
             $table->text('judul_ta')->nullable()->comment('Judul Skripsi/Thesis/Disertasi/Perancangan');

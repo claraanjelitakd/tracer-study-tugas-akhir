@@ -14,7 +14,9 @@ class Company extends Model
         'province_id',
         'kabupaten_id',
         'alamat',
+        'kode_pos',
         'sektor',
+        'skala',
         'status_verifikasi',
     ];
 

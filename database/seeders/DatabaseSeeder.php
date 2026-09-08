@@ -47,11 +47,11 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
+            CompanySeeder::class,
             DataAkademikSeeder::class,
             AlumniSeeder::class,
             DataOrangTuaSeeder::class,
             YudisiumSeeder::class,
-            CompanySeeder::class,
         ]);
 
         // 4. Seed Questionnaire Data

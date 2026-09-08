@@ -5,7 +5,7 @@
   Desain: Mengikuti standarisasi navigasi & identitas Biro 3 (Hijau UKDW #005B3C, Kuning Landing Page #FACC15, Putih)
 -->
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -70,8 +70,9 @@ const startSync = async () => {
     }
 };
 
+// Method proses logout Admin Biro 3 dan kembali ke beranda (Home)
 const logout = () => {
-    useForm().post('/logout');
+    router.post('/logout');
 };
 
 const saveSync = () => {

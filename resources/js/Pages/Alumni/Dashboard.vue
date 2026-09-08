@@ -3,7 +3,7 @@
   Fungsi: Menampilkan status kelengkapan data alumni (Profil dan Kuesioner).
 -->
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 
 defineProps({
     user: Object,
@@ -11,8 +11,9 @@ defineProps({
     questionnaireCompleted: Boolean,
 });
 
+// Method proses logout alumni untuk kembali ke halaman beranda (Home)
 const logout = () => {
-    useForm().post('/logout');
+    router.post('/logout');
 };
 </script>
 

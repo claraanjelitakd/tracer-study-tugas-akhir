@@ -32,6 +32,8 @@ class Alumni extends Model
         'expert',
         'minat',
         'company_id',
+        'posisi_jabatan',
+        'jenis_pekerjaan',
         'zipcode',
         'atasan_id', // Tambahan relasi atasan
     ];

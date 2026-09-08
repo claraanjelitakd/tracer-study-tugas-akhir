@@ -1,18 +1,20 @@
 <!--
-  Halaman Kelola Pertanyaan & Alur Branching Kuesioner (Biro 3)
-  Desain: Bersih, Profesional, Formal ala Profil Alumni dengan warna resmi UKDW (Hijau #005B3C & Kuning Landing Page #FACC15).
-  Fitur Utama:
-  1. Navigasi Section di bagian atas (Tabs horizontal seperti di Profil Alumni).
-  2. Pertanyaan ditampilkan terkelompok per section terpilih (tidak menumpuk sekaligus).
-  3. Pemindahan urutan kartu pertanyaan (bubble) dibatasi hanya di dalam section yang sama.
-  4. Pemisahan tampilan CRUD (Mode Alur vs Mode Formulir Terpisah).
-  5. Tabel alur percabangan jelas menampilkan kode target beserta teks pertanyaan tujuan.
-  6. Tanpa input manual urutan opsi.
+  Halaman Kelola Pertanyaan & Alur Branching Kuesioner (Superadmin)
+  
+  Fungsi:
+  Portal kendali terpusat bagi Superadmin untuk mengelola seluruh instrumen kuesioner Tracer Study.
+  Superadmin memiliki wewenang penuh untuk:
+  1. Menavigasi section kuesioner secara terstruktur per-bagian (Tabs horizontal).
+  2. Menambah, mengedit, dan menghapus butir pertanyaan.
+  3. Mengatur alur logika percabangan (jump logic / lompatan pertanyaan ala Google Forms).
+  4. Menyusun urutan butir pertanyaan dalam section yang sama (naik/turun).
+  5. Mengelola pilihan opsi jawaban beserta kodenya secara otomatis.
 -->
 <script setup>
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 
+// Properti yang diterima dari SuperAdmin\KelolaPertanyaanController
 const props = defineProps({
     questions: Array,
     sections: Array,
@@ -21,7 +23,7 @@ const props = defineProps({
     targetQuestionMap: Object,
 });
 
-// Method proses logout Admin Biro 3 dan kembali ke beranda (Home)
+// Fungsi proses logout superadmin dan kembali ke beranda (Home)
 const logout = () => {
     router.post('/logout');
 };
@@ -29,9 +31,10 @@ const logout = () => {
 // ========================================================
 // 1. STATE NAVIGASI PER SECTION & FILTER
 // ========================================================
-// Storage keys untuk persistensi saat refresh
-const BIRO3_SECTION_STORAGE_KEY = 'tracerstudy_biro3_pertanyaan_section';
+// Storage key untuk menyimpan section aktif pada browser Superadmin saat refresh
+const SUPERADMIN_SECTION_STORAGE_KEY = 'tracerstudy_superadmin_pertanyaan_section';
 
+// Mendapatkan section ID awal (dari parameter URL, cache localStorage, atau section pertama)
 const getInitialSectionId = () => {
     if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
@@ -40,7 +43,7 @@ const getInitialSectionId = () => {
             const parsed = parseInt(secParam, 10);
             if (props.sections.some(s => s.id === parsed)) return parsed;
         }
-        const cached = localStorage.getItem(BIRO3_SECTION_STORAGE_KEY);
+        const cached = localStorage.getItem(SUPERADMIN_SECTION_STORAGE_KEY);
         if (cached) {
             const parsed = parseInt(cached, 10);
             if (props.sections.some(s => s.id === parsed)) return parsed;
@@ -49,26 +52,28 @@ const getInitialSectionId = () => {
     return props.sections.length > 0 ? props.sections[0].id : null;
 };
 
-// Default active section: dari cache atau section pertama
+// Section ID yang sedang aktif
 const activeSectionId = ref(getInitialSectionId());
 
+// Pantau perubahan section aktif dan sinkronkan ke URL & localStorage
 watch(activeSectionId, (newId) => {
     if (typeof window !== 'undefined' && newId) {
-        localStorage.setItem(BIRO3_SECTION_STORAGE_KEY, newId.toString());
+        localStorage.setItem(SUPERADMIN_SECTION_STORAGE_KEY, newId.toString());
         const url = new URL(window.location.href);
         url.searchParams.set('sec_id', newId.toString());
         window.history.replaceState({}, '', url.toString());
     }
 });
 
-// Mode Tampilan: 'list' (Alur Kuesioner per Section) atau 'form' (Formulir CRUD Terpisah)
+// Mode Tampilan: 'list' (Daftar Alur Kuesioner) atau 'form' (Formulir CRUD Terpisah)
 const currentView = ref('list');
 const isEditingQuestion = ref(false);
 
+// Filter pencarian teks atau kode pertanyaan
 const searchQuery = ref('');
 const isReordering = ref(false);
 
-// Pertanyaan yang termasuk di dalam section yang sedang aktif
+// Pertanyaan yang termasuk di dalam section yang sedang aktif dan sesuai kueri pencarian
 const activeSectionQuestions = computed(() => {
     if (!activeSectionId.value) return [];
     
@@ -84,7 +89,7 @@ const activeSectionQuestions = computed(() => {
         .sort((a, b) => a.order - b.order);
 });
 
-// Informasi section yang sedang aktif
+// Objek data section yang sedang aktif
 const currentActiveSection = computed(() => {
     return props.sections.find((s) => s.id === activeSectionId.value) || null;
 });
@@ -103,6 +108,7 @@ const questionForm = useForm({
     order: null,
 });
 
+// Buka form tambah pertanyaan baru
 const openAddQuestionForm = () => {
     isEditingQuestion.value = false;
     questionForm.reset();
@@ -115,6 +121,7 @@ const openAddQuestionForm = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// Buka form edit pertanyaan
 const openEditQuestionForm = (q) => {
     isEditingQuestion.value = true;
     questionForm.id = q.id;
@@ -129,20 +136,22 @@ const openEditQuestionForm = (q) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// Batalkan form dan kembali ke mode daftar
 const cancelQuestionForm = () => {
     questionForm.reset();
     currentView.value = 'list';
 };
 
+// Submit simpan atau perbarui data pertanyaan ke rute superadmin
 const submitQuestion = () => {
     if (isEditingQuestion.value) {
-        questionForm.put(`/biro3/pertanyaan/${questionForm.id}`, {
+        questionForm.put(`/superadmin/pertanyaan/${questionForm.id}`, {
             onSuccess: () => {
                 currentView.value = 'list';
             },
         });
     } else {
-        questionForm.post('/biro3/pertanyaan', {
+        questionForm.post('/superadmin/pertanyaan', {
             onSuccess: () => {
                 currentView.value = 'list';
             },
@@ -150,9 +159,10 @@ const submitQuestion = () => {
     }
 };
 
+// Hapus butir pertanyaan beserta opsi jawabannya
 const deleteQuestion = (q) => {
     if (confirm(`Hapus pertanyaan ${q.code}? Semua opsi jawaban terkait juga akan terhapus.`)) {
-        router.delete(`/biro3/pertanyaan/${q.id}`, {
+        router.delete(`/superadmin/pertanyaan/${q.id}`, {
             preserveScroll: true,
         });
     }
@@ -163,7 +173,7 @@ const deleteQuestion = (q) => {
 // ========================================================
 const moveQuestion = (q, direction) => {
     isReordering.value = true;
-    router.post('/biro3/pertanyaan/reorder', {
+    router.post('/superadmin/pertanyaan/reorder', {
         id: q.id,
         direction: direction,
     }, {
@@ -188,6 +198,7 @@ const optionForm = useForm({
     jump_to: '',
 });
 
+// Buka modal untuk menambah opsi jawaban
 const openAddOptionModal = (q) => {
     selectedQuestion.value = q;
     isEditingOption.value = false;
@@ -198,6 +209,7 @@ const openAddOptionModal = (q) => {
     showOptionModal.value = true;
 };
 
+// Buka modal untuk mengedit opsi jawaban
 const openEditOptionModal = (q, opt) => {
     selectedQuestion.value = q;
     isEditingOption.value = true;
@@ -208,16 +220,17 @@ const openEditOptionModal = (q, opt) => {
     showOptionModal.value = true;
 };
 
+// Submit simpan opsi ke rute superadmin
 const submitOption = () => {
     if (isEditingOption.value) {
-        optionForm.put(`/biro3/pertanyaan/options/${optionForm.id}`, {
+        optionForm.put(`/superadmin/pertanyaan/options/${optionForm.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 showOptionModal.value = false;
             },
         });
     } else {
-        optionForm.post(`/biro3/pertanyaan/${selectedQuestion.value.id}/options`, {
+        optionForm.post(`/superadmin/pertanyaan/${selectedQuestion.value.id}/options`, {
             preserveScroll: true,
             onSuccess: () => {
                 showOptionModal.value = false;
@@ -226,26 +239,27 @@ const submitOption = () => {
     }
 };
 
+// Hapus opsi jawaban tertentu
 const deleteOption = (opt) => {
     if (confirm(`Hapus pilihan opsi "${opt.option_text}"?`)) {
-        router.delete(`/biro3/pertanyaan/options/${opt.id}`, {
+        router.delete(`/superadmin/pertanyaan/options/${opt.id}`, {
             preserveScroll: true,
         });
     }
 };
 
+// Mengambil judul/teks pertanyaan target berdasarkan kode jump_to
 const getTargetQuestionTitle = (code) => {
     if (!code) return '';
     return props.targetQuestionMap?.[code] || '';
 };
 
+// Format nama label tipe pertanyaan
 const getTypeLabel = (type) => {
     const labels = {
         single_choice: 'Pilihan Tunggal (Radio)',
         multiple_choice: 'Pilihan Ganda (Checkbox)',
-        radio: 'Pilihan Tunggal (Radio)',
-        checkbox: 'Pilihan Ganda (Checkbox)',
-        text: 'Isian Teks Singkat',
+        text: 'Isian Teks Singkat / Uraian',
         number: 'Isian Angka (Numerik)',
         radio_input: 'Radio dengan Isian Angka',
         radio_text: 'Radio dengan Isian Teks',
@@ -259,49 +273,45 @@ const getTypeLabel = (type) => {
 </script>
 
 <template>
-    <Head title="Kelola Pertanyaan Kuesioner - Biro 3 UKDW" />
+    <Head title="Kelola Kuesioner - Superadmin UKDW" />
 
     <div class="min-h-screen bg-[#f8fafc] text-slate-800 font-sans pb-24">
         
-        <!-- Navbar Minimal Bersih -->
-        <nav class="bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-50">
+        <!-- Navbar Superadmin -->
+        <nav class="bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-200 sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-20 items-center">
                     
-                    <!-- Logo & Brand -->
+                    <!-- Logo & Brand Institusional -->
                     <div class="flex items-center space-x-3">
                         <img src="/uploads/landing/2.png" alt="Logo UKDW" class="h-10 w-10 object-contain" onerror="this.style.display='none'" />
                         <div class="border-l border-gray-200 pl-3">
-                            <span class="text-xs uppercase tracking-wider text-gray-500 font-medium block leading-tight">Tracer Study UKDW</span>
-                            <span class="text-base font-bold text-gray-900 leading-tight">Biro Kemahasiswaan, Alumni & Pengembangan Karir</span>
+                            <span class="text-xs uppercase tracking-wider text-gray-500 font-bold block leading-tight">Tracer Study UKDW</span>
+                            <span class="text-base font-bold text-gray-900 leading-tight">Pusat Kendali Super Admin</span>
                         </div>
                     </div>
 
-                    <!-- Navigasi Menu Atas -->
+                    <!-- Navigasi Menu Superadmin -->
                     <div class="hidden md:flex items-center space-x-6">
                         <Link 
-                            href="/biro3/dashboard" 
+                            href="/superadmin/dashboard" 
                             class="text-sm font-semibold text-gray-600 hover:text-[#005B3C] transition-colors"
                         >
                             Dashboard
                         </Link>
                         <Link 
-                            href="/biro3/alumni" 
-                            class="text-sm font-semibold text-gray-600 hover:text-[#005B3C] transition-colors"
-                        >
-                            Data Alumni
-                        </Link>
-                        <Link 
-                            href="/biro3/pertanyaan" 
+                            href="/superadmin/pertanyaan" 
                             class="text-sm font-bold text-[#005B3C] border-b-2 border-[#005B3C] pb-1"
                         >
-                            Kelola Pertanyaan
+                            Kelola Kuesioner
                         </Link>
                     </div>
 
-                    <!-- User & Logout -->
+                    <!-- Profil & Logout -->
                     <div class="flex items-center space-x-4">
-                        <span class="text-xs font-semibold text-gray-600 hidden sm:inline-block">Admin Biro 3</span>
+                        <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-bold bg-emerald-50 text-[#005B3C] border border-emerald-200 uppercase tracking-wider hidden sm:inline-block">
+                            Hak Akses Superadmin
+                        </span>
                         <button 
                             @click="logout" 
                             class="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -312,26 +322,25 @@ const getTypeLabel = (type) => {
                 </div>
             </div>
 
-            <!-- Mobile Bar -->
+            <!-- Subnav Mobile -->
             <div class="md:hidden px-4 py-2 bg-gray-50 border-t border-gray-100 flex justify-around text-xs font-semibold">
-                <Link href="/biro3/dashboard" class="text-gray-600">Dashboard</Link>
-                <Link href="/biro3/alumni" class="text-gray-600">Data Alumni</Link>
-                <Link href="/biro3/pertanyaan" class="text-[#005B3C] font-bold">Kelola Pertanyaan</Link>
+                <Link href="/superadmin/dashboard" class="text-gray-600">Dashboard</Link>
+                <Link href="/superadmin/pertanyaan" class="text-[#005B3C] font-bold">Kelola Kuesioner</Link>
             </div>
         </nav>
 
-        <!-- Header Profil Style Banner (Hijau Elegan & Kuning Landing Page) -->
+        <!-- Banner Header (Warna Resmi UKDW: Hijau #005B3C & Aksen Kuning #FACC15) -->
         <header class="bg-gradient-to-r from-[#005B3C] to-[#007b55] pt-10 pb-20 relative overflow-hidden text-white">
             <div class="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
             
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <span class="inline-block px-3 py-1 bg-white/20 text-white rounded-full text-xs font-bold tracking-wide backdrop-blur-sm mb-2">
-                        Konfigurasi Instrumen Kuesioner
+                        Konfigurasi Instrumen Kuesioner &mdash; Superadmin
                     </span>
                     <h1 class="text-3xl font-extrabold tracking-tight">Kelola Butir Pertanyaan & Alur Branching</h1>
                     <p class="text-green-100 text-sm mt-1 max-w-2xl">
-                        Atur struktur pertanyaan per bagian, alur logika percabangan (*jump logic*), serta sasaran program studi.
+                        Atur struktur instrumen pertanyaan per bagian, logika alur percabangan (*jump logic*), serta sasaran program studi kuesioner universitas.
                     </p>
                 </div>
 
@@ -358,7 +367,7 @@ const getTypeLabel = (type) => {
         <!-- Main Wrapper Konten -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
             
-            <!-- Flash Message -->
+            <!-- Notifikasi Flash Message -->
             <div v-if="$page.props.flash?.success" class="mb-4 p-4 rounded-xl bg-white border-l-4 border-[#005B3C] shadow-sm flex items-center justify-between text-xs text-green-900 font-semibold">
                 <span>{{ $page.props.flash.success }}</span>
             </div>
@@ -492,7 +501,7 @@ const getTypeLabel = (type) => {
             <!-- ======================================================== -->
             <div v-else class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                 
-                <!-- Navigasi Horizontal Tabs Section (Ala Profil Alumni) -->
+                <!-- Navigasi Horizontal Tabs Section -->
                 <div class="flex overflow-x-auto border-b border-gray-100 sticky top-20 z-30 bg-white/95 backdrop-blur-md px-2">
                     <button 
                         v-for="sec in sections" 
@@ -533,7 +542,7 @@ const getTypeLabel = (type) => {
                     </div>
                 </div>
 
-                <!-- Daftar Kartu Pertanyaan (Bubble Cards) di Section Aktif -->
+                <!-- Daftar Kartu Pertanyaan di Section Aktif -->
                 <div class="p-6 space-y-6">
                     
                     <div 
@@ -585,7 +594,7 @@ const getTypeLabel = (type) => {
                                     Opsional
                                 </span>
 
-                                <!-- Prodi Spesifik -->
+                                <!-- Target Prodi Khusus -->
                                 <span v-if="q.prodi" class="px-2 py-0.5 bg-purple-50 text-purple-800 font-bold text-xs rounded-md border border-purple-200">
                                     Khusus: {{ q.prodi.nama_prodi }}
                                 </span>
@@ -659,7 +668,7 @@ const getTypeLabel = (type) => {
                                                 {{ opt.option_text }}
                                             </td>
                                             <td class="py-3 px-4">
-                                                <!-- Jika ada jump_to: tampilkan kode & teks pertanyaan target dengan warna kuning landing page -->
+                                                <!-- Jika ada jump_to: tampilkan kode & teks pertanyaan target dengan aksen kuning landing page -->
                                                 <div v-if="opt.jump_to" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 text-yellow-950 border border-yellow-300 rounded-md font-medium text-xs max-w-md">
                                                     <span class="font-bold text-[#005B3C]">Lompat ke {{ opt.jump_to }}:</span>
                                                     <span class="truncate" :title="getTargetQuestionTitle(opt.jump_to)">
@@ -752,7 +761,7 @@ const getTypeLabel = (type) => {
                         <span class="text-[10px] text-gray-400 block mt-1">Kosongkan jika ingin nomor kode digenerate otomatis.</span>
                     </div>
 
-                    <!-- Dropdown Branching (Kuning Landing Page Accent) -->
+                    <!-- Dropdown Branching Lompatan -->
                     <div class="p-4 bg-yellow-50/70 rounded-xl border border-yellow-200 space-y-1.5">
                         <label class="block text-xs font-bold text-yellow-950">
                             Setelah Memilih Opsi Ini (Alur Branching / Lompatan)

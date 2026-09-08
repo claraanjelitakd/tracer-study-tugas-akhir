@@ -19,14 +19,14 @@ class QuestionOptionSeeder extends Seeder
     public function run(): void
     {
         $options = [
-            // F2E
-            ['question_code' => 'F2E', 'code' => 'F2E-01', 'option_text' => 'Gerejawi'],
-            ['question_code' => 'F2E', 'code' => 'F2E-02', 'option_text' => 'Non Gerejawi'],
+            // F2D1 (Khusus Teologi / Filsafat Keilahian)
+            ['question_code' => 'F2D1', 'code' => 'F2D1-01', 'option_text' => 'Gerejawi'],
+            ['question_code' => 'F2D1', 'code' => 'F2D1-02', 'option_text' => 'Non Gerejawi'],
 
             // F2G
             ['question_code' => 'F2G', 'code' => 'F2G-01', 'option_text' => 'Direksi / Top Manager'],
-            ['question_code' => 'F2G', 'code' => 'F2G-02', 'option_text' => 'Middle Manager'],
-            ['question_code' => 'F2G', 'code' => 'F2G-03', 'option_text' => 'Low Manager'],
+            ['question_code' => 'F2G', 'code' => 'F2G-02', 'option_text' => 'Midle Manager'],
+            ['question_code' => 'F2G', 'code' => 'F2G-03', 'option_text' => 'Low manager'],
             ['question_code' => 'F2G', 'code' => 'F2G-04', 'option_text' => 'Supervisor'],
             ['question_code' => 'F2G', 'code' => 'F2G-05', 'option_text' => 'Staff'],
 
@@ -36,14 +36,14 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F2H', 'code' => 'F2H-03', 'option_text' => 'Internasional'],
 
             // F3 (Jika tidak mencari kerja, langsung lompat ke F8)
-            ['question_code' => 'F3', 'code' => 'F3-01', 'option_text' => 'Kira-kira ….. bulan sebelum lulus', 'jump_to' => null],
-            ['question_code' => 'F3', 'code' => 'F3-02', 'option_text' => 'Kira-kira …… bulan sesudah lulus', 'jump_to' => null],
+            ['question_code' => 'F3', 'code' => 'F3-01', 'option_text' => 'Kira-kira ... bulan sebelum lulus', 'jump_to' => null],
+            ['question_code' => 'F3', 'code' => 'F3-02', 'option_text' => 'Kira-kira ... bulan sesudah lulus', 'jump_to' => null],
             ['question_code' => 'F3', 'code' => 'F3-03', 'option_text' => 'Saya tidak mencari kerja', 'jump_to' => 'F8'],
 
             // F4
             ['question_code' => 'F4', 'code' => 'F4-01', 'option_text' => 'Melalui iklan di koran/majalah, brosur', 'jump_to' => null],
             ['question_code' => 'F4', 'code' => 'F4-02', 'option_text' => 'Melamar ke perusahaan tanpa mengetahui lowongan yang ada', 'jump_to' => null],
-            ['question_code' => 'F4', 'code' => 'F4-03', 'option_text' => 'Pergi ke bursa kerja/job fair', 'jump_to' => null],
+            ['question_code' => 'F4', 'code' => 'F4-03', 'option_text' => 'Pergi ke bursa/pameran kerja', 'jump_to' => null],
             ['question_code' => 'F4', 'code' => 'F4-04', 'option_text' => 'Mencari lewat internet/iklan online/milis', 'jump_to' => null],
             ['question_code' => 'F4', 'code' => 'F4-05', 'option_text' => 'Dihubungi oleh perusahaan', 'jump_to' => null],
             ['question_code' => 'F4', 'code' => 'F4-06', 'option_text' => 'Menghubungi Kemenakertrans', 'jump_to' => null],
@@ -56,12 +56,10 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F4', 'code' => 'F4-13', 'option_text' => 'Melalui penempatan kerja atau magang', 'jump_to' => null],
             ['question_code' => 'F4', 'code' => 'F4-14', 'option_text' => 'Bekerja di tempat yang sama dengan tempat kerja semasa kuliah', 'jump_to' => null],
             ['question_code' => 'F4', 'code' => 'F4-15', 'option_text' => 'Lainnya', 'jump_to' => null],
-            ['question_code' => 'F4', 'code' => 'F4-16', 'option_text' => 'Tuliskan', 'jump_to' => null],
 
             // F5
-            ['question_code' => 'F5', 'code' => 'F5-01', 'option_text' => 'Jumlah bulan', 'jump_to' => null],
-            ['question_code' => 'F5', 'code' => 'F5-02', 'option_text' => 'Sebelum lulus', 'jump_to' => null],
-            ['question_code' => 'F5', 'code' => 'F5-03', 'option_text' => 'Setelah lulus', 'jump_to' => null],
+            ['question_code' => 'F5', 'code' => 'F5-01', 'option_text' => 'Kira-kira ... bulan sebelum lulus ujian', 'jump_to' => null],
+            ['question_code' => 'F5', 'code' => 'F5-02', 'option_text' => 'Kira-kira ... bulan setelah lulus ujian', 'jump_to' => null],
 
             // F8
             ['question_code' => 'F8', 'code' => 'F8-01', 'option_text' => 'Ya', 'jump_to' => 'F11'],
@@ -73,13 +71,12 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F9', 'code' => 'F9-03', 'option_text' => 'Saya sibuk dengan keluarga dan anak-anak'],
             ['question_code' => 'F9', 'code' => 'F9-04', 'option_text' => 'Saya sekarang sedang mencari pekerjaan'],
             ['question_code' => 'F9', 'code' => 'F9-05', 'option_text' => 'Lainnya'],
-            ['question_code' => 'F9', 'code' => 'F9-06', 'option_text' => 'Tuliskan'],
 
-            // F10 (jump_to = F17-1)
+            // F10
             ['question_code' => 'F10', 'code' => 'F10-01', 'option_text' => 'Tidak', 'jump_to' => 'F17-1'],
             ['question_code' => 'F10', 'code' => 'F10-02', 'option_text' => 'Tidak, tapi saya sedang menunggu hasil lamaran kerja', 'jump_to' => 'F17-1'],
-            ['question_code' => 'F10', 'code' => 'F10-03', 'option_text' => 'Ya, saya akan mulai bekerja dalam 2 minggu ke depan', 'jump_to' => 'F17-1'],
-            ['question_code' => 'F10', 'code' => 'F10-04', 'option_text' => 'Ya, tapi saya belum pasti akan bekerja dalam 2 minggu ke depan', 'jump_to' => 'F17-1'],
+            ['question_code' => 'F10', 'code' => 'F10-03', 'option_text' => 'Ya, saya akan mulai bekerja dalam 2 minggu ke depan', 'jump_to' => null],
+            ['question_code' => 'F10', 'code' => 'F10-04', 'option_text' => 'Ya, tapi saya belum pasti akan bekerja dalam 2 minggu ke depan', 'jump_to' => null],
             ['question_code' => 'F10', 'code' => 'F10-05', 'option_text' => 'Lainnya, tuliskan', 'jump_to' => 'F17-1'],
 
             // F11
@@ -87,7 +84,7 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F11', 'code' => 'F11-02', 'option_text' => 'Organisasi non-profit/Lembaga Swadaya Masyarakat'],
             ['question_code' => 'F11', 'code' => 'F11-03', 'option_text' => 'Perusahaan swasta'],
             ['question_code' => 'F11', 'code' => 'F11-04', 'option_text' => 'Wiraswasta/perusahaan sendiri'],
-            ['question_code' => 'F11', 'code' => 'F11-05', 'option_text' => 'Lainnya'],
+            ['question_code' => 'F11', 'code' => 'F11-05', 'option_text' => 'Lainnya, tuliskan'],
 
             // F13
             ['question_code' => 'F13', 'code' => 'F13-01', 'option_text' => 'Dari Pekerjaan Utama'],
@@ -121,12 +118,19 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F16', 'code' => 'F16-11', 'option_text' => 'Pekerjaan saya saat ini dapat lebih menjamin kebutuhan keluarga saya.'],
             ['question_code' => 'F16', 'code' => 'F16-12', 'option_text' => 'Pada awal meniti karir ini, saya harus menerima pekerjaan yang tidak berhubungan dengan pendidikan saya.'],
             ['question_code' => 'F16', 'code' => 'F16-13', 'option_text' => 'Lainnya'],
-            ['question_code' => 'F16', 'code' => 'F16-14', 'option_text' => 'Tuliskan'],
 
             // F18
             ['question_code' => 'F18', 'code' => 'F18-01', 'option_text' => '<25%'],
             ['question_code' => 'F18', 'code' => 'F18-02', 'option_text' => '>25% - 50%'],
             ['question_code' => 'F18', 'code' => 'F18-03', 'option_text' => '>50%'],
+
+            // F23
+            ['question_code' => 'F23', 'code' => 'F23-01', 'option_text' => 'Bekerja dan menyelesaikan tugas dan tanggung jawab dengan baik'],
+            ['question_code' => 'F23', 'code' => 'F23-02', 'option_text' => 'Berkolaborasi dengan rekan kerja dan menghargai keragaman dalam kerja tim'],
+            ['question_code' => 'F23', 'code' => 'F23-03', 'option_text' => 'Memiliki kedisiplinan diri dan etos kerja yang baik'],
+            ['question_code' => 'F23', 'code' => 'F23-04', 'option_text' => 'Menjadi pribadi yang proaktif dan kreatif di lingkungan kerja'],
+            ['question_code' => 'F23', 'code' => 'F23-05', 'option_text' => 'Menunjukkan empati pada rekan kerja dan masyarakat'],
+            ['question_code' => 'F23', 'code' => 'F23-06', 'option_text' => 'Lainnya (sebutkan, misal menjadi pengurus keagamaan)'],
         ];
 
         // F12 (89 Opsi KBLI)
@@ -267,7 +271,7 @@ class QuestionOptionSeeder extends Seeder
             }
         }
 
-        // F20-1 sampai F20-6 (Rating 1-5)
+        // F20-1 sampai F20-5 (Rating 1-5, F20-6 adalah text input)
         $f20Ratings = [
             ['code' => '1', 'option_text' => 'Sangat Buruk'],
             ['code' => '2', 'option_text' => '2'],
@@ -275,7 +279,7 @@ class QuestionOptionSeeder extends Seeder
             ['code' => '4', 'option_text' => '4'],
             ['code' => '5', 'option_text' => 'Sangat Baik'],
         ];
-        for ($i = 1; $i <= 6; $i++) {
+        for ($i = 1; $i <= 5; $i++) {
             foreach ($f20Ratings as $r) {
                 $options[] = [
                     'question_code' => "F20-{$i}",

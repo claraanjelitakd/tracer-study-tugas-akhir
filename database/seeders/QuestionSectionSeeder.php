@@ -24,7 +24,7 @@ class QuestionSectionSeeder extends Seeder
             ['id' => 6, 'questionnaire_id' => $qId, 'title' => 'Detail Situasi Bekerja', 'order' => 6],
             ['id' => 7, 'questionnaire_id' => $qId, 'title' => 'Karakteristik Pekerjaan Saat Ini', 'order' => 7],
             ['id' => 8, 'questionnaire_id' => $qId, 'title' => 'Evaluasi Kompetensi', 'order' => 8],
-            ['id' => 9, 'questionnaire_id' => $qId, 'title' => 'Kurikulum & Fasilitas', 'order' => 9],
+            ['id' => 9, 'questionnaire_id' => $qId, 'title' => 'Kurikulum, Fasilitas & Nilai Kedutawacanaan', 'order' => 9],
         ];
 
         foreach ($sections as $section) {

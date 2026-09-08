@@ -45,8 +45,12 @@ ARSITEKTUR DATABASE (STEP 3)
    - Relasi: belongsTo(User::class)
 
 MANAJEMEN OTORISASI (ROLES)
-- Terdapat 4 peran utama: `alumni`, `admin_biro3`, `admin_prodi`, `superadmin`.
-- `RoleMiddleware` digunakan untuk memproteksi akses dashboard berdasarkan role.
+- Terdapat 4 peran utama:
+  1. `superadmin`: Otoritas tertinggi sistem, bertanggung jawab penuh atas konfigurasi sistem serta modul Kelola Kuesioner (manajemen butir pertanyaan F1-F22, alur jump logic, dan opsi jawaban).
+  2. `admin_biro3`: Administrator Biro 3 (Kemahasiswaan, Alumni & Pengembangan Karir), bertanggung jawab atas Manajemen Data Alumni, Sinkronisasi Profil LinkedIn, dan Pemantauan Partisipasi Kuesioner.
+  3. `admin_prodi`: Administrator Program Studi, memantau capaian responden di tingkat prodi.
+  4. `alumni`: Pengguna lulusan yang mengisi kuesioner dan memperbarui biodata/profil karier.
+- `RoleMiddleware` digunakan untuk memproteksi akses dashboard dan modul berdasarkan role.
 - `CheckMustChangePassword` menahan user (khususnya alumni baru) agar mengganti password sebelum bisa masuk sistem.
 
 ATURAN PENGEMBANGAN (CODING GUIDELINES)
@@ -83,3 +87,78 @@ PANEL BIRO 3: DIREKTORI ALUMNI & STANDARISASI NAVIGASI (STEP 6)
 3. Standarisasi Navigasi & Visual Biro 3:
    - Seluruh halaman di bawah naungan Biro 3 (`/biro3/dashboard`, `/biro3/alumni`, `/biro3/pertanyaan`, `/biro3/alumni/{id}`) menggunakan navbar atas seragam dengan 3 rute menu utama: Dashboard, Data Alumni, dan Kelola Pertanyaan.
    - Skema warna formal mengacu pada Hijau Resmi UKDW (`#005B3C`), Kuning Resmi Landing Page (`#FACC15`), dan Putih/Slate bersih. Dilarang menggunakan warna orange atau aksen merah menyala di area Biro 3.
+
+ARSITEKTUR & STANDARISASI PENYIMPANAN RESPONSES (STEP 7)
+1. Struktur Tabel `responses`:
+   - `id`: Primary Key (BigInt Unsigned).
+   - `alumni_id`: Foreign Key ke `alumnis.id`.
+   - `question_id`: Foreign Key ke `questions.id`.
+   - `answer_text`: Kolom Text/Varchar untuk representasi teks manusia, format angka tunggal, dan data siap ekspor.
+   - `answer_json`: Kolom JSON untuk representasi array asli (multiple choice), rincian nominal (F13), dan input terstruktur (radio_input).
+   - `created_at` & `updated_at`: Timestamp.
+
+2. Strategi Penyimpanan Berdasarkan Tipe Pertanyaan (Dual Hybrid Storage):
+   - **Teks / String Tunggal** (`text`, `searchable_select`):
+     - `answer_text`: String teks murni (contoh: "Jl. Kaliurang Km 12").
+     - `answer_json`: NULL.
+   - **Angka Numerik Tunggal** (`number`, skala rating `single_choice` 1-5 pada F17):
+     - `answer_text`: Angka murni (contoh: "5" pada F6, "2" pada F7, "4" pada F17).
+     - `answer_json`: NULL.
+     - *Manfaat*: Memungkinkan fungsi agregasi SQL langsung (`AVG()`, `SUM()`) dan terformat otomatis sebagai number di Excel.
+   - **Pilihan Tunggal / Radio** (`single_choice`, `radio`):
+     - Jika memilih opsi reguler: `answer_text` = opsi yang dipilih (contoh: "Ya", "Swasta"), `answer_json` = NULL.
+     - Jika memilih opsi "Lainnya" + teks kustom: `answer_text` = "Lainnya: [isi_teks_alumni]" (contoh: "Lainnya: Merintis usaha"), `answer_json` = NULL.
+   - **Pilihan Ganda / Checkbox** (`multiple_choice`, `checkbox`):
+     - `answer_json`: Array JSON murni (contoh: `["Melamar ke perusahaan", "Mencari di internet", "Lainnya: Job Fair"]`). Menjaga keutuhan array tanpa takut terpecah oleh tanda koma teks.
+     - `answer_text`: String gabungan dipisahkan koma (contoh: "Melamar ke perusahaan, Mencari di internet, Lainnya: Job Fair"). Siap diekspor langsung ke spreadsheet.
+   - **Radio Input Kombinasi** (`radio_input`, seperti F3 dan F5):
+     - `answer_json`: Object terstruktur `{"selected": "Kira-kira ... bulan sebelum lulus", "input": "4"}`.
+     - `answer_text`: Kalimat utuh yang menggantikan titik-titik (contoh: "Kira-kira 4 bulan sebelum lulus").
+   - **Rincian Angka / Pendapatan** (`multiple_number`, seperti F13):
+     - `answer_json`: Object key-value numerik `{"F13-01": 6500000, "F13-02": 750000, "F13-03": 0}` untuk perhitungan rata-rata gaji.
+     - `answer_text`: Kalimat terformat dengan label dan rupiah (contoh: "Dari Pekerjaan Utama: Rp 6.500.000, Dari Lembur: Rp 750.000").
+
+3. Integrasi & Sinkronisasi Profil Alumni (F1 s/d F2H):
+   - Instrumen profil (F1, F2A, F2B, F2C, F2D, F2D1, F2E, F2E1, F2E2, F2E3, F2F, F2G, F2H) ditarik otomatis dari `data_akademiks`, `alumnis`, `companies`, dan `atasans` melalui `QuestionMapping`.
+   - `KuesionerSyncService::syncProfileResponses($alumni)` otomatis mengisi tabel `responses` untuk setiap alumni saat:
+     a. Database seeder dijalankan (`QuestionMappingSeeder`).
+     b. Kuesioner dibuka oleh alumni (`KuesionerController`).
+     c. Alumni mengubah/memperbarui profil diri di `/alumni/profil` (`SimpanProfilController`).
+     d. Alumni menyimpan kuesioner (`SimpanJawabanController`).
+   - Tabel `responses` terjamin 100% lengkap memiliki data untuk seluruh 23 instrumen tracer study.
+
+4. Panduan Ekspor Data (Excel / CSV):
+   - **Ekspor Cepat Laporan Manusia**: Cukup SELECT `answer_text`. Kolom di Excel langsung rapi, terbaca manusia, dan tidak ada tanda kurung siku `[]` atau petik `""`.
+   - **Ekspor Statistik Resmi Dikti**: Gunakan `answer_json` untuk memetakan centang opsi ke kolom biner 1/0 dan angka numerik gaji ke kolom nominal terpisah.
+
+ARSITEKTUR PROFIL ALUMNI & DATA PATEN UNIVERSITAS (STEP 8)
+1. Struktur Tab Profil Alumni (`/alumni/profile`):
+   - **Tab 1: Identitas & Alamat (`FormPribadi.vue`)**:
+     - *Identitas Diri*: NIM (🔒 Paten), Nama Lengkap, NIK, NPWP, Tempat/Tgl Lahir, Jenis Kelamin, Agama, Gol. Darah, Kewarganegaraan.
+     - *Dokumen Pendukung*: No KK, NISN, No BPJS Kesehatan.
+     - *Kontak & Alamat Domisili*: No Telepon/WhatsApp, Email Pribadi, Email Students, Alamat Lengkap, Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan, Kode Pos.
+   - **Tab 2: Akademik & Yudisium (`FormAkademik.vue`)**:
+     - *Data Paten Resmi Universitas* (🔒 Read-Only): NIM, Angkatan Masuk, Status Mahasiswa ('Lulus'), Tanggal/Semester Kelulusan (`tahun_akademik_lulus`), Tahun Lulus, IPK, Total SKS, dan Total Angka Kualitas.
+     - *Skripsi & Publikasi*: Judul TA (Indonesia & Inggris), URL Repositori, Jenis Publikasi, Status Publikasi, Dosen Pembimbing (1, 2, 3), Dosen Penguji (1, 2, 3, 4).
+     - *Data Yudisium*: Keterangan Hasil Yudisium / Predikat (Cum Laude, Sangat Memuaskan, Memuaskan), Status Proses Yudisium.
+   - **Tab 3: Data Orang Tua (`FormOrangTua.vue`)**:
+     - Nama Orang Tua / Wali, Pekerjaan, No Telepon / WhatsApp.
+     - Alamat Lengkap, Provinsi, Kabupaten/Kota, Kota, Kode Pos.
+   - **Tab 4: Karier & Jejaring (`FormKarier.vue`)**:
+      - LinkedIn Profil & Username, Instagram, Facebook.
+      - Keahlian (Expertise), Minat (Interest), Posisi Jabatan, Jenis Pekerjaan (Gerejawi / Non Gerejawi).
+      - Data Perusahaan: Searchable dropdown perusahaan (dengan fitur pencarian sticky), Provinsi, Kabupaten/Kota, Skala, Alamat, Zipcode/Kode Pos, Status Verifikasi.
+      - Popup Modal Tambah Perusahaan: Desain solid clean tanpa blur (`backdrop-blur` ditiadakan), dengan validasi wajib nama perusahaan, provinsi, kabupaten/kota, dan kode pos yang langsung tersimpan ke database (`POST /alumni/company`).
+      - Data Atasan Langsung: Nama, Email, Nomor Telepon.
+
+2. Aturan Keamanan Bidang Paten (Patent Field Protection):
+   - Di frontend: Komponen input paten disajikan dengan tampilan abu-abu netral profesional (`bg-gray-100 text-gray-700 cursor-not-allowed`) tanpa ikon badge/gembok berlebih (non AI-slop).
+   - Di backend: `SimpanProfilController.php` memfilter dan membekukan field paten (`nim`, `angkatan_masuk`, `status_mahasiswa`, `tahun_akademik_lulus`, `tahun_lulus`, `ipk`, `total_sks`, `total_angka_kualitas`, serta seluruh record `yudisiums`) sehingga tidak dapat diubah oleh alumni sekalipun via request injection.
+
+3. Seeder & Skema Perusahaan (Terhubung via ID Foreign Key & Memiliki Kode Pos):
+   - Kolom `kode_pos` ditambahkan pada tabel `companies` (`2026_09_08_163000_add_kode_pos_to_companies_table.php`).
+   - Perusahaan berlokasi di 3 wilayah utama yang terhubung langsung lewat `province_id` dan `kabupaten_id`:
+     - **DI Yogyakarta** (kode `34`) -> **Sleman** (kode `34.04`) (Kode Pos: 55281, 55581, 55284)
+     - **DKI Jakarta** (kode `31`) -> **Kota Jakarta Pusat** (kode `31.71`) (Kode Pos: 10310, 12710, 12930, 10220)
+     - **Aceh** (kode `11`) -> **Aceh Selatan** (kode `11.01`) (Kode Pos: 23715, 23711, 23714)
+   - Seluruh data 10 alumni di-seed lengkap 100% rata mencakup data akademik, orang tua, skripsi, perusahaan, dan atasan.

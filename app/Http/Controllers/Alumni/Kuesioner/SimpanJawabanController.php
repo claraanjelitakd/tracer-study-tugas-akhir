@@ -5,12 +5,22 @@ namespace App\Http\Controllers\Alumni\Kuesioner;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Question;
+use App\Models\Response;
+use App\Models\QuestionMapping;
+use App\Models\DataAkademik;
+use App\Models\Company;
+use App\Models\Atasan;
+use App\Services\Kuesioner\KuesionerSyncService;
 
 /**
  * SimpanJawabanController
  * 
  * Fungsi: Menangani proses penyimpanan jawaban kuesioner dari pengguna.
- * Tujuan: Menerima data jawaban dari Frontend, memprosesnya, dan menyimpannya ke tabel respons serta mensinkronisasi data ke tabel profil jika ada relasi.
+ * Tujuan: Menerima data jawaban dari Frontend, menstandarkan format respons ke tabel responses
+ * (mendukung array murni pada answer_json untuk tipe multiple, format varchar rapi pada answer_text, 
+ * teks isian kustom pada opsi 'Lainnya', serta penanganan terstruktur untuk radio_input dan multiple_number),
+ * serta melakukan sinkronisasi otomatis ke profil alumni dan data QuestionMapping.
  */
 class SimpanJawabanController extends Controller
 {
@@ -22,42 +32,248 @@ class SimpanJawabanController extends Controller
         $pengguna = Auth::user();
         $alumni = $pengguna->alumni;
 
-        $jawabanMasuk = $request->input('answers'); // Format: [question_id => answer_data]
+        if (!$alumni) {
+            abort(403, 'Profil alumni tidak ditemukan.');
+        }
+
+        $jawabanMasuk = $request->input('answers', []); // Format: [question_id => answer_data]
         
-        $kumpulanIdPertanyaan = array_keys($jawabanMasuk);
+        $kumpulanIdPertanyaan = array_filter(array_keys($jawabanMasuk), function($k) {
+            return is_numeric($k);
+        });
         
-        // Ambil mapping kolom khusus untuk tabel alumnis dan data_akademiks
-        $pemetaan = \App\Models\QuestionMapping::whereIn('table_name', ['alumnis', 'data_akademiks'])
+        // Ambil data pertanyaan beserta opsi untuk referensi tipe dan pemformatan teks
+        $pertanyaanModels = Question::with('options')
+            ->whereIn('id', $kumpulanIdPertanyaan)
+            ->get()
+            ->keyBy('id');
+
+        // Ambil mapping kolom khusus untuk tabel alumnis, data_akademiks, companies, atasans
+        $pemetaan = QuestionMapping::whereIn('table_name', ['alumnis', 'data_akademiks', 'companies', 'atasans'])
             ->whereIn('question_id', $kumpulanIdPertanyaan)
             ->get()
             ->keyBy('question_id');
             
         $dataUpdateAlumni = [];
         $dataUpdateAkademik = [];
+        $dataUpdateCompany = [];
+        $dataUpdateAtasan = [];
         
         $kolomAlumni = $alumni->getFillable();
-        $kolomAkademik = $alumni->dataAkademik ? $alumni->dataAkademik->getFillable() : (new \App\Models\DataAkademik)->getFillable();
+        $kolomAkademik = $alumni->dataAkademik ? $alumni->dataAkademik->getFillable() : (new DataAkademik)->getFillable();
+        $kolomCompany = (new Company)->getFillable();
+        $kolomAtasan = (new Atasan)->getFillable();
 
         foreach ($jawabanMasuk as $idPertanyaan => $jawaban) {
-            $isJson = is_array($jawaban) || is_object($jawaban);
+            // Lewati key string _custom karena diproses langsung bersama ID pertanyaan induknya
+            if (is_string($idPertanyaan) && str_ends_with($idPertanyaan, '_custom')) {
+                continue;
+            }
+
+            if (!is_numeric($idPertanyaan)) {
+                continue;
+            }
+
+            $question = $pertanyaanModels[$idPertanyaan] ?? null;
+            if (!$question) {
+                continue;
+            }
+
+            $customText = isset($jawabanMasuk[$idPertanyaan . '_custom']) ? trim((string)$jawabanMasuk[$idPertanyaan . '_custom']) : null;
             
-            \App\Models\Response::updateOrCreate(
+            $answerText = null;
+            $answerJson = null;
+
+            switch ($question->type) {
+                case 'multiple_choice':
+                case 'checkbox':
+                    // Pastikan input berupa array
+                    $selectedArray = is_array($jawaban) ? array_values($jawaban) : (!empty($jawaban) ? [(string)$jawaban] : []);
+                    $processedArray = [];
+
+                    foreach ($selectedArray as $item) {
+                        $itemStr = (string)$item;
+                        // Jika opsi ini merupakan opsi Lainnya dan user mengisi teks kustom
+                        if (!empty($customText) && (
+                            stripos($itemStr, 'lainnya') !== false ||
+                            stripos($itemStr, 'tuliskan') !== false ||
+                            str_contains($itemStr, '...') ||
+                            str_contains($itemStr, '…')
+                        )) {
+                            $processedArray[] = 'Lainnya: ' . $customText;
+                        } else {
+                            $processedArray[] = $itemStr;
+                        }
+                    }
+
+                    // Jika user mengisi customText tapi opsi Lainnya belum ada di array
+                    if (!empty($customText) && !collect($processedArray)->contains(fn($v) => str_starts_with($v, 'Lainnya:'))) {
+                        $processedArray[] = 'Lainnya: ' . $customText;
+                    }
+
+                    $processedArray = array_values(array_unique(array_filter($processedArray)));
+
+                    // Jika tidak ada opsi yang dipilih dan tidak ada teks kustom, jangan simpan respon kosong
+                    if (empty($processedArray)) {
+                        continue 2;
+                    }
+
+                    $answerJson = $processedArray; // Array JSON murni: ["Opsi 1", "Opsi 2", "Lainnya: Keterangan"]
+                    $answerText = implode(', ', $processedArray); // Varchar rapi untuk export
+                    break;
+
+                case 'single_choice':
+                case 'radio':
+                    if (is_string($jawaban) || is_numeric($jawaban)) {
+                        $jawabanStr = trim((string)$jawaban);
+                        if ($jawabanStr === '') {
+                            continue 2;
+                        }
+
+                        if (!empty($customText) && (
+                            stripos($jawabanStr, 'lainnya') !== false ||
+                            stripos($jawabanStr, 'tuliskan') !== false ||
+                            str_contains($jawabanStr, '...') ||
+                            str_contains($jawabanStr, '…')
+                        )) {
+                            $answerText = 'Lainnya: ' . $customText;
+                        } else {
+                            $answerText = $jawabanStr;
+                        }
+                    } else {
+                        continue 2;
+                    }
+                    $answerJson = null;
+                    break;
+
+                case 'radio_input':
+                case 'radio_text':
+                    if (is_array($jawaban)) {
+                        $selected = trim((string)($jawaban['selected'] ?? ''));
+                        if ($selected === '') {
+                            continue 2;
+                        }
+
+                        // Cari opsi yang sesuai untuk membaca input independen per opsi
+                        $selectedOpt = $question->options->firstWhere('option_text', $selected);
+                        $inputVal = '';
+
+                        if ($selectedOpt && isset($jawaban['inputs']) && is_array($jawaban['inputs'])) {
+                            $inputVal = trim((string)($jawaban['inputs'][$selectedOpt->id] ?? ''));
+                        } else if (isset($jawaban['input'])) {
+                            $inputVal = trim((string)$jawaban['input']);
+                        }
+
+                        $answerJson = [
+                            'selected' => $selected,
+                            'input' => $inputVal,
+                        ];
+
+                        if (!empty($inputVal)) {
+                            if (str_contains($selected, '...') || str_contains($selected, '…')) {
+                                $answerText = str_replace(['...', '…'], $inputVal, $selected);
+                            } else if (stripos($selected, 'lainnya') !== false) {
+                                $answerText = 'Lainnya: ' . $inputVal;
+                            } else {
+                                $answerText = $selected . ': ' . $inputVal;
+                            }
+                        } else {
+                            $answerText = $selected;
+                        }
+                    } else if (is_string($jawaban) && trim($jawaban) !== '') {
+                        $answerText = trim($jawaban);
+                        $answerJson = ['selected' => trim($jawaban), 'input' => ''];
+                    } else {
+                        continue 2;
+                    }
+                    break;
+
+                case 'multiple_number':
+                    if (is_array($jawaban)) {
+                        // Cek apakah ada minimal satu nilai terisi angka
+                        $hasAnyFilled = false;
+                        foreach ($jawaban as $v) {
+                            if ($v !== null && $v !== '' && is_numeric($v)) {
+                                $hasAnyFilled = true;
+                                break;
+                            }
+                        }
+
+                        // Jika semua kosong/null (belum diisi oleh alumni), jangan simpan baris kosong
+                        if (!$hasAnyFilled) {
+                            continue 2;
+                        }
+
+                        $cleanJson = [];
+                        $parts = [];
+                        $optionCodeMap = $question->options->keyBy('code');
+
+                        foreach ($question->options as $opt) {
+                            $optCode = $opt->code;
+                            $rawVal = $jawaban[$optCode] ?? null;
+
+                            // Jika diisi angka, simpan nilai numerik int; jika kosong, default ke angka 0 (bukan null)
+                            $numericVal = ($rawVal !== null && $rawVal !== '' && is_numeric($rawVal)) ? (int)$rawVal : 0;
+                            $cleanJson[$optCode] = $numericVal;
+
+                            $label = $opt->option_text;
+                            $formattedVal = 'Rp ' . number_format($numericVal, 0, ',', '.');
+                            $parts[] = "{$label}: {$formattedVal}";
+                        }
+
+                        $answerJson = $cleanJson;
+                        $answerText = implode(', ', $parts);
+                    } else {
+                        continue 2;
+                    }
+                    break;
+
+                case 'matrix':
+                case 'matrix_dual':
+                    $answerJson = is_array($jawaban) ? $jawaban : json_decode($jawaban, true);
+                    if (empty($answerJson)) {
+                        continue 2;
+                    }
+                    $answerText = json_encode($answerJson);
+                    break;
+
+                default:
+                    // text, number, searchable_select, dll
+                    if ($jawaban === null || $jawaban === '' || (is_array($jawaban) && empty($jawaban))) {
+                        continue 2;
+                    }
+                    $answerText = is_array($jawaban) ? implode(', ', $jawaban) : (string)$jawaban;
+                    $answerJson = null;
+                    break;
+            }
+
+            // ATURAN MUTLAK: Jangan pernah simpan record jika answer_text bernilai null atau kosong
+            if ($answerText === null || trim($answerText) === '') {
+                continue;
+            }
+
+            // Simpan atau update ke tabel responses
+            Response::updateOrCreate(
                 ['alumni_id' => $alumni->id, 'question_id' => $idPertanyaan],
                 [
-                    'answer_text' => $isJson ? null : $jawaban,
-                    'answer_json' => $isJson ? $jawaban : null,
+                    'answer_text' => $answerText,
+                    'answer_json' => $answerJson,
                 ]
             );
 
-            // Jika ada relasi mapping yang resmi tercatat di database, sinkronisasi datanya
-            if (isset($pemetaan[$idPertanyaan]) && !$isJson) {
+            // Jika ada relasi mapping yang resmi tercatat di database, sinkronisasi datanya ke tabel terkait
+            if (isset($pemetaan[$idPertanyaan]) && $answerText !== null) {
                 $kolom = $pemetaan[$idPertanyaan]->column_name;
                 $tabel = $pemetaan[$idPertanyaan]->table_name;
                 
                 if ($tabel === 'data_akademiks' && in_array($kolom, $kolomAkademik)) {
-                    $dataUpdateAkademik[$kolom] = $jawaban;
+                    $dataUpdateAkademik[$kolom] = $answerText;
                 } else if ($tabel === 'alumnis' && in_array($kolom, $kolomAlumni)) {
-                    $dataUpdateAlumni[$kolom] = $jawaban;
+                    $dataUpdateAlumni[$kolom] = $answerText;
+                } else if ($tabel === 'companies' && in_array($kolom, $kolomCompany)) {
+                    $dataUpdateCompany[$kolom] = $answerText;
+                } else if ($tabel === 'atasans' && in_array($kolom, $kolomAtasan)) {
+                    $dataUpdateAtasan[$kolom] = $answerText;
                 }
             }
         }
@@ -67,12 +283,41 @@ class SimpanJawabanController extends Controller
         }
         
         if (!empty($dataUpdateAkademik)) {
-            \App\Models\DataAkademik::updateOrCreate(
+            DataAkademik::updateOrCreate(
                 ['nim' => $alumni->nim],
                 $dataUpdateAkademik
             );
         }
 
+        if (!empty($dataUpdateCompany)) {
+            if ($alumni->company_id && $alumni->company) {
+                $alumni->company->update($dataUpdateCompany);
+            } else if (!empty($dataUpdateCompany['nama_perusahaan'])) {
+                $comp = Company::create($dataUpdateCompany);
+                $alumni->update(['company_id' => $comp->id]);
+            }
+        }
+
+        if (!empty($dataUpdateAtasan)) {
+            if ($alumni->atasan_id && $alumni->atasan) {
+                $alumni->atasan->update($dataUpdateAtasan);
+            } else if (!empty($dataUpdateAtasan['nama']) || !empty($dataUpdateAtasan['email'])) {
+                $emailAtasan = $dataUpdateAtasan['email'] ?? ('atasan_' . $alumni->nim . '@tracerstudy.ukdw.ac.id');
+                $atasan = Atasan::firstOrCreate(
+                    ['email' => $emailAtasan],
+                    [
+                        'nama' => $dataUpdateAtasan['nama'] ?? 'Atasan',
+                        'telepon' => $dataUpdateAtasan['telepon'] ?? null
+                    ]
+                );
+                $alumni->update(['atasan_id' => $atasan->id]);
+            }
+        }
+
+        // Pastikan jawaban profil (F1..F2H) selalu tersinkronisasi di tabel responses
+        KuesionerSyncService::syncProfileResponses($alumni);
+
         return redirect()->back()->with('success', 'Jawaban berhasil disimpan.');
     }
 }
+

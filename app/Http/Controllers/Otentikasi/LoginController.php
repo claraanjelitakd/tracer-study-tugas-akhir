@@ -51,12 +51,20 @@ class LoginController extends Controller
 
     /**
      * Proses Logout Pengguna
+     * 
+     * Menghapus sesi autentikasi pengguna saat ini dari guard web,
+     * menginvaliasi session token untuk mencegah session fixation,
+     * lalu mengarahkan kembali ke halaman beranda utama (Home / Landing Page).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function prosesLogout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 

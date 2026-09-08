@@ -66,9 +66,9 @@ const resetFilter = () => {
     applyFilters();
 };
 
-// Logout handler
+// Logout handler untuk keluar kembali ke beranda (Home)
 const logout = () => {
-    useForm().post('/logout');
+    router.post('/logout');
 };
 </script>
 

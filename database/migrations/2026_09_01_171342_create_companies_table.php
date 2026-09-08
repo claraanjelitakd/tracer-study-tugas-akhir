@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('province_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('kabupaten_id')->nullable()->constrained()->nullOnDelete();
             $table->text('alamat')->nullable();
+            $table->string('kode_pos', 15)->nullable();
             $table->string('sektor')->nullable();
             $table->timestamps();
         });
