@@ -1,19 +1,56 @@
 <!--
-  Halaman Dashboard Resmi Admin Biro 3
-  Fungsi: Portal kendali eksekutif resmi untuk Administrator Biro 3 (Kemahasiswaan, Alumni, dan Pengembangan Karir UKDW).
-  Konsep: Formal, Bersih, dan Berwibawa dengan palet warna resmi UKDW: Hijau Tua (#005B3C) dan Kuning Landing Page (#FACC15 / yellow-400).
+  Halaman: Dashboard Resmi Admin Biro 3 (Frontend)
+  File: resources/js/Pages/AdminBiroTiga/Dashboard.vue
+  
+  DIRELOAD OLEH BACKEND DARI:
+  Controller: App\Http\Controllers\AdminBiroTiga\Dashboard\DashboardController.php (method tampilkanDashboard)
+  Route URL : /biro3/dashboard (GET)
 -->
 <script setup>
+// Mengimpor modul resmi dari Inertia.js:
+// - Head   : Mengatur title halaman pada tab browser
+// - Link   : Berpindah halaman admin tanpa reload layar putih
+// - router : Mengirim aksi HTTP request ke backend (misal: logout)
 import { Head, Link, router } from '@inertiajs/vue3';
 
+/**
+ * ====================================================================
+ * MENERIMA DATA (PROPS) DARI BACKEND
+ * ====================================================================
+ * Data di bawah ini dikirim langsung oleh DashboardController.php (Biro 3)
+ * melalui pemanggilan: Inertia::render('AdminBiroTiga/Dashboard', [...])
+ */
 const props = defineProps({
+    // user: Objek data akun Admin Biro 3 yang sedang login { id, name, email, role }
     user: Object,
+
+    // stats: Kumpulan metrik KPI utama { total_alumni, total_responden, persentase_respon, total_pertanyaan, total_prodi, alumni_linkedin }
+    // Digunakan untuk menampilkan angka-angka besar pada 4 kartu statistik di bagian atas
     stats: Object,
+
+    // prodiSummaries: Array daftar prodi beserta statistik partisipasi kuesionernya
+    // Berisi: [ { id, kode_prodi, nama_prodi, total_alumni, total_responden, response_rate }, ... ]
+    // Digunakan untuk merender tabel dan progress bar "Statistik Partisipasi per Program Studi"
     prodiSummaries: Array,
+
+    // recentAlumni: Array 5 alumni terbaru yang terdaftar di database
+    // Berisi: [ { id, nim, nama, prodi, has_linkedin, has_responded }, ... ]
+    // Digunakan untuk merender tabel "5 Data Alumni Terbaru"
     recentAlumni: Array,
 });
 
-// Method proses logout Admin Biro 3 dan kembali ke halaman beranda (Home)
+/**
+ * ====================================================================
+ * FUNGSI-FUNGSI AKSI JAVASCRIPT
+ * ====================================================================
+ */
+
+/**
+ * Fungsi logout:
+ * - Dijalankan saat tombol "Logout" diklik (@click="logout")
+ * - Mengirim request POST ke endpoint '/logout' di Laravel
+ * - Setelah session dihapus oleh backend, user otomatis diarahkan ke halaman login
+ */
 const logout = () => {
     router.post('/logout');
 };

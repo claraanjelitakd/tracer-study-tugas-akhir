@@ -21,17 +21,39 @@ class DashboardController extends Controller
 {
     /**
      * Menampilkan Halaman Dashboard Utama Biro 3
+     * 
+     * Hubungan dengan Frontend:
+     * Method ini adalah pasangan dari file: resources/js/Pages/AdminBiroTiga/Dashboard.vue
+     * Data di dalam Inertia::render(...) akan diterima sebagai props oleh komponen Vue tersebut.
      */
     public function tampilkanDashboard(Request $request)
     {
+        // $user: Menyimpan data akun Admin Biro 3 yang sedang aktif login (id, name, email, role)
         $user = $request->user();
 
-        // 1. Perhitungan Metrik KPI Utama
+        // -----------------------------------------------------------------
+        // 1. Perhitungan Metrik KPI Utama (Ringkasan Angka Statistik)
+        // -----------------------------------------------------------------
+
+        // $totalAlumni: Menghitung jumlah seluruh baris data alumni di tabel 'alumnis'
         $totalAlumni = Alumni::count();
+
+        // $totalResponden: Menghitung berapa banyak alumni unik yang sudah mengisi minimal satu jawaban di tabel 'responses'
+        // (distinct memastikan alumni yang jawab banyak pertanyaan hanya dihitung 1 responden)
         $totalResponden = Response::distinct('alumni_id')->count('alumni_id');
+
+        // $persentaseRespon: Menghitung rasio responden dibandingkan total alumni dalam bentuk persen (misal: 65.5%)
+        // Rumus: (Total Responden / Total Alumni) * 100
         $persentaseRespon = $totalAlumni > 0 ? round(($totalResponden / $totalAlumni) * 100, 1) : 0;
+
+        // $totalPertanyaan: Menghitung jumlah seluruh butir instrumen pertanyaan kuesioner di tabel 'questions'
         $totalPertanyaan = Question::count();
+
+        // $totalProdi: Menghitung jumlah program studi yang terdaftar di tabel 'prodis'
         $totalProdi = Prodi::count();
+
+        // $alumniLinkedIn: Menghitung jumlah alumni yang profilnya sudah terhubung dengan LinkedIn
+        // (kondisinya: kolom linkedin_url atau linkedin_username tidak kosong)
         $alumniLinkedIn = Alumni::where(function ($q) {
             $q->whereNotNull('linkedin_url')
               ->where('linkedin_url', '!=', '')
@@ -39,57 +61,73 @@ class DashboardController extends Controller
               ->where('linkedin_username', '!=', '');
         })->count();
 
+        // -----------------------------------------------------------------
         // 2. Ringkasan Statistik Partisipasi per Program Studi
-        $prodiSummaries = Prodi::withCount('alumnis')
+        // -----------------------------------------------------------------
+
+        // $prodiSummaries: Mengambil daftar prodi beserta kalkulasi jumlah alumni & responden masing-masing prodi
+        $prodiSummaries = Prodi::withCount('alumnis') // Otomatis menambahkan kolom 'alumnis_count' pada setiap prodi
             ->orderBy('kode_prodi', 'asc')
             ->get()
             ->map(function ($prodi) {
+                // $respondenCount: Menghitung alumni di prodi ini yang sudah memiliki jawaban kuesioner (whereHas 'responses')
                 $respondenCount = Alumni::where('prodi_id', $prodi->id)
                     ->whereHas('responses')
                     ->count();
 
+                // $rate: Menghitung persentase tingkat partisipasi per prodi (contoh: 80.0%)
                 $rate = $prodi->alumnis_count > 0 
                     ? round(($respondenCount / $prodi->alumnis_count) * 100, 1) 
                     : 0;
 
+                // Bentuk array rapi untuk dikirim ke tabel / grafik di Vue
                 return [
-                    'id' => $prodi->id,
-                    'kode_prodi' => $prodi->kode_prodi,
-                    'nama_prodi' => $prodi->nama_prodi,
-                    'total_alumni' => $prodi->alumnis_count,
-                    'total_responden' => $respondenCount,
-                    'response_rate' => $rate,
+                    'id'              => $prodi->id,              // ID prodi
+                    'kode_prodi'      => $prodi->kode_prodi,      // Kode prodi (misal: 71, 72)
+                    'nama_prodi'      => $prodi->nama_prodi,      // Nama lengkap prodi (misal: Sistem Informasi)
+                    'total_alumni'    => $prodi->alumnis_count,   // Total alumni terdaftar di prodi ini
+                    'total_responden' => $respondenCount,         // Total alumni yang sudah mengisi kuesioner
+                    'response_rate'   => $rate,                   // Persentase partisipasi prodi (%)
                 ];
             });
 
-        // 3. Data Alumni Terbaru untuk Pratinjau Cepat
-        $recentAlumni = Alumni::with(['prodi', 'dataAkademik', 'user'])
-            ->latest()
-            ->take(5)
+        // -----------------------------------------------------------------
+        // 3. Data Alumni Terbaru untuk Pratinjau Cepat (Tabel 5 Teratas)
+        // -----------------------------------------------------------------
+
+        // $recentAlumni: Mengambil 5 alumni terbaru yang baru terdaftar atau diimpor
+        $recentAlumni = Alumni::with(['prodi', 'dataAkademik', 'user']) // Eager loading relasi agar database tidak lambat
+            ->latest() // Urutkan dari yang paling baru didaftarkan
+            ->take(5)  // Ambil 5 baris saja
             ->get()
             ->map(function ($alumni) {
+                // Merapikan data alumni untuk ditampilkan di tabel ringkasan dashboard Vue
                 return [
-                    'id' => $alumni->id,
-                    'nim' => $alumni->user->username ?? $alumni->nim,
-                    'nama' => $alumni->dataAkademik->nama ?? $alumni->user->name ?? 'Belum terisi',
-                    'prodi' => $alumni->prodi->nama_prodi ?? '-',
-                    'has_linkedin' => !empty($alumni->linkedin_url) || !empty($alumni->linkedin_username),
-                    'has_responded' => $alumni->responses()->exists(),
+                    'id'            => $alumni->id,                                                     // ID alumni
+                    'nim'           => $alumni->user->username ?? $alumni->nim,                         // NIM alumni
+                    'nama'          => $alumni->dataAkademik->nama ?? $alumni->user->name ?? 'Belum terisi', // Nama lengkap alumni
+                    'prodi'         => $alumni->prodi->nama_prodi ?? '-',                               // Nama prodi
+                    'has_linkedin'  => !empty($alumni->linkedin_url) || !empty($alumni->linkedin_username),  // Status LinkedIn (true/false)
+                    'has_responded' => $alumni->responses()->exists(),                                  // Status sudah isi kuesioner (true/false)
                 ];
             });
 
+        // -----------------------------------------------------------------
+        // 4. Melempar Data ke Halaman Vue (Frontend)
+        // -----------------------------------------------------------------
+        // Membuka file: resources/js/Pages/AdminBiroTiga/Dashboard.vue
         return Inertia::render('AdminBiroTiga/Dashboard', [
-            'user' => $user,
-            'stats' => [
-                'total_alumni' => $totalAlumni,
-                'total_responden' => $totalResponden,
+            'user'           => $user,           // Props: Informasi admin yang sedang login
+            'stats'          => [                // Props: Kumpulan metrik KPI untuk kartu-kartu statistik atas
+                'total_alumni'      => $totalAlumni,
+                'total_responden'   => $totalResponden,
                 'persentase_respon' => $persentaseRespon,
-                'total_pertanyaan' => $totalPertanyaan,
-                'total_prodi' => $totalProdi,
-                'alumni_linkedin' => $alumniLinkedIn,
+                'total_pertanyaan'  => $totalPertanyaan,
+                'total_prodi'       => $totalProdi,
+                'alumni_linkedin'   => $alumniLinkedIn,
             ],
-            'prodiSummaries' => $prodiSummaries,
-            'recentAlumni' => $recentAlumni,
+            'prodiSummaries' => $prodiSummaries, // Props: Data untuk tabel statistik partisipasi per prodi
+            'recentAlumni'   => $recentAlumni,   // Props: Data untuk tabel 5 alumni terbaru
         ]);
     }
 }

@@ -1,6 +1,20 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
-## [2026-09-08] Perbaikan Menyeluruh Fitur Logout ke Halaman Beranda (Home)
+## [2026-09-08] Standarisasi Dokumentasi Edukatif Kode & Pemetaan Eksplisit Backend-Inertia-Frontend
+- **Penambahan Komentar Penjelasan Baris demi Baris pada Backend (Controller)**:
+  - `Alumni/Dashboard/DashboardController.php`: Memberikan komentar penjelasan detail pada setiap baris logika pengecekan pengguna login, pencarian data alumni, penghitungan jumlah respon kuesioner dari database, pengecekan status kelengkapan profil, serta pemetaan paket data (props) ke Inertia.
+  - `AdminBiroTiga/Dashboard/DashboardController.php`: Memberikan dokumentasi menyeluruh per-variabel pada seluruh metrik KPI utama (`totalAlumni`, `totalResponden`, `persentaseRespon`, `totalPertanyaan`, `totalProdi`, `alumniLinkedIn`), kalkulasi ringkasan partisipasi per-prodi (`prodiSummaries`), dan 5 alumni terbaru (`recentAlumni`).
+- **Penambahan Dokumentasi Asal-Usul Data & Aksi pada Frontend (Vue)**:
+  - `Alumni/Dashboard.vue`: Menjelaskan asal mula props dari controller, method logout dengan `router.post('/logout')`, serta rute tujuan untuk setiap tombol `<Link>` profil dan kuesioner.
+  - `AdminBiroTiga/Dashboard.vue`: Mendokumentasikan setiap struktur objek props yang diterima (`stats`, `prodiSummaries`, `recentAlumni`) dan penggunaannya pada kartu metrik maupun tabel data.
+  - **Arsitektur Parent-Child Component Profil Alumni**:
+    - `Alumni/Profil/Index.vue` (Parent): Menjelaskan siklus hidup data mulai dari penerimaan props `formData` dari `ProfilController.php`, pembentukan `useForm`, distribusi ke komponen anak, hingga pengiriman data simpan ke `SimpanProfilController.php`.
+    - `Components/FormAkademik.vue` (Child): Menjelaskan silsilah asal objek `form` yang dioper dari parent `Index.vue`, daftar field akademik database yang ditampung, serta alasan penguncian input resmi kampus (*read-only*).
+    - `Components/FormPribadi.vue`, `Components/FormOrangTua.vue`, & `Components/FormKarier.vue` (Child): Mendokumentasikan peran masing-masing form anak dan operan props form serta master data wilayah dari controller.
+- **Pembaruan Aturan Agen & Dokumentasi**:
+  - Menambahkan aturan baru `.agents/rules/code-documentation-guidelines.md` yang mewajibkan komentar per-variabel di Controller dan komentar silsilah props/method di file Vue.
+  - Memperbarui file `documentation.txt` pada bagian Step 9 mengenai alur arsitektur Backend-Inertia-Frontend dan hierarki Parent-Child.
+
 - **Perbaikan Masalah Tombol Logout di Dashboard Alumni & Seluruh Modul**:
   - Mengidentifikasi akar masalah: pemanggilan composable `useForm().post('/logout')` di dalam callback function click handler Vue 3 menyebabkan error injeksi konteks (`inject() can only be used inside setup()`), sehingga request tidak terkirim.
   - Memperbaiki seluruh method logout di seluruh komponen aplikasi (`Alumni/Dashboard.vue`, `SuperAdmin/Dashboard.vue`, `SuperAdmin/Pertanyaan/Index.vue`, `AdminProdi/Dashboard.vue`, `AdminBiroTiga/Dashboard.vue`, `AdminBiroTiga/Pertanyaan/Index.vue`, `AdminBiroTiga/AlumniIndex.vue`, `AdminBiroTiga/AlumniShow.vue`) dengan menggunakan `router.post('/logout')` dari `@inertiajs/vue3`.

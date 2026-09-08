@@ -1,9 +1,49 @@
+<!--
+  Komponen Anak (Child Component): Form Akademik
+  File: resources/js/Pages/Alumni/Profil/Components/FormAkademik.vue
+  
+  DIPANGGIL OLEH (Parent Component):
+  👉 resources/js/Pages/Alumni/Profil/Index.vue
+  (Pada baris: <FormAkademik :form="form" />)
+  
+  SUMBER ASLI DATA DARI BACKEND:
+  👉 Controller: App\Http\Controllers\Alumni\Profil\ProfilController.php (method index)
+  (Dikirim dari backend sebagai 'formData', lalu dibungkus oleh parent Index.vue menjadi 'useForm')
+-->
 <script setup>
+/**
+ * ====================================================================
+ * MENERIMA DATA (PROPS) DARI PARENT (Index.vue)
+ * ====================================================================
+ * Variabel 'form' di bawah ini BUKAN dibuat langsung di file ini!
+ * 'form' ini adalah titipan / operan dari komponen induk (Index.vue).
+ * 
+ * Di Index.vue ada kode:
+ *   const form = useForm(props.formData);
+ * Lalu dioper ke komponen ini dengan:
+ *   <FormAkademik :form="form" />
+ * 
+ * Isi 'form' ini menampung data akademik alumni dari database (tabel 'data_akademiks'):
+ * - form.nim                  : Nomor Induk Mahasiswa
+ * - form.angkatan_masuk       : Tahun angkatan masuk kuliah
+ * - form.status_mahasiswa     : Status kelulusan (Lulus)
+ * - form.tahun_akademik_lulus : Semester/tahun akademik lulus
+ * - form.tahun_lulus          : Tahun kalender kelulusan
+ * - form.ipk                  : Nilai IPK kelulusan
+ * - form.total_sks            : Jumlah SKS yang ditempuh
+ * - form.total_angka_kualitas : Total nilai mutu akademik
+ * - form.jalur_masuk          : Jalur seleksi saat masuk kampus
+ * - form.beasiswa             : Keterangan penerima beasiswa
+ * - form.nomor_sk_yudisium    : Nomor SK kelulusan resmi
+ * - form.tanggal_yudisium     : Tanggal resmi yudisium
+ * - form.predikat_kelulusan   : Predikat yudisium (Cumlaude, Sangat Memuaskan, dll)
+ */
 defineProps({
     form: Object,
 });
 
-// Input styling: abu-abu bersih untuk data terkunci/paten
+// Input styling: CSS kelas abu-abu untuk kolom yang terkunci (read-only/disabled)
+// karena data akademik resmi berasal dari data kampus dan tidak boleh diubah sembarangan oleh alumni
 const lockedInputClass = "block w-full border border-gray-200 bg-gray-100 text-gray-700 rounded-xl px-4 py-3 text-sm font-medium cursor-not-allowed select-none";
 const labelClass = "block text-sm font-semibold text-gray-700 mb-1.5";
 </script>

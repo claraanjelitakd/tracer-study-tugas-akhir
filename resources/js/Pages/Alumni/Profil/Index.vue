@@ -1,17 +1,36 @@
 <!--
-  Halaman Profil Alumni Tracer Study
-  Fungsi: Menampilkan dan menyimpan biodata diri, data akademik, dan riwayat profesional.
-  Controller: ProfilController (Tampil), SimpanProfilController (Simpan)
+  Halaman Utama (Parent Component): Kelola Profil Alumni
+  File: resources/js/Pages/Alumni/Profil/Index.vue
+  
+  DIRELOAD OLEH BACKEND DARI:
+  👉 Controller Tampil : App\Http\Controllers\Alumni\Profil\ProfilController.php (method index)
+  👉 Route URL (GET)   : /alumni/profile
+  
+  DISIMPAN KE BACKEND OLEH:
+  👉 Controller Simpan : App\Http\Controllers\Alumni\Profil\SimpanProfilController.php (method simpanProfil)
+  👉 Route URL (POST)  : /alumni/profile
 -->
 <script setup>
 import { Head, useForm, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import Swal from 'sweetalert2';
+
+// Mengimpor 4 Komponen Anak (Child Components) yang dipecah agar kodenya rapi:
 import FormPribadi from './Components/FormPribadi.vue';
 import FormAkademik from './Components/FormAkademik.vue';
 import FormOrangTua from './Components/FormOrangTua.vue';
 import FormKarier from './Components/FormKarier.vue';
 
+/**
+ * ====================================================================
+ * MENERIMA DATA (PROPS) DARI CONTROLLER (ProfilController.php)
+ * ====================================================================
+ * - alumniData : Objek detail model Alumni dari database
+ * - formData   : Objek data awal gabungan (data akademik, pribadi, orang tua, pekerjaan)
+ * - provinces  : Array master data provinsi dari tabel 'provinces'
+ * - kabupatens : Array master data kabupaten dari tabel 'kabupatens'
+ * - companies  : Array master data perusahaan dari tabel 'companies'
+ */
 const props = defineProps({
     alumniData: Object,
     formData: Object,
@@ -45,20 +64,32 @@ const getInitialTab = () => {
     return 'pribadi';
 };
 
-// Form data murni dari backend database
+/**
+ * ====================================================================
+ * MEMBUAT OBJEK FORM DENGAN useForm DARI INERTIA
+ * ====================================================================
+ * Di sinilah 'form' lahir!
+ * Nilai awalnya diambil dari props.formData yang dikirim oleh ProfilController.php.
+ * 
+ * Objek 'form' inilah yang nanti dioper ke 4 komponen anak:
+ * <FormPribadi  :form="form" />
+ * <FormAkademik :form="form" />
+ * <FormOrangTua :form="form" />
+ * <FormKarier   :form="form" />
+ */
 const form = useForm(JSON.parse(JSON.stringify(props.formData || {})));
 
-// Sinkronkan data form jika props berubah dari backend
+// Sinkronkan data form jika props berubah dari backend (misal setelah simpan)
 watch(() => props.formData, (newData) => {
     if (newData) {
         Object.assign(form, JSON.parse(JSON.stringify(newData)));
     }
 }, { deep: true });
 
-// State untuk active tab
+// State untuk tab yang sedang aktif ('pribadi', 'akademik', 'orangtua', 'karier')
 const activeTab = ref(getInitialTab());
 
-// Sinkronkan activeTab ke URL dan localStorage
+// Sinkronkan activeTab ke URL dan localStorage agar tidak reset saat refresh
 watch(activeTab, (newTab) => {
     if (typeof window !== 'undefined') {
         localStorage.setItem(PROFILE_TAB_STORAGE_KEY, newTab);
@@ -68,11 +99,21 @@ watch(activeTab, (newTab) => {
     }
 });
 
+/**
+ * ====================================================================
+ * FUNGSI SUBMIT (SIMPAN SELURUH PROFIL KE BACKEND)
+ * ====================================================================
+ * - Dijalankan saat tombol hijau "Simpan Perubahan" diklik (@click="submit")
+ * - Mengirim seluruh isi objek 'form' via POST ke URL '/alumni/profile'
+ * - Ditangkap di Backend oleh:
+ *   👉 App\Http\Controllers\Alumni\Profil\SimpanProfilController.php (method simpanProfil)
+ */
 const submit = () => {
     form.post('/alumni/profile', {
-        preserveScroll: true,
-        preserveState: true,
+        preserveScroll: true, // Layar tidak akan loncat ke paling atas setelah simpan
+        preserveState: true,  // Data yang sudah diketik tidak akan hilang
         onSuccess: () => {
+            // Muncul popup berhasil SweetAlert2
             Swal.fire({
                 title: 'Berhasil!',
                 text: 'Profil dan Data Anda berhasil diperbarui.',
@@ -83,12 +124,14 @@ const submit = () => {
             form.clearErrors();
         },
         onError: (errors) => {
+            // Susun daftar error validasi dari Laravel
             let errorHtml = '<ul class="text-left list-disc list-inside">';
             for (let key in errors) {
                 errorHtml += `<li>${errors[key]}</li>`;
             }
             errorHtml += '</ul>';
 
+            // Muncul popup gagal SweetAlert2
             Swal.fire({
                 title: 'Gagal Menyimpan!',
                 html: '<p class="mb-2">Ada data yang belum lengkap atau salah:</p>' + errorHtml,

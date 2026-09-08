@@ -162,3 +162,21 @@ ARSITEKTUR PROFIL ALUMNI & DATA PATEN UNIVERSITAS (STEP 8)
      - **DKI Jakarta** (kode `31`) -> **Kota Jakarta Pusat** (kode `31.71`) (Kode Pos: 10310, 12710, 12930, 10220)
      - **Aceh** (kode `11`) -> **Aceh Selatan** (kode `11.01`) (Kode Pos: 23715, 23711, 23714)
    - Seluruh data 10 alumni di-seed lengkap 100% rata mencakup data akademik, orang tua, skripsi, perusahaan, dan atasan.
+
+STANDAR DOKUMENTASI KODE & ALUR HUBUNGAN BACKEND-INERTIA-FRONTEND (STEP 9)
+1. Alur Penghubung (Lifecycle):
+   - Browser akses URL -> Ditangkap di `routes/web.php` -> Memanggil Controller (Backend).
+   - Controller melakukan query ke Database (Eloquent Model) -> Membungkus data -> Mengirim via `Inertia::render('Path/Komponen', ['props' => $data])`.
+   - Inertia bertindak sebagai bridge (kurir JSON otomatis tanpa perlu membuat REST API manual).
+   - Komponen Halaman Vue (`resources/js/Pages/...`) menangkap data via `defineProps` dan menampilkannya di template secara reaktif.
+
+2. Hubungan Komponen Induk (Parent) dan Komponen Anak (Child):
+   - Contoh pada Modul Profil Alumni:
+     - `Index.vue` adalah Parent Component yang menerima `formData` dari `ProfilController.php`.
+     - `Index.vue` membungkus data tersebut ke dalam `const form = useForm(props.formData)`.
+     - Komponen anak (`FormAkademik.vue`, `FormPribadi.vue`, `FormOrangTua.vue`, `FormKarier.vue`) menerima variabel form tersebut melalui props operan: `<FormAkademik :form="form" />`.
+     - Ketika tombol simpan di `Index.vue` ditekan, seluruh data dari keempat form anak dikirim serentak melalui `form.post('/alumni/profile')` ke `SimpanProfilController.php`.
+
+3. Standar Komentar Kode:
+   - Setiap Controller wajib mencantumkan komentar per-variabel untuk menjelaskan sumber data, tabel database yang digunakan, dan tujuan props yang dikirim ke Inertia.
+   - Setiap Komponen Vue wajib mencantumkan komentar di bagian script yang merinci asal-usul props dan controller tujuan untuk setiap aksi (submit/logout).

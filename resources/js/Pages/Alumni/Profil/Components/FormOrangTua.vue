@@ -1,4 +1,24 @@
+<!--
+  Komponen Anak (Child Component): Form Data Orang Tua
+  File: resources/js/Pages/Alumni/Profil/Components/FormOrangTua.vue
+  
+  DIPANGGIL OLEH (Parent Component):
+  👉 resources/js/Pages/Alumni/Profil/Index.vue
+  (Pada baris: <FormOrangTua :form="form" :provinces="provinces" :kabupatens="kabupatens" />)
+  
+  SUMBER ASLI DATA DARI BACKEND:
+  👉 Controller: App\Http\Controllers\Alumni\Profil\ProfilController.php (method index)
+  (Menyediakan 'formData', 'provinces', dan 'kabupatens')
+-->
 <script setup>
+/**
+ * ====================================================================
+ * MENERIMA DATA (PROPS) DARI PARENT (Index.vue)
+ * ====================================================================
+ * - form       : Objek useForm dari Index.vue (berisi nama_orang_tua, telepon_orang_tua, pekerjaan, alamat, dsb)
+ * - provinces  : Daftar provinsi dari database (untuk dropdown provinsi orang tua)
+ * - kabupatens : Daftar kabupaten dari database (untuk dropdown kabupaten orang tua)
+ */
 defineProps({
     form: Object,
     provinces: Array,

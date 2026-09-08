@@ -1,7 +1,29 @@
+<!--
+  Komponen Anak (Child Component): Form Karier & Riwayat Pekerjaan
+  File: resources/js/Pages/Alumni/Profil/Components/FormKarier.vue
+  
+  DIPANGGIL OLEH (Parent Component):
+  👉 resources/js/Pages/Alumni/Profil/Index.vue
+  (Pada baris: <FormKarier :form="form" :provinces="provinces" :kabupatens="kabupatens" :companies="companies" :alumniData="alumniData" />)
+  
+  SUMBER ASLI DATA DARI BACKEND:
+  👉 Controller: App\Http\Controllers\Alumni\Profil\ProfilController.php (method index)
+  (Menyediakan 'formData', 'provinces', 'kabupatens', 'companies', dan 'alumniData')
+-->
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import Swal from 'sweetalert2';
 
+/**
+ * ====================================================================
+ * MENERIMA DATA (PROPS) DARI PARENT (Index.vue)
+ * ====================================================================
+ * - form       : Objek useForm dari Index.vue (berisi status_pekerjaan, nama_perusahaan, jabatan, gaji, linkedin, dsb)
+ * - provinces  : Daftar provinsi di Indonesia (untuk lokasi kantor)
+ * - kabupatens : Daftar kabupaten/kota (untuk lokasi kantor)
+ * - companies  : Daftar perusahaan yang sudah terdaftar di database kampus
+ * - alumniData : Data lengkap alumni termasuk relasi prodi (untuk cek kode prodi kusus, misal prodi 31)
+ */
 const props = defineProps({
     form: Object,
     provinces: Array,
