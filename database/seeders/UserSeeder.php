@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Prodi;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -49,11 +48,11 @@ class UserSeeder extends Seeder
             $randomProdi = $prodiList->random();
             $angkatanKode = str_pad(rand(20, 24), 2, '0', STR_PAD_LEFT);
             $nomorUrut = str_pad($i, 4, '0', STR_PAD_LEFT);
-            $nim = $randomProdi->kode_prodi . '1' . $angkatanKode . $nomorUrut;
+            $nim = $randomProdi->kode_prodi.'1'.$angkatanKode.$nomorUrut;
 
             // Password format DDMMYYYY
             $tglLahir = '15082001';
-            
+
             User::updateOrCreate(
                 ['username' => $nim],
                 [

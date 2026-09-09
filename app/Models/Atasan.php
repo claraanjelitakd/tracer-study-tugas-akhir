@@ -13,7 +13,7 @@ class Atasan extends Model
         'user_id',
         'nama',
         'email',
-        'telepon'
+        'telepon',
     ];
 
     /**

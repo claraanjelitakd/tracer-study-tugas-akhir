@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Otentikasi;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 /**
  * LoginController
- * 
+ *
  * Fungsi: Menangani proses otentikasi (masuk dan keluar) pengguna ke dalam sistem.
  * Tujuan: Memastikan hanya pengguna yang valid yang dapat mengakses halaman yang dilindungi (dashboard).
  */
@@ -51,13 +52,12 @@ class LoginController extends Controller
 
     /**
      * Proses Logout Pengguna
-     * 
+     *
      * Menghapus sesi autentikasi pengguna saat ini dari guard web,
      * menginvaliasi session token untuk mencegah session fixation,
      * lalu mengarahkan kembali ke halaman beranda utama (Home / Landing Page).
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function prosesLogout(Request $request)
     {
@@ -87,4 +87,3 @@ class LoginController extends Controller
         }
     }
 }
-

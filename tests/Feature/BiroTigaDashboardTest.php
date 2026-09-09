@@ -56,10 +56,9 @@ class BiroTigaDashboardTest extends TestCase
 
         $response = $this->actingAs($admin)->get('/biro3/dashboard');
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => 
-            $page->component('AdminBiroTiga/Dashboard')
-                ->has('stats')
-                ->has('prodiSummaries')
+        $response->assertInertia(fn ($page) => $page->component('AdminBiroTiga/Dashboard')
+            ->has('stats')
+            ->has('prodiSummaries')
         );
     }
 }

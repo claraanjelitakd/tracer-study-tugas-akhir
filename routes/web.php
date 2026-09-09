@@ -10,6 +10,8 @@ use App\Http\Controllers\Alumni\Profil\ProfilController;
 use App\Http\Controllers\Alumni\Profil\SimpanProfilController;
 use App\Http\Controllers\Otentikasi\LoginController;
 use App\Http\Controllers\Otentikasi\UbahKataSandiController;
+use App\Http\Controllers\SuperAdmin\KelolaAlumni\DaftarAlumniSuperAdminController;
+use App\Http\Controllers\SuperAdmin\KelolaAlumni\DetailAlumniSuperAdminController;
 use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\DaftarPertanyaanController;
 use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaOpsiController;
 use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\SimpanPertanyaanController;
@@ -88,6 +90,14 @@ Route::middleware('auth')->group(function () {
         // Rute Superadmin (Otoritas Tertinggi & Pengaturan Instrumen Kuesioner)
         // -----------------------------------------------------------------
         Route::middleware('role:superadmin')->group(function () {
+            // Redirect /superadmin langsung ke dashboard
+            Route::redirect('/superadmin', '/superadmin/dashboard');
+
+            // Direktori Mahasiswa/Alumni & Audit Kuesioner Tracer
+            Route::get('/superadmin/alumni', [DaftarAlumniSuperAdminController::class, 'index'])->name('superadmin.alumni.index');
+            Route::get('/superadmin/alumni/{id}', [DetailAlumniSuperAdminController::class, 'show'])->name('superadmin.alumni.show');
+            Route::post('/superadmin/alumni/{id}/profile', [DetailAlumniSuperAdminController::class, 'updateProfile'])->name('superadmin.alumni.profile.update');
+
             // Dashboard Utama Superadmin
             Route::get('/superadmin/dashboard', [App\Http\Controllers\SuperAdmin\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('superadmin.dashboard');
 

@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Question;
+use App\Models\QuestionOption;
 use Illuminate\Database\Seeder;
 
 class QuestionOptionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * 
+     *
      * Catatan Arsitektur Branching / Jump Logic:
      * Seluruh alur percabangan kuesioner dikelola secara modular pada kolom 'jump_to' di tabel 'question_options'.
      * - Jika jump_to diisi kode pertanyaan (misal 'F8', 'F11', 'F17-1'), alumni yang memilih opsi tersebut
@@ -223,14 +224,14 @@ class QuestionOptionSeeder extends Seeder
             'Kegiatan yang menghasilkan barang dan jasa oleh rumah tangga yang digunakan sendiri untuk memenuhi kebutuhan',
             'Kegiatan badan internasional,badan ekstra internasional',
             'Angkutan air',
-            'Pendeta / Pastur / Rohaniwan'
+            'Pendeta / Pastur / Rohaniwan',
         ];
 
         foreach ($f12_kbli as $index => $aspect) {
             $options[] = [
                 'question_code' => 'F12',
-                'code' => 'F12-'.str_pad($index+1, 2, '0', STR_PAD_LEFT),
-                'option_text' => $aspect
+                'code' => 'F12-'.str_pad($index + 1, 2, '0', STR_PAD_LEFT),
+                'option_text' => $aspect,
             ];
         }
 
@@ -311,17 +312,49 @@ class QuestionOptionSeeder extends Seeder
             }
         }
 
+        // F24A: Sumber dana pembiayaan kuliah S1 di UKDW (Wajib)
+        $f24aList = [
+            ['code' => 'F24A-01', 'option_text' => 'Biaya Sendiri / Keluarga'],
+            ['code' => 'F24A-02', 'option_text' => 'Beasiswa ADIK'],
+            ['code' => 'F24A-03', 'option_text' => 'Beasiswa BIDIKMISI'],
+            ['code' => 'F24A-04', 'option_text' => 'Beasiswa PPA'],
+            ['code' => 'F24A-05', 'option_text' => 'Beasiswa Afirmasi'],
+            ['code' => 'F24A-06', 'option_text' => 'Beasiswa Perusahaan / Swasta'],
+            ['code' => 'F24A-07', 'option_text' => 'Lainnya (Tuliskan)'],
+        ];
+        foreach ($f24aList as $item) {
+            $options[] = [
+                'question_code' => 'F24A',
+                'code' => $item['code'],
+                'option_text' => $item['option_text'],
+            ];
+        }
+
+        // F24B: Sumber dana pembiayaan kuliah S2 Pascasarjana (Wajib)
+        $f24bList = [
+            ['code' => 'F24B-00', 'option_text' => 'Tidak melanjutkan S2'],
+            ['code' => 'F24B-01', 'option_text' => 'Melanjutkan dengan biaya sendiri'],
+            ['code' => 'F24B-02', 'option_text' => 'Melanjutkan dengan beasiswa'],
+        ];
+        foreach ($f24bList as $item) {
+            $options[] = [
+                'question_code' => 'F24B',
+                'code' => $item['code'],
+                'option_text' => $item['option_text'],
+            ];
+        }
+
         $orderCounter = 1;
         foreach ($options as $opt) {
             // Find question_id by code
-            $q = \App\Models\Question::where('code', $opt['question_code'])->first();
+            $q = Question::where('code', $opt['question_code'])->first();
             if ($q) {
-                \App\Models\QuestionOption::updateOrCreate(
+                QuestionOption::updateOrCreate(
                     ['question_id' => $q->id, 'code' => $opt['code']],
                     [
                         'option_text' => $opt['option_text'],
                         'jump_to' => $opt['jump_to'] ?? null,
-                        'order' => $orderCounter++
+                        'order' => $orderCounter++,
                     ]
                 );
             }

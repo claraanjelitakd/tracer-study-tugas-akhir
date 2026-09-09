@@ -13,13 +13,13 @@ class RoleMiddleware
      * Handle an incoming request.
      * Memeriksa apakah role pengguna saat ini sesuai dengan yang diizinkan untuk rute tersebut.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  mixed ...$roles  Daftar role yang diizinkan
+     * @param  Closure(Request): (Response)  $next
+     * @param  mixed  ...$roles  Daftar role yang diizinkan
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         // Pastikan user sudah login sebelum mengecek role
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect('/login');
         }
 
@@ -27,7 +27,7 @@ class RoleMiddleware
         $user = Auth::user();
 
         // Cek apakah role user ada di dalam daftar role yang diizinkan untuk rute ini
-        if (!in_array($user->role, $roles)) {
+        if (! in_array($user->role, $roles)) {
             // Jika tidak memiliki akses (role tidak cocok), tampilkan halaman error 403 (Forbidden)
             return abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }

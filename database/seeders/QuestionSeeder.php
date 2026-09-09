@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Prodi;
+use App\Models\Question;
 use Illuminate\Database\Seeder;
 
 class QuestionSeeder extends Seeder
@@ -14,7 +15,7 @@ class QuestionSeeder extends Seeder
     {
         // Cari ID Prodi Filsafat Keilahian (Kode 31) untuk pertanyaan F2E spesifik prodi.
         // Pertanyaan lain bernilai prodi_id = null (berlaku untuk semua program studi).
-        $prodiFilsafat = \App\Models\Prodi::where('kode_prodi', '31')->first();
+        $prodiFilsafat = Prodi::where('kode_prodi', '31')->first();
         $prodiFilsafatId = $prodiFilsafat ? $prodiFilsafat->id : null;
 
         $questions = [
@@ -38,7 +39,7 @@ class QuestionSeeder extends Seeder
 
             // Pencarian Kerja (Section 3 & 4)
             ['question_section_id' => 3, 'code' => 'F3', 'question_text' => 'Kapan anda mulai mencari pekerjaan? Mohon pekerjaan sambilan tidak dimasukkan', 'type' => 'radio_input', 'is_required' => true, 'order' => 14],
-            
+
             ['question_section_id' => 4, 'code' => 'F4', 'question_text' => 'Bagaimana anda mencari pekerjaan tersebut? Jawaban bisa lebih dari satu', 'type' => 'multiple_choice', 'is_required' => true, 'order' => 15],
             ['question_section_id' => 4, 'code' => 'F5', 'question_text' => 'Berapa bulan waktu yang dihabiskan (sebelum dan sesudah kelulusan) untuk memeroleh pekerjaan pertama?', 'type' => 'radio_input', 'is_required' => true, 'order' => 16],
             ['question_section_id' => 4, 'code' => 'F6', 'question_text' => 'Berapa perusahaan/ instansi/ institusi yang sudah anda lamar (lewat surat atau e-mail) sebelum anda memeroleh pekerjaan pertama?', 'type' => 'number', 'is_required' => true, 'order' => 17],
@@ -46,7 +47,7 @@ class QuestionSeeder extends Seeder
 
             // Situasi Saat Ini (Section 5 & 6)
             ['question_section_id' => 5, 'code' => 'F8', 'question_text' => 'Apakah anda bekerja saat ini (termasuk kerja sambilan dan wirausaha)?', 'type' => 'single_choice', 'is_required' => true, 'order' => 19],
-            
+
             ['question_section_id' => 6, 'code' => 'F9', 'question_text' => 'Bagaimana anda menggambarkan situasi anda saat ini? Jawaban bisa lebih dari satu', 'type' => 'multiple_choice', 'is_required' => true, 'order' => 20],
             ['question_section_id' => 6, 'code' => 'F10', 'question_text' => 'Apakah anda aktif mencari pekerjaan dalam 4 minggu terakhir? Pilihlah Satu Jawaban.', 'type' => 'single_choice', 'is_required' => true, 'order' => 21],
 
@@ -226,8 +227,31 @@ class QuestionSeeder extends Seeder
             'order' => $currentOrder++,
         ];
 
+        /**
+         * F24: Studi Lanjut & Sumber Pembiayaan Kuliah (Standar Tracer Study Dikti)
+         * - F24A: Sumber dana pembiayaan kuliah S1 di UKDW (Wajib diisi oleh seluruh alumni)
+         * - F24B: Sumber dana pembiayaan kuliah pascasarjana/S2 (Wajib diisi; opsi 0 jika tidak melanjutkan S2)
+         */
+        $questions[] = [
+            'question_section_id' => 9,
+            'code' => 'F24A',
+            'question_text' => 'Sebutkan sumberdana dalam pembiayaan kuliah S1 di UKDW :',
+            'type' => 'single_choice',
+            'is_required' => true,
+            'order' => $currentOrder++,
+        ];
+
+        $questions[] = [
+            'question_section_id' => 9,
+            'code' => 'F24B',
+            'question_text' => 'Jika Anda melanjutkan ke jenjang pascasarjana (S2), sebutkan sumberdana dalam pembiayaan kuliah S2 Anda :',
+            'type' => 'single_choice',
+            'is_required' => true,
+            'order' => $currentOrder++,
+        ];
+
         foreach ($questions as $q) {
-            \App\Models\Question::updateOrCreate(
+            Question::updateOrCreate(
                 ['code' => $q['code']],
                 $q
             );

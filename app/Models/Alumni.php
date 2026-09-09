@@ -19,15 +19,15 @@ class Alumni extends Model
         'nim',
         'prodi_id',
         // Data Akademik Tambahan dipindah ke tabel data_akademiks
-        
+
         // Data Akademik Tambahan dipindah ke tabel data_akademiks
-        
+
         // Sosial Media
         'instagram_url',
         'facebook_url',
         'linkedin_url',
         'linkedin_username',
-        
+
         // Profesional & Pekerjaan
         'expert',
         'minat',
@@ -70,15 +70,16 @@ class Alumni extends Model
         if (strlen($nim) >= 4) {
             $kodeProdi = substr($nim, 0, 2);
             $tahunKode = substr($nim, 2, 2);
-            
+
             // Konversi ke tahun (misal '24' -> 2024, '98' -> 1998)
             $angkatan = (int) $tahunKode > 50 ? 1900 + (int) $tahunKode : 2000 + (int) $tahunKode;
-            
+
             return [
                 'kode_prodi' => $kodeProdi,
                 'angkatan' => $angkatan,
             ];
         }
+
         return null;
     }
 

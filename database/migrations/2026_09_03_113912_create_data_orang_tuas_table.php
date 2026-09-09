@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('data_orang_tuas', function (Blueprint $table) {
             $table->id();
-            
+
             // Relasi ke DataAkademik berdasarkan NIM
             $table->string('nim')->unique();
             $table->foreign('nim')->references('nim')->on('data_akademiks')->cascadeOnDelete();
-            
+
             $table->string('nama_orang_tua');
             $table->string('pekerjaan')->nullable();
-            
+
             // Alamat & Kontak
             $table->text('alamat')->nullable();
             $table->string('kota')->nullable(); // Alternatif jika tidak ingin pakai foreign key kabupaten_id
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->foreignId('provinsi_id')->nullable()->constrained('provinces')->nullOnDelete();
             $table->string('kode_pos')->nullable();
             $table->string('nomor_telepon')->nullable();
-            
+
             $table->timestamps();
         });
     }

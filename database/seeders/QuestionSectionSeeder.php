@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Questionnaire;
+use App\Models\QuestionSection;
 use Illuminate\Database\Seeder;
 
 class QuestionSectionSeeder extends Seeder
@@ -12,7 +13,7 @@ class QuestionSectionSeeder extends Seeder
      */
     public function run(): void
     {
-        $tracerStudy2018 = \App\Models\Questionnaire::where('title', 'Tracer Study UKDW 2018')->first();
+        $tracerStudy2018 = Questionnaire::where('title', 'Tracer Study UKDW 2018')->first();
         $qId = $tracerStudy2018 ? $tracerStudy2018->id : 1;
 
         $sections = [
@@ -28,7 +29,7 @@ class QuestionSectionSeeder extends Seeder
         ];
 
         foreach ($sections as $section) {
-            \App\Models\QuestionSection::updateOrCreate(
+            QuestionSection::updateOrCreate(
                 ['id' => $section['id']],
                 $section
             );

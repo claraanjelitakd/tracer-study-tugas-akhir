@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Province;
 use App\Models\Kabupaten;
-use Illuminate\Support\Facades\DB;
+use App\Models\Province;
+use Illuminate\Database\Seeder;
 
 class WilayahSeeder extends Seeder
 {
@@ -39,7 +38,7 @@ class WilayahSeeder extends Seeder
 
         // 2. Load semua provinsi ke memory agar tidak query berulang-ulang
         $provinces = Province::whereNotNull('kode_provinsi')->get()->keyBy('kode_provinsi');
-        $this->command->info('Berhasil memuat ' . $provinces->count() . ' provinsi dari database.');
+        $this->command->info('Berhasil memuat '.$provinces->count().' provinsi dari database.');
 
         // 3. Impor Data Kabupaten/Kota
         $kabupatenCsvFile = base_path('kabupaten_kota.csv');
@@ -48,8 +47,8 @@ class WilayahSeeder extends Seeder
             // Hapus header
             $headerKabupaten = array_shift($kabupatenData);
 
-            $this->command->info('Mulai memasukkan ' . count($kabupatenData) . ' data kabupaten/kota...');
-            
+            $this->command->info('Mulai memasukkan '.count($kabupatenData).' data kabupaten/kota...');
+
             $inserted = 0;
             $updated = 0;
 
@@ -68,17 +67,17 @@ class WilayahSeeder extends Seeder
 
                     if ($provinsi) {
                         $kab = Kabupaten::where('kode_kabupaten', $kodeKabupaten)->first();
-                        if (!$kab) {
+                        if (! $kab) {
                             Kabupaten::create([
                                 'kode_kabupaten' => $kodeKabupaten,
                                 'province_id' => $provinsi->id,
-                                'nama_kabupaten' => $namaKabupaten
+                                'nama_kabupaten' => $namaKabupaten,
                             ]);
                             $inserted++;
                         } else {
                             $kab->update([
                                 'province_id' => $provinsi->id,
-                                'nama_kabupaten' => $namaKabupaten
+                                'nama_kabupaten' => $namaKabupaten,
                             ]);
                             $updated++;
                         }
@@ -89,7 +88,7 @@ class WilayahSeeder extends Seeder
             $this->command->info("Selesai! $inserted kabupaten baru ditambahkan, $updated kabupaten diperbarui.");
             $total = Kabupaten::count();
             $this->command->info("Total keseluruhan kabupaten di database sekarang: $total");
-            
+
         } else {
             $this->command->error('File kabupaten_kota.csv tidak ditemukan di direktori root!');
         }

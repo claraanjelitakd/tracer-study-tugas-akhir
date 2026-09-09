@@ -7,11 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
-use App\Http\Controllers\Otentikasi\LoginController;
 
 /**
  * UbahKataSandiController
- * 
+ *
  * Fungsi: Menangani proses pergantian kata sandi wajib bagi pengguna yang baru pertama kali login.
  * Tujuan: Meningkatkan keamanan dengan memaksa pengguna (terutama alumni) mengganti kata sandi bawaan.
  */
@@ -22,7 +21,7 @@ class UbahKataSandiController extends Controller
      */
     public function tampilkanUbahKataSandi()
     {
-        if (!Auth::user()->must_change_password) {
+        if (! Auth::user()->must_change_password) {
             return LoginController::arahkanBerdasarkanPeran(Auth::user()->role);
         }
 
@@ -36,7 +35,7 @@ class UbahKataSandiController extends Controller
     {
         $pengguna = Auth::user();
 
-        if (!$pengguna->must_change_password) {
+        if (! $pengguna->must_change_password) {
             return LoginController::arahkanBerdasarkanPeran($pengguna->role);
         }
 
@@ -52,4 +51,3 @@ class UbahKataSandiController extends Controller
         return LoginController::arahkanBerdasarkanPeran($pengguna->role);
     }
 }
-

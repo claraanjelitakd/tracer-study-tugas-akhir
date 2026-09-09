@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Alumni;
+use App\Models\Question;
+use App\Models\QuestionMapping;
+use App\Services\Kuesioner\KuesionerSyncService;
 use Illuminate\Database\Seeder;
 
 class QuestionMappingSeeder extends Seeder
@@ -18,7 +21,7 @@ class QuestionMappingSeeder extends Seeder
             ['table_name' => 'data_akademiks', 'column_name' => 'nomor_telepon', 'question_code' => 'F2B'],
             ['table_name' => 'data_akademiks', 'column_name' => 'email_pribadi', 'question_code' => 'F2C'],
             ['table_name' => 'data_akademiks', 'column_name' => 'alamat_saat_ini', 'question_code' => 'F2D'],
-            
+
             // Relasi ke tabel companies
             ['table_name' => 'companies', 'column_name' => 'nama_perusahaan', 'question_code' => 'F2E'],
             ['table_name' => 'companies', 'column_name' => 'alamat', 'question_code' => 'F2F'],
@@ -35,9 +38,9 @@ class QuestionMappingSeeder extends Seeder
         ];
 
         foreach ($mappings as $map) {
-            $question = \App\Models\Question::where('code', $map['question_code'])->first();
+            $question = Question::where('code', $map['question_code'])->first();
             if ($question) {
-                \App\Models\QuestionMapping::updateOrCreate(
+                QuestionMapping::updateOrCreate(
                     ['table_name' => $map['table_name'], 'column_name' => $map['column_name']],
                     ['question_id' => $question->id]
                 );
@@ -45,8 +48,8 @@ class QuestionMappingSeeder extends Seeder
         }
 
         // Pastikan tabel responses langsung terisi untuk pertanyaan identitas & profil (F1..F2H) bagi seluruh alumni
-        foreach (\App\Models\Alumni::all() as $alumni) {
-            \App\Services\Kuesioner\KuesionerSyncService::syncProfileResponses($alumni);
+        foreach (Alumni::all() as $alumni) {
+            KuesionerSyncService::syncProfileResponses($alumni);
         }
     }
 }

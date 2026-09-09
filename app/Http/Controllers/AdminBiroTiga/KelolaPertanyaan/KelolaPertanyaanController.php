@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\AdminBiroTiga\KelolaPertanyaan;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Inertia\Inertia;
+use App\Models\Prodi;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\QuestionSection;
-use App\Models\Questionnaire;
-use App\Models\Prodi;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 /**
  * KelolaPertanyaanController
- * 
+ *
  * Fungsi: Mengelola instrumen kuesioner tracer study (Pertanyaan, Opsi, Jump Logic, dan Scoping Prodi).
  * Fitur:
  * 1. Menampilkan daftar pertanyaan bergaya Google Forms dengan alur percabangan (jump logic) transparan.
@@ -50,7 +49,7 @@ class KelolaPertanyaanController extends Controller
             ->map(function ($q) {
                 return [
                     'code' => $q->code,
-                    'label' => $q->code . ' — ' . Str::limit($q->question_text, 65),
+                    'label' => $q->code.' — '.Str::limit($q->question_text, 65),
                     'text' => $q->question_text,
                 ];
             });
@@ -101,7 +100,7 @@ class KelolaPertanyaanController extends Controller
         $validated = $request->validate([
             'question_section_id' => 'required|exists:question_sections,id',
             'prodi_id' => 'nullable|exists:prodis,id',
-            'code' => 'required|string|max:50|unique:questions,code,' . $question->id,
+            'code' => 'required|string|max:50|unique:questions,code,'.$question->id,
             'question_text' => 'required|string',
             'type' => 'required|string',
             'is_required' => 'boolean',
@@ -202,7 +201,7 @@ class KelolaPertanyaanController extends Controller
         // Kode opsi otomatis jika dikosongkan (misal: F3-01)
         if (empty($validated['code'])) {
             $optionCount = $question->options()->count() + 1;
-            $validated['code'] = $question->code . '-' . str_pad($optionCount, 2, '0', STR_PAD_LEFT);
+            $validated['code'] = $question->code.'-'.str_pad($optionCount, 2, '0', STR_PAD_LEFT);
         }
 
         // Bersihkan empty string menjadi null

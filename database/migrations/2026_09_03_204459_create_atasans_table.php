@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('atasans', function (Blueprint $table) {
             $table->id();
-            
+
             // Relasi ke User Login (bisa null jika belum dibuatkan akun)
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            
+
             $table->string('nama')->comment('Nama Atasan');
             $table->string('email')->unique()->comment('Email Atasan');
             $table->string('telepon')->nullable()->comment('Nomor Telepon Atasan');
-            
+
             $table->timestamps();
         });
     }

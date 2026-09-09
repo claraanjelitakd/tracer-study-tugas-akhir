@@ -48,6 +48,7 @@ class User extends Authenticatable
         if ($this->role === 'alumni' && $this->alumni && $this->alumni->dataAkademik) {
             return $this->alumni->dataAkademik->nama;
         }
+
         return $value;
     }
 
@@ -59,6 +60,7 @@ class User extends Authenticatable
         if ($this->role === 'alumni' && $this->alumni && $this->alumni->dataAkademik) {
             return $this->alumni->dataAkademik->email_pribadi;
         }
+
         return $value;
     }
 }

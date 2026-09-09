@@ -358,14 +358,13 @@ const handleDeleteOption = (opt) => {
         <!-- Navbar Terpadu -->
         <Navbar />
 
-        <!-- Header Profil Style (Elegan & Muted) -->
-        <header class="bg-gradient-to-r from-[#005B3C] to-[#007b55] pt-12 pb-24 relative overflow-hidden">
-            <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <!-- Header Solid Hijau Resmi UKDW #0D542B -->
+        <header class="bg-[#0D542B] text-white pt-10 pb-20">
+            <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
                     Kelola Kuesioner
                 </h1>
-                <p class="text-green-100 font-medium mt-2 max-w-2xl text-sm sm:text-base leading-relaxed">
+                <p class="text-white/90 font-medium mt-1 max-w-2xl text-sm sm:text-base leading-relaxed">
                     Konfigurasi butir pertanyaan, opsi jawaban, dan alur percabangan (*jump logic*) kuesioner Tracer Study.
                 </p>
             </div>
@@ -413,18 +412,11 @@ const handleDeleteOption = (opt) => {
 
                             <!-- Tombol Kelola Section Kuesioner -->
                             <!-- <Link
-                                href="/superadmin/sections"
-                                class="px-4 py-2.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-[#005B3C] border border-gray-200 hover:border-emerald-200 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                <span>Kelola Section</span>
-                            </Link> -->
-
-                            <!-- Tombol Tambah Pertanyaan (Gaya Tombol Alumni) -->
+                            <!-- Tombol Tambah Pertanyaan (Hijau Resmi UKDW #0D542B) -->
                             <button
                                 type="button"
                                 @click="openAddQuestionModal"
-                                class="px-6 py-2.5 bg-gray-900 hover:bg-[#005B3C] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-98"
+                                class="px-6 py-2.5 bg-[#0D542B] hover:bg-[#08381c] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                 <span>Tambah Pertanyaan</span>

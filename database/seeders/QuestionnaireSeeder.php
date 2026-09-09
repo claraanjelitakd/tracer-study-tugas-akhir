@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Questionnaire;
 use Illuminate\Database\Seeder;
 
 class QuestionnaireSeeder extends Seeder
@@ -12,7 +12,7 @@ class QuestionnaireSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\Questionnaire::updateOrCreate(
+        Questionnaire::updateOrCreate(
             ['title' => 'Tracer Study UKDW 2018'],
             [
                 'description' => 'Kuesioner pelacakan jejak alumni Universitas Kristen Duta Wacana tahun 2018.',

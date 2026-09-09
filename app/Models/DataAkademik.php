@@ -53,7 +53,7 @@ class DataAkademik extends Model
     {
         return $this->hasOne(Yudisium::class, 'nim', 'nim');
     }
-    
+
     /**
      * Relasi ke model DataOrangTua
      */

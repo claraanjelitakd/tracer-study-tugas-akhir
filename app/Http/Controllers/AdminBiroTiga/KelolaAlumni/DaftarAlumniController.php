@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\AdminBiroTiga\KelolaAlumni;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
 use App\Models\Alumni;
 use App\Models\DataAkademik;
 use App\Models\Prodi;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 /**
  * DaftarAlumniController
- * 
+ *
  * Fungsi: Menampilkan direktori alumni yang berstatus yudisium 'Lulus' per tahun/periode kelulusan.
  * Tujuan: Menyediakan data alumni terfilter berdasarkan dropdown tahun yudisium kelulusan
  *         terpilih (bukan menampilkan seluruh semester sekaligus), memfilter program studi,
@@ -29,8 +29,8 @@ class DaftarAlumniController extends Controller
 
         // 1. Ambil daftar seluruh semester / periode yudisium kelulusan unik yang memiliki status Lulus
         $daftarSemester = DataAkademik::whereHas('yudisium', function ($q) {
-                $q->where('proses_yudisium', 'Lulus');
-            })
+            $q->where('proses_yudisium', 'Lulus');
+        })
             ->whereNotNull('tahun_akademik_lulus')
             ->distinct()
             ->orderBy('tahun_akademik_lulus', 'desc')
@@ -40,7 +40,7 @@ class DaftarAlumniController extends Controller
         // 2. Tentukan periode kelulusan aktif: default ke periode kelulusan terbaru (pertama)
         // Data TIDAK ditampilkan sekaligus (semua semester), melainkan dibatasi per tahun/semester kelulusan yang dipilih di dropdown
         $semesterTerpilih = $request->input('semester');
-        if (!$semesterTerpilih || !$daftarSemester->contains($semesterTerpilih)) {
+        if (! $semesterTerpilih || ! $daftarSemester->contains($semesterTerpilih)) {
             $semesterTerpilih = $daftarSemester->first() ?? '';
         }
 
@@ -60,10 +60,10 @@ class DaftarAlumniController extends Controller
                 $query->where(function ($w) use ($pencarian) {
                     $w->whereHas('dataAkademik', function ($q) use ($pencarian) {
                         $q->where('nama', 'like', "%{$pencarian}%")
-                          ->orWhere('nim', 'like', "%{$pencarian}%");
+                            ->orWhere('nim', 'like', "%{$pencarian}%");
                     })
-                    ->orWhere('linkedin_username', 'like', "%{$pencarian}%")
-                    ->orWhere('linkedin_url', 'like', "%{$pencarian}%");
+                        ->orWhere('linkedin_username', 'like', "%{$pencarian}%")
+                        ->orWhere('linkedin_url', 'like', "%{$pencarian}%");
                 });
             })
             // Filter Berdasarkan Program Studi
@@ -76,8 +76,8 @@ class DaftarAlumniController extends Controller
 
         // 4. Hitung jumlah wisudawan per periode untuk ditampilkan di opsi dropdown
         $semesterCounts = DataAkademik::whereHas('yudisium', function ($q) {
-                $q->where('proses_yudisium', 'Lulus');
-            })
+            $q->where('proses_yudisium', 'Lulus');
+        })
             ->whereNotNull('tahun_akademik_lulus')
             ->selectRaw('tahun_akademik_lulus, count(*) as total')
             ->groupBy('tahun_akademik_lulus')

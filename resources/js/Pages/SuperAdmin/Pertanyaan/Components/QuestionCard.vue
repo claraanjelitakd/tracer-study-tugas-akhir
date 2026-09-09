@@ -1,12 +1,11 @@
 <!--
-  Komponen Kartu Pertanyaan (QuestionCard.vue)
+  Komponen Kartu Pertanyaan Kuesioner (QuestionCard.vue)
+  File: resources/js/Pages/SuperAdmin/Pertanyaan/Components/QuestionCard.vue
   
-  Fungsi:
-  Menampilkan satu butir kartu pertanyaan secara lengkap:
-  1. Identitas pertanyaan (nomor urut, kode unik, prodi sasaran, tipe input, status wajib).
-  2. Teks pertanyaan kuesioner.
-  3. Daftar pilihan opsi jawaban beserta alur percabangan (*jump logic*).
-  4. Kontrol aksi: pindah posisi (naik/turun), tambah/edit/hapus opsi, serta edit/hapus pertanyaan.
+  Desain Profesional & Minimalis Bebas Border Hover:
+  - Header: Abu-abu netral bersih (bg-gray-50/70)
+  - Opsi Jawaban: Latar bersih (bg-gray-50 hover:bg-gray-100), tanpa hover border
+  - Warna Utama: Hijau UKDW #0D542B & Kuning UKDW #FDC700
 -->
 <script setup>
 import { computed } from 'vue';
@@ -18,19 +17,19 @@ const props = defineProps({
     },
     index: {
         type: Number,
-        default: 0,
+        required: true,
     },
     totalInActiveSection: {
         type: Number,
-        default: 1,
-    },
-    targetQuestionMap: {
-        type: Object,
-        default: () => ({}),
+        required: true,
     },
     isReordering: {
         type: Boolean,
         default: false,
+    },
+    targetQuestionMap: {
+        type: Object,
+        default: () => ({}),
     },
 });
 
@@ -43,103 +42,70 @@ const emit = defineEmits([
     'deleteOption',
 ]);
 
-// Apakah tipe pertanyaan ini mendukung penambahan opsi pilihan jawaban
 const isOptionSupported = computed(() => {
-    return [
+    const supportedTypes = [
         'single_choice',
         'radio',
         'radio_input',
         'radio_text',
         'multiple_choice',
         'checkbox',
-        'rating_5',
-        'rating',
         'dropdown',
-        'matrix',
-        'matrix_dual',
-    ].includes(props.question.type);
+    ];
+    return supportedTypes.includes(props.question.type);
 });
 
-// Format label tipe pertanyaan agar mudah dipahami seperti di Google Forms
 const formatQuestionType = (type) => {
     const map = {
-        single_choice: 'Pilihan ganda (Radio)',
-        radio: 'Pilihan ganda (Radio)',
-        radio_input: 'Pilihan ganda + Isian Angka (F3/F5)',
-        radio_text: 'Pilihan ganda + Isian Teks',
-        multiple_choice: 'Kotak Centang (Checkbox)',
-        checkbox: 'Kotak Centang (Checkbox)',
-        dropdown: 'Drop-down',
-        text: 'Jawaban singkat',
-        textarea: 'Paragraf',
-        number: 'Isian Angka',
-        multiple_number: 'Isian Rincian Gaji (F13)',
-        rating_5: 'Skala linier (1-5 / F17)',
-        rating: 'Rating',
-        matrix: 'Kisi pilihan ganda (Matriks)',
-        matrix_dual: 'Petak evaluasi ganda (Dual Matrix)',
+        single_choice: 'Pilihan Tunggal (Radio)',
+        radio: 'Pilihan Tunggal (Radio)',
+        radio_input: 'Pilihan + Isian Angka',
+        radio_text: 'Pilihan + Isian Teks',
+        multiple_choice: 'Pilihan Ganda (Checkbox)',
+        checkbox: 'Pilihan Ganda (Checkbox)',
+        dropdown: 'Drop-down Menu',
+        text: 'Jawaban Singkat (Text)',
+        textarea: 'Paragraf (Textarea)',
+        number: 'Angka (Number)',
+        multiple_number: 'Banyak Angka',
+        rating_5: 'Skala Rating (1-5)',
+        rating: 'Skala Rating',
+        matrix: 'Matriks / Kisi Pilihan',
+        matrix_dual: 'Matriks Ganda (F17)',
         date: 'Tanggal',
         time: 'Waktu',
-        file: 'Upload file',
+        file: 'Unggah Berkas',
     };
     return map[type] || type;
-};
-
-// Kelas warna untuk badge tipe pertanyaan
-const getTypeBadgeClass = (type) => {
-    const map = {
-        single_choice: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-        radio: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-        radio_input: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-        radio_text: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-        multiple_choice: 'bg-blue-50 text-blue-800 border-blue-200',
-        checkbox: 'bg-blue-50 text-blue-800 border-blue-200',
-        dropdown: 'bg-cyan-50 text-cyan-800 border-cyan-200',
-        text: 'bg-amber-50 text-amber-800 border-amber-200',
-        textarea: 'bg-gray-100 text-gray-800 border-gray-200',
-        number: 'bg-purple-50 text-purple-800 border-purple-200',
-        multiple_number: 'bg-teal-50 text-teal-800 border-teal-200',
-        rating_5: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-        rating: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-        matrix: 'bg-violet-50 text-violet-800 border-violet-200',
-        matrix_dual: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200',
-        date: 'bg-rose-50 text-rose-800 border-rose-200',
-        time: 'bg-orange-50 text-orange-800 border-orange-200',
-        file: 'bg-stone-100 text-stone-800 border-stone-200',
-    };
-    return map[type] || 'bg-gray-50 text-gray-700 border-gray-200';
 };
 </script>
 
 <template>
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200/90 hover:border-emerald-500/50 hover:shadow-md transition-all duration-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-md transition-shadow overflow-hidden">
         <!-- Header Kartu: Kode, Tipe, Prodi, & Action Buttons -->
-        <div class="p-5 sm:p-6 border-b border-gray-100 bg-green-100 flex flex-col md:flex-row md:items-center justify-between gap-10">
+        <div class="p-5 sm:p-6 border-b border-gray-100 bg-gray-50/70 flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             <!-- Metadata Pertanyaan -->
             <div class="flex flex-wrap items-center gap-2">
-                <!-- Badge Nomor & Kode -->
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#005B3C] text-white font-black text-xs shadow-2xs">
+                <!-- Badge Nomor & Kode (Hijau Resmi UKDW #0D542B) -->
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#0D542B] text-white font-extrabold text-xs">
                     <span>#{{ question.order }}</span>
                     <span class="opacity-60">•</span>
                     <span class="tracking-wide">{{ question.code }}</span>
                 </span>
 
                 <!-- Badge Tipe Pertanyaan -->
-                <span 
-                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border"
-                    :class="getTypeBadgeClass(question.type)"
-                >
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-700">
                     {{ formatQuestionType(question.type) }}
                 </span>
 
-                <!-- Badge Wajib / Opsional -->
+                <!-- Badge Wajib (Kuning Resmi UKDW #FDC700) / Opsional -->
                 <span 
                     class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold"
                     :class="[
                         question.is_required
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-gray-100 text-gray-600 border border-gray-200'
+                            ? 'bg-[#FDC700] text-black'
+                            : 'bg-gray-100 text-gray-600'
                     ]"
                 >
                     {{ question.is_required ? 'Wajib Diisi' : 'Opsional' }}
@@ -148,13 +114,13 @@ const getTypeBadgeClass = (type) => {
                 <!-- Badge Prodi -->
                 <span 
                     v-if="question.prodi" 
-                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200"
+                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-gray-200 text-gray-800"
                 >
                     Khusus: {{ question.prodi.kode_prodi }}
                 </span>
                 <span 
                     v-else 
-                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-gray-100/70 border border-gray-200"
+                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-white border border-gray-200"
                 >
                     Semua Prodi
                 </span>
@@ -167,7 +133,7 @@ const getTypeBadgeClass = (type) => {
                     type="button"
                     :disabled="index === 0 || isReordering"
                     @click="emit('moveQuestion', question, 'up')"
-                    class="p-2 rounded-lg text-gray-600 hover:text-[#005B3C] hover:bg-emerald-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gray-200 bg-white shadow-2xs"
+                    class="p-2 rounded-lg text-gray-600 hover:text-[#0D542B] hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gray-200 bg-white"
                     title="Pindahkan ke atas"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
@@ -178,7 +144,7 @@ const getTypeBadgeClass = (type) => {
                     type="button"
                     :disabled="index === totalInActiveSection - 1 || isReordering"
                     @click="emit('moveQuestion', question, 'down')"
-                    class="p-2 rounded-lg text-gray-600 hover:text-[#005B3C] hover:bg-emerald-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gray-200 bg-white shadow-2xs"
+                    class="p-2 rounded-lg text-gray-600 hover:text-[#0D542B] hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gray-200 bg-white"
                     title="Pindahkan ke bawah"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -190,7 +156,7 @@ const getTypeBadgeClass = (type) => {
                 <button
                     type="button"
                     @click="emit('editQuestion', question)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 hover:text-[#005B3C] hover:bg-emerald-50 border border-gray-200 bg-white shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 hover:text-[#0D542B] hover:bg-gray-100 border border-gray-200 bg-white transition-colors flex items-center gap-1 cursor-pointer"
                 >
                     <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Edit
@@ -200,9 +166,9 @@ const getTypeBadgeClass = (type) => {
                 <button
                     type="button"
                     @click="emit('deleteQuestion', question)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 bg-white shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-red-700 hover:bg-gray-100 border border-gray-200 bg-white transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     Hapus
                 </button>
             </div>
@@ -210,63 +176,55 @@ const getTypeBadgeClass = (type) => {
 
         <!-- Isi Teks Pertanyaan -->
         <div class="p-5 sm:p-6">
-            <h3 class="text-base sm:text-lg font-bold text-gray-900 leading-snug">
+            <h3 class="text-base sm:text-lg font-extrabold text-gray-900 leading-snug">
                 {{ question.question_text }}
             </h3>
 
-            <!-- Bagian Opsi Pilihan Jawaban (Jika Didukung) -->
-            <div v-if="isOptionSupported" class="mt-5 pt-4 border-t border-yellow-100">
+            <!-- Bagian Opsi Pilihan Jawaban -->
+            <div v-if="isOptionSupported" class="mt-5 pt-4 border-t border-gray-100">
                 <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-black uppercase text-gray-500 tracking-wider">
-                            Pilihan Opsi Jawaban ({{ question.options?.length || 0 }})
-                        </span>
-                    </div>
+                    <span class="text-xs font-extrabold uppercase text-gray-500 tracking-wider">
+                        Pilihan Opsi Jawaban ({{ question.options?.length || 0 }})
+                    </span>
 
-                    <!-- Tombol Tambah Opsi -->
+                    <!-- Tombol Tambah Opsi (Hijau UKDW #0D542B) -->
                     <button
                         type="button"
                         @click="emit('addOption', question)"
-                        class="px-2.5 py-1 rounded-lg text-xs font-bold text-[#005B3C] bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#0D542B] hover:bg-[#08381c] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Tambah Opsi
                     </button>
                 </div>
 
-                <!-- Daftar Butir Opsi -->
+                <!-- Daftar Butir Opsi (Latar Bersih, Tanpa Hover Border) -->
                 <div v-if="question.options && question.options.length > 0" class="space-y-2">
                     <div 
                         v-for="opt in question.options" 
                         :key="opt.id"
-                        class="flex items-center justify-between p-3 rounded-xl bg-green-100 hover:bg-yellow-100/70 border border-gray-200/60 transition-colors group"
+                        class="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group"
                     >
                         <!-- Kiri: Bulatan/Kotak Simbol, Kode Opsi, & Teks Opsi -->
                         <div class="flex items-center gap-3 min-w-0 pr-2">
                             <div 
-                                class="w-4 h-4 shrink-0 flex items-center justify-center border-2"
-                                :class="[
-                                    question.type === 'multiple_choice' 
-                                        ? 'rounded-md border-gray-400 bg-white' 
-                                        : 'rounded-full border-gray-400 bg-white'
-                                ]"
+                                class="w-4 h-4 shrink-0 flex items-center justify-center border-2 border-gray-400 bg-white"
+                                :class="question.type === 'multiple_choice' ? 'rounded-md' : 'rounded-full'"
                             ></div>
 
-                            <span class="text-xs font-mono font-bold text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200 shrink-0">
-                                {{ opt.code || '•' }}
+                            <span class="font-mono text-xs font-bold text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200 shrink-0">
+                                {{ opt.option_code || '-' }}
                             </span>
 
-                            <span class="text-xs sm:text-sm font-semibold text-gray-800 truncate">
+                            <span class="text-sm font-medium text-gray-800 break-words line-clamp-2">
                                 {{ opt.option_text }}
                             </span>
 
-                            <!-- Badge Alur Percabangan Jump Logic -->
+                            <!-- Badge Alur Percabangan Jump Logic (Kuning UKDW #FDC700) -->
                             <span 
                                 v-if="opt.jump_to" 
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200 shrink-0 shadow-2xs"
-                                :title="targetQuestionMap[opt.jump_to] ? 'Lompat ke: ' + targetQuestionMap[opt.jump_to] : 'Lompat ke ' + opt.jump_to"
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#FDC700] text-black shrink-0"
                             >
-                                <svg class="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                 <span>Lompat ke: <strong>{{ opt.jump_to }}</strong></span>
                             </span>
                         </div>
@@ -276,7 +234,7 @@ const getTypeBadgeClass = (type) => {
                             <button
                                 type="button"
                                 @click="emit('editOption', question, opt)"
-                                class="p-1.5 text-gray-500 hover:text-[#005B3C] hover:bg-white rounded-md transition-colors"
+                                class="p-1.5 text-gray-500 hover:text-[#0D542B] hover:bg-white rounded-md transition-colors"
                                 title="Edit opsi"
                             >
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -284,7 +242,7 @@ const getTypeBadgeClass = (type) => {
                             <button
                                 type="button"
                                 @click="emit('deleteOption', opt)"
-                                class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-white rounded-md transition-colors"
+                                class="p-1.5 text-gray-500 hover:text-red-700 hover:bg-white rounded-md transition-colors"
                                 title="Hapus opsi"
                             >
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -293,8 +251,8 @@ const getTypeBadgeClass = (type) => {
                     </div>
                 </div>
 
-                <div v-else class="text-center py-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 text-xs text-gray-400">
-                    Belum ada pilihan opsi jawaban. Klik <strong class="text-gray-600">"Tambah Opsi"</strong> untuk menambahkan.
+                <div v-else class="p-4 rounded-xl bg-gray-50 text-center text-xs text-gray-400">
+                    Belum ada opsi jawaban. Klik "Tambah Opsi" untuk memasukkan pilihan.
                 </div>
             </div>
         </div>

@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\CheckMustChangePassword;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,12 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
+            HandleInertiaRequests::class,
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'must_change_password' => \App\Http\Middleware\CheckMustChangePassword::class,
+            'role' => RoleMiddleware::class,
+            'must_change_password' => CheckMustChangePassword::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

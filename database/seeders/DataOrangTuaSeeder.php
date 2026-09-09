@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\DataAkademik;
 use App\Models\DataOrangTua;
+use App\Models\Kabupaten;
+use Illuminate\Database\Seeder;
 
 class DataOrangTuaSeeder extends Seeder
 {
@@ -25,7 +26,7 @@ class DataOrangTuaSeeder extends Seeder
             'Wirausaha Kuliner',
             'Arsitek Profesional',
             'Konsultan Pajak & Keuangan',
-            'Purnawirawan / Pensiunan'
+            'Purnawirawan / Pensiunan',
         ];
 
         foreach ($akademiks as $index => $akademik) {
@@ -35,14 +36,14 @@ class DataOrangTuaSeeder extends Seeder
             DataOrangTua::updateOrCreate(
                 ['nim' => $akademik->nim],
                 [
-                    'nama_orang_tua' => 'Ir. Hendra ' . $family . ', M.M.',
+                    'nama_orang_tua' => 'Ir. Hendra '.$family.', M.M.',
                     'pekerjaan' => $pekerjaanList[$index % count($pekerjaanList)],
                     'alamat' => $akademik->alamat_saat_ini,
-                    'kota' => $akademik->kabupaten_id ? (\App\Models\Kabupaten::find($akademik->kabupaten_id)?->nama_kabupaten ?? 'Sleman') : 'Sleman',
+                    'kota' => $akademik->kabupaten_id ? (Kabupaten::find($akademik->kabupaten_id)?->nama_kabupaten ?? 'Sleman') : 'Sleman',
                     'kabupaten_id' => $akademik->kabupaten_id,
                     'provinsi_id' => $akademik->provinsi_id,
                     'kode_pos' => $akademik->kode_pos ?? '55281',
-                    'nomor_telepon' => '0813' . rand(1000, 9999) . str_pad((string)$index, 4, '0', STR_PAD_LEFT),
+                    'nomor_telepon' => '0813'.rand(1000, 9999).str_pad((string) $index, 4, '0', STR_PAD_LEFT),
                 ]
             );
         }

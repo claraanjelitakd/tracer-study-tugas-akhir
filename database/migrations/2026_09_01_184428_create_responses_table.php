@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('answer_text')->nullable();
             $table->json('answer_json')->nullable();
             $table->timestamps();
-            
+
             // Satu alumni hanya bisa punya satu response per pertanyaan
             $table->unique(['alumni_id', 'question_id']);
         });

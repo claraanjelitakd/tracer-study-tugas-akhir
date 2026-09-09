@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Company;
-use App\Models\Province;
 use App\Models\Kabupaten;
+use App\Models\Province;
+use Illuminate\Database\Seeder;
 
 class CompanySeeder extends Seeder
 {
@@ -58,7 +58,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Pacific Building, Jl. Laksda Adisucipto No. 157, Sleman',
                 'kode_pos' => '55281',
                 'skala' => 'Internasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'PT Niagahoster',
@@ -67,7 +67,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Jl. Palagan Tentara Pelajar No. 81, Sleman',
                 'kode_pos' => '55581',
                 'skala' => 'Nasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'PT Djarum Sleman Regional',
@@ -76,7 +76,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Jl. Magelang Km 7.5, Mlati, Sleman',
                 'kode_pos' => '55284',
                 'skala' => 'Nasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'CV Javan Cipta Solusi',
@@ -85,7 +85,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Jl. Kaliurang Km 9.2, Ngaglik, Sleman',
                 'kode_pos' => '55581',
                 'skala' => 'Lokal',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
 
             // ==========================================
@@ -98,7 +98,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Menara BCA, Grand Indonesia, Jl. M.H. Thamrin No. 1, Kota Jakarta Pusat',
                 'kode_pos' => '10310',
                 'skala' => 'Nasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'PT Telekomunikasi Indonesia Tbk (Telkom Landmark)',
@@ -107,7 +107,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'The Telkom Hub, Jl. Jend. Gatot Subroto Kav. 52, Kota Jakarta Pusat',
                 'kode_pos' => '12710',
                 'skala' => 'Nasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'PT Tokopedia',
@@ -116,7 +116,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Tokopedia Tower Ciputra World 2, Kota Jakarta Pusat',
                 'kode_pos' => '12930',
                 'skala' => 'Nasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'PT Astra International Tbk',
@@ -125,7 +125,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Menara Astra, Jl. Jend. Sudirman Kav. 5-6, Kota Jakarta Pusat',
                 'kode_pos' => '10220',
                 'skala' => 'Internasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
 
             // ==========================================
@@ -138,7 +138,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Jl. Merdeka No. 45, Tapaktuan, Aceh Selatan',
                 'kode_pos' => '23715',
                 'skala' => 'Nasional',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'PT Bank Aceh Syariah Cabang Tapaktuan',
@@ -147,7 +147,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Jl. Jenderal Sudirman No. 18, Tapaktuan, Aceh Selatan',
                 'kode_pos' => '23711',
                 'skala' => 'Lokal',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
             [
                 'nama_perusahaan' => 'CV Samudera Selatan Digital',
@@ -156,7 +156,7 @@ class CompanySeeder extends Seeder
                 'alamat' => 'Jl. Teuku Umar No. 8, Tapaktuan, Aceh Selatan',
                 'kode_pos' => '23714',
                 'skala' => 'Lokal',
-                'status_verifikasi' => 'Terverifikasi'
+                'status_verifikasi' => 'Terverifikasi',
             ],
         ];
 

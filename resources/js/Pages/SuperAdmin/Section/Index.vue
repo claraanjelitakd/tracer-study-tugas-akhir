@@ -215,15 +215,14 @@ const handleDeleteSection = (sec) => {
         <!-- Navbar Terpadu Superadmin -->
         <Navbar />
 
-        <!-- Header Elegan Bertema Emerald UKDW -->
-        <header class="bg-gradient-to-r from-[#005B3C] to-[#007b55] pt-12 pb-24 relative overflow-hidden">
-            <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <!-- Header Solid Hijau Resmi UKDW #0D542B -->
+        <header class="bg-[#0D542B] text-white pt-10 pb-20">
+            <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <div class="flex items-center gap-2 mb-2">
                         <Link 
                             href="/superadmin/pertanyaan" 
-                            class="text-xs font-semibold text-emerald-100 hover:text-white flex items-center gap-1 transition-colors"
+                            class="text-xs font-semibold text-white/80 hover:text-white flex items-center gap-1 transition-colors"
                         >
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                             <span>Kembali ke Kelola Pertanyaan</span>
@@ -232,7 +231,7 @@ const handleDeleteSection = (sec) => {
                     <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
                         Kelola Bagian Kuesioner (Section)
                     </h1>
-                    <p class="text-green-100 font-medium mt-2 max-w-2xl text-sm sm:text-base leading-relaxed">
+                    <p class="text-white/90 font-medium mt-1 max-w-2xl text-sm sm:text-base leading-relaxed">
                         Atur struktur bab/bagian kuesioner Tracer Study, urutan penomoran alur pengisian alumni, dan keterhubungan kuesioner.
                     </p>
                 </div>
@@ -241,7 +240,7 @@ const handleDeleteSection = (sec) => {
                 <div class="flex items-center gap-3">
                     <Link
                         href="/superadmin/pertanyaan"
-                        class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs sm:text-sm backdrop-blur-xs transition-all flex items-center gap-2"
+                        class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs sm:text-sm transition-all flex items-center gap-2"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <span>Kelola Butir Pertanyaan</span>
@@ -299,7 +298,7 @@ const handleDeleteSection = (sec) => {
                         <button
                             type="button"
                             @click="openAddModal"
-                            class="px-6 py-2.5 bg-gray-900 hover:bg-[#005B3C] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-98"
+                            class="px-6 py-2.5 bg-[#0D542B] hover:bg-[#08381c] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                             <span>Tambah Bagian</span>
@@ -312,7 +311,7 @@ const handleDeleteSection = (sec) => {
                     
                     <!-- Kondisi Jika Belum Ada Data Section Sama Sekali -->
                     <div v-if="filteredSections.length === 0" class="text-center py-16 px-4 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-50 text-[#005B3C] flex items-center justify-center">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-50 text-[#0D542B] flex items-center justify-center">
                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                             </svg>
@@ -327,28 +326,28 @@ const handleDeleteSection = (sec) => {
                             v-if="!searchQuery"
                             type="button"
                             @click="openAddModal"
-                            class="mt-5 px-5 py-2 rounded-xl bg-[#005B3C] hover:bg-[#004830] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                            class="mt-5 px-5 py-2 rounded-xl bg-[#0D542B] hover:bg-[#08381c] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
                         >
                             + Tambah Bagian Sekarang
                         </button>
                     </div>
 
-                    <!-- Daftar Kartu Section (Tampilan List Interaktif) -->
+                    <!-- Daftar Kartu Section (Tampilan List Interaktif Bebas Hover Border) -->
                     <div v-else class="space-y-4">
                         <div
                             v-for="(sec, index) in filteredSections"
                             :key="sec.id"
-                            class="group bg-white rounded-2xl border border-gray-100 hover:border-emerald-200 p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden"
+                            class="group bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden"
                         >
-                            <!-- Garis Aksen Kiri Warna Emerald -->
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#005B3C] opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                            <!-- Garis Aksen Kiri Warna Hijau UKDW -->
+                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#0D542B]"></div>
 
                             <!-- Bagian Kiri: Nomor Urut, Judul Section, & Info Kuesioner -->
                             <div class="flex items-start gap-4 sm:gap-5 pl-2">
                                 
                                 <!-- Badge Urutan Section -->
-                                <div class="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 text-[#005B3C] border border-emerald-200/60 font-black text-base shadow-2xs">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600/80 -mb-1">Sec</span>
+                                <div class="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-[#0D542B] text-white font-extrabold text-base shadow-xs">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-white/80 -mb-1">Sec</span>
                                     <span>{{ sec.order }}</span>
                                 </div>
 
@@ -420,7 +419,7 @@ const handleDeleteSection = (sec) => {
                                     type="button"
                                     @click="openEditModal(sec)"
                                     title="Sunting Bagian"
-                                    class="p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-gray-200 hover:border-blue-200 transition-all cursor-pointer"
+                                    class="p-2.5 text-gray-600 hover:text-[#005B3C] hover:bg-emerald-50 rounded-xl border border-gray-200 hover:border-emerald-200 transition-all cursor-pointer"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </button>

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('data_akademiks', function (Blueprint $table) {
-            if (!Schema::hasColumn('data_akademiks', 'npwp')) {
+            if (! Schema::hasColumn('data_akademiks', 'npwp')) {
                 $table->string('npwp', 30)->nullable()->after('no_bpjs')->comment('Nomor Pokok Wajib Pajak');
             }
         });

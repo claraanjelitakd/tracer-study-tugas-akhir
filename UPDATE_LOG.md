@@ -1,5 +1,109 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
+## [2026-09-10] Perbaikan Perhitungan Data Terhapus pada Profil Alumni & Penambahan Indikator Persentase Progres di Dashboard Alumni
+- **Perbaikan Bug Perhitungan Data Profil yang Dihapus (`SimpanProfilController` & `KelengkapanTracerService`)**:
+  - **Penyebab Utama**:
+    1. Saat alumni mengosongkan/menghapus atribut perusahaan (seperti alamat, skala, provinsi, atau kabupaten), pemanggilan `array_filter(...)` pada controller secara tidak sengaja membuang nilai `null`, sehingga database tidak memperbarui field tersebut dan data lama tetap tersimpan.
+    2. Saat alumni menghapus `email_pribadi` atau `nama` di data akademik, evaluasi kelengkapan sebelumnya menggunakan fallback `?? $alumni->user?->email` / `?? $alumni->user?->name` sehingga nilai tetap terhitung terisi padahal sudah dihapus oleh user.
+    3. Hubungan relasi Eloquent (`company`, `atasan`, `dataAkademik`) yang telah di-cache di memori model `$alumni` tidak ter-refresh saat method sync atau evaluasi dijalankan dengan `loadMissing(...)`.
+    4. Kolom `nama_orang_tua` pada tabel `data_orang_tuas` sebelumnya berstatus `NOT NULL`, menyebabkan query error jika user mengosongkan data orang tua.
+  - **Solusi & Perbaikan**:
+    - Menambahkan migrasi database `2026_09_09_203027_make_nama_orang_tua_nullable_in_data_orang_tuas_table.php` agar field data orang tua dapat dikosongkan tanpa integrity violation.
+    - Menghapus `array_filter` pada update perusahaan di `SimpanProfilController.php` dan `DetailAlumniSuperAdminController.php` sehingga field yang dikosongkan tersimpan sebagai `null` di database.
+    - Menghapus fallback otomatis ke akun user pada `KelengkapanTracerService::evaluasiProfil()` dan `KuesionerSyncService::syncProfileResponses()`, sehingga ketika data dihapus/dikosongkan, field tersebut secara akurat dihitung sebagai belum lengkap (persentase berkurang dan jawaban terkait di tabel `responses` terhapus otomatis).
+- **Standarisasi Seluruh Data Model Alumni (`alumnis`) Menjadi Wajib**:
+  - Seluruh atribut model `Alumni` kini berstatus wajib (*mandatory*) dalam penghitungan kelengkapan profil pada `KelengkapanTracerService::evaluasiProfil()`, yaitu:
+    1. Bidang Keahlian (*Expertise*) (`expert`)
+    2. Minat & Ketertarikan (`minat`)
+    3. LinkedIn Profil URL (`linkedin_url`)
+    4. LinkedIn Username (`linkedin_username`)
+    5. Instagram Profil URL (`instagram_url`)
+    6. Facebook Profil URL (`facebook_url`)
+    7. Kode Pos Perusahaan / Zipcode (`zipcode`)
+    8. Posisi / Jabatan (`posisi_jabatan`)
+    9. Jenis Pekerjaan Gerejawi (`jenis_pekerjaan`, khusus prodi Teologi)
+  - Total data profil wajib kini berjumlah **32 data** (atau 33 untuk Teologi). Jika ada salah satu dari data tersebut yang kosong, status profil langsung berubah menjadi **Belum Lengkap** dengan persentase yang berkurang secara proporsional.
+- **Penambahan Persentase Kelengkapan & Progress Bar di Dashboard Alumni (`/alumni/dashboard`)**:
+  - Mengintegrasikan penghitungan komprehensif dari `KelengkapanTracerService::evaluasiKelengkapanTotal($alumni)` ke `App\Http\Controllers\Alumni\Dashboard\DashboardController.php`.
+  - Mengirimkan props persentase: `profilePercentage`, `profileCompleted`, `profileFilledCount`, `profileTotalCount`, `questionnairePercentage`, `questionnaireCompleted`, `questionnaireAnsweredCount`, `questionnaireTotalCount`, dan `questionnaireMissing`.
+  - **Tampilan Visual Dashboard Alumni (`Dashboard.vue`)**:
+    - **Card Profil & Biodata**: Menampilkan persentase kelengkapan profil (misal: `100% Terisi` atau `80% Terisi`), progress bar warna hijau UKDW (`#0D542B`), rincian data terisi (`X dari 23 data terisi`), dan badge status "Sudah Lengkap" (hijau) atau "Belum Lengkap" (kuning `#FDC700`).
+    - **Card Kuesioner Tracer Study**: Menampilkan persentase jawaban kuesioner wajib (misal: `0% Terjawab` atau `100% Terjawab`), progress bar warna hijau UKDW (`#0D542B`), rincian butir terjawab (`X dari 61 pertanyaan wajib`), dan badge status "Sudah Diselesaikan" (hijau) atau "Belum Diselesaikan" (kuning `#FDC700`).
+    - Tombol aksi utama distandarisasi menggunakan warna hijau solid UKDW `#0D542B` tanpa gradasi warna biru atau ungu.
+- **Pengujian Otomatis (Automated Testing)**:
+  - Membuat unit/feature test `tests/Feature/AlumniDashboardPercentageTest.php` untuk memvalidasi rendering persentase di dashboard dan penurunan persentase saat data profil dikosongkan.
+  - Seluruh 28 unit dan feature test pada test suite lulus 100% (`passed: 28, assertions: 163`).
+
+## [2026-09-10] Penerapan Warna Solid Resmi UKDW (Hijau #0D542B & Kuning #FDC700 Sesuai Gambar Logo), Penghapusan Gradasi Warna, dan Pembersihan Efek Border Hover
+- **Warna Solid Murni Resmi UKDW (Diambil Langsung dari Gambar Lambang UKDW)**:
+  - **Hijau Resmi UKDW**: `#0D542B` (Warna solid hijau botol resmi pada background logo UKDW, menghapus seluruh efek gradasi warna berlebihan).
+  - **Kuning Resmi UKDW**: `#FDC700` (Warna solid kuning emas pada tulisan *"UNIVERSITAS KRISTEN DUTA WACANA"*).
+  - **Putih**: `#FFFFFF`.
+- **Pembersihan Total Efek Hover Border & Warna Belang-belang**:
+  - Menghapus efek `hover:border-...` pada kartu dan baris tabel di seluruh modul Super Admin (`/superadmin/alumni`, `/superadmin/pertanyaan`, `/superadmin/sections`, `/superadmin/dashboard`).
+  - Menghapus latar hijau muda pastel (`bg-green-100`) dan efek hover kuning belang-belang pada baris opsi pertanyaan (`QuestionCard.vue`), digantikan oleh baris bersih netral (`bg-gray-50 hover:bg-gray-100`) tanpa border saat dihover.
+  - Badge status *"Belum Selesai"* menggunakan kuning solid UKDW `#FDC700` dengan teks hitam tegas tanpa border.
+  - Badge status *"Selesai"* menggunakan hijau solid UKDW `#0D542B` dengan teks putih bersih tanpa border.
+- **Standarisasi 4 Halaman Utama Super Admin**:
+  1. `/superadmin/dashboard`: Header solid `#0D542B`, 4 kartu KPI putih bersih tanpa efek hover border, modul navigasi rapi dengan tombol hijau solid.
+  2. `/superadmin/alumni`: Header solid `#0D542B`, kartu metrik ringkas, filter pencarian elegan, dan tabel data tanpa garis border saat baris di-hover.
+  3. `/superadmin/alumni/{id}`: Header solid `#0D542B`, badge "Yudisium: Lulus" berlatar kuning emas `#FDC700`, kotak jawaban alumni berlatar netral dengan aksen garis kiri `#0D542B`.
+  4. `/superadmin/pertanyaan` & `/superadmin/sections`: Header solid `#0D542B`, kartu pertanyaan bersih tanpa warna pelangi, dan opsi pilihan jawaban yang rapi.
+- **Eliminasi Border Bertumpuk-tumpuk & Efek Kaku**:
+  - Menghapus seluruh border tebal ganda (`border-2 border-yellow-200 border-l-8`) pada kartu statistik, filter, dan tabel.
+  - Menerapkan card putih bersih dengan border halus abu-abu (`border border-gray-100`), sudut lengkung modern (`rounded-2xl` / `rounded-3xl`), dan bayangan halus (`shadow-sm hover:shadow-md`) persis seperti pada modul Alumni.
+- **Standarisasi Warna Kuning Lembut (Soft Amber / Background Sand)**:
+  - Mengganti warna kuning menyala menjadi kuning lembut seperti latar belakang (`bg-amber-50 text-amber-900 border border-amber-200/70`) pada badge "Yudisium: Lulus", status "Belum Selesai", dan peringatan butir kuesioner belum dijawab.
+- **Penyelarasan 4 Halaman Utama Super Admin**:
+  1. `/superadmin/dashboard`: Header gradien emerald UKDW (`#005B3C` ke `#007b55`), 4 kartu KPI putih bersih elegan tanpa border ganda, dan 2 modul navigasi profesional.
+  2. `/superadmin/alumni`: Header gradien emerald, ringkasan cepat glassmorphism di header, 4 kartu KPI minimalis, filter pencarian bersih, dan tabel DataTables yang lapang dan mudah dibaca.
+  3. `/superadmin/alumni/{id}`: Badge Yudisium berlatar kuning lembut, ringkasan audit kuesioner putih bersih, kotak jawaban alumni rapi dengan aksen kiri tegas (`border-l-4 border-l-[#005B3C] bg-emerald-50/40`), dan formulir profil 4-tab yang serasi.
+  4. `/superadmin/sections` & `/superadmin/pertanyaan`: Standarisasi warna tombol dan badge jenis pertanyaan ke palet emerald, amber lembut, dan netral tanpa warna pelangi.
+- **Standarisasi Palet Murni Tiga Warna (Strict 3-Color Theme)**:
+  - Menerapkan palet resmi UKDW di seluruh antarmuka Super Admin (`/superadmin`, `/superadmin/dashboard`, `/superadmin/alumni`, `/superadmin/alumni/{id}`):
+    1. **Hijau Resmi UKDW**: `#005B3C` (Header banner, tombol aksi utama, border tebal kotak jawaban, badge kelengkapan, highlight navigasi aktif).
+    2. **Kuning Resmi UKDW**: `#FACC15` (Badge penanda belum selesai/wajib, border aksen) & `#FEFCE8` / `#FEF08A` (Latar belakang pembeda antar card agar kontras dan mudah dibaca).
+    3. **Putih**: `#FFFFFF` (Latar konten kartu, card butir pertanyaan, latar kotak jawaban, teks pada elemen hijau).
+  - Menghapus seluruh warna asing (seperti biru, ungu, oranye) pada komponen kartu metrik, navigasi, dan tabel.
+- **Redesign Halaman Dashboard Super Admin (`Dashboard.vue`) & Rute Redirect**:
+  - Menambahkan rute `Route::redirect('/superadmin', '/superadmin/dashboard')` pada `routes/web.php` sehingga akses ke `http://localhost:8000/superadmin` langsung mengarah ke Dashboard tanpa error.
+  - Mengubah 4 kartu KPI metrik di Dashboard dengan border kiri tebal hijau `#005B3C` (`border-l-8`) dan latar putih/kuning yang jelas perbedaannya.
+  - Menghapus seluruh icon gambar/emoji (`#`, `§`, `👤`, `✓`) dan menggantinya dengan badge teks terstruktur yang rapi.
+  - Memperbarui 2 modul navigasi cepat ("Direktori Mahasiswa & Hasil Tracer" dan "Instrumen Kuesioner") dengan tema 3 warna.
+- **Penebalan & Penegasan Border Kotak Jawaban Alumni (`Show.vue`)**:
+  - Kotak jawaban kuesioner alumni dipertegas dengan border hijau tebal `border-2 border-[#005B3C] border-l-[10px] border-l-[#005B3C] bg-white rounded-xl shadow-xs`.
+  - Dilengkapi badge hijau mini `Terisi` dan teks jawaban hitam pekat berbobot `font-black` untuk keterbacaan optimal.
+  - Setiap butir pertanyaan diletakkan dalam kartu mandiri berlatar putih dengan border kuning lembut di atas background section `#FEFCE8`, menjamin setiap card terlihat jelas perbedaannya.
+- **Pembersihan Ikon Gambar pada Navbar & Direktori Mahasiswa**:
+  - Menyederhanakan `Navbar.vue` dengan menghilangkan icon svg dekoratif pada tombol keluar dan menerapkan navigasi aktif berbasis aksen hijau-kuning.
+  - Menghapus warna merah pada tombol reset filter di `Index.vue` agar seragam dengan tema 3 warna.
+- **Seeding Pertanyaan Studi Lanjut `F24` & Opsi Jawaban**:
+  - Menambahkan instrumen pertanyaan studi lanjut dan pembiayaan kuliah pada `QuestionSeeder.php` dan `QuestionOptionSeeder.php`:
+    1. `F24A`: "Sebutkan sumberdana dalam pembiayaan kuliah S1 di UKDW :" (tipe `single_choice`, status wajib diisi seluruh alumni, 7 opsi jawaban: Biaya Sendiri/Keluarga, Beasiswa ADIK, Beasiswa BIDIKMISI, Beasiswa PPA, Beasiswa Afirmasi, Beasiswa Perusahaan/Swasta, dan Lainnya).
+    2. `F24B`: "Jika Anda melanjutkan ke jenjang pascasarjana (S2), sebutkan sumberdana dalam pembiayaan kuliah S2 Anda :" (tipe `single_choice`, status wajib diisi seluruh alumni, 3 opsi jawaban: 0: Tidak melanjutkan S2, 1: Melanjutkan dengan biaya sendiri, 2: Melanjutkan dengan beasiswa).
+- **Layanan Evaluasi Kelengkapan Terpadu (`KelengkapanTracerService.php`)**:
+  - Mengimplementasikan `App\Services\Kuesioner\KelengkapanTracerService`:
+    1. `evaluasiProfil()`: Mengaudit kelengkapan 100% data profil (Nama, Tempat/Tgl Lahir, Agama, Jenis Kelamin, NIK, No KK, NISN, BPJS, NPWP, Alamat Domisili, Kelurahan, Kecamatan, Kab/Prov, Kode Pos, Nomor Telepon/HP, Email Pribadi, IPK, Tahun Kelulusan, Data Orang Tua, Data Perusahaan, Data Atasan, dan Posisi Jabatan).
+    2. `evaluasiKuesionerWajib()`: Mengaudit butir kuesioner wajib mencakup `F8` (status bekerja), pertanyaan pekerjaan $\le$ 6 bulan (`F3`/`F5`), lokasi bekerja (`F2F`), jenis perusahaan (`F11`), nama perusahaan (`F2E`), posisi jabatan (`F2G`), studi lanjut (`F24A` dan `F24B`), keselarasan bidang studi (`F14`), tingkat pendidikan sesuai (`F15`), dan seluruh 54 butir evaluasi kompetensi `F17-1` s/d `F17-54`.
+    3. Pertanyaan selain daftar wajib di atas secara otomatis diklasifikasikan sebagai **Opsional** (misal `F4`, `F6`, `F7`, `F9`, `F10`, `F12`, `F13`, `F16`, `F18`, `F19`, `F20`, `F21`, `F22`, `F23`) dan tidak membatalkan status kelulusan pengisian tracer study jika tidak diisi.
+    4. `evaluasiKelengkapanTotal()`: Menghasilkan status final "Selesai" vs "Belum Selesai" beserta persentase progress dan daftar item yang belum lengkap.
+- **Penyempurnaan Tampilan UI & Card Profesional (Tema Kuning UKDW Landing Page & Hijau Emerald)**:
+  - **Direktori Mahasiswa (`Index.vue`)**:
+    1. Tampilan card statistik ringkas dan profesional dengan border aksen hijau & kuning UKDW (`#FACC15` / `#005B3C`).
+    2. Mengeliminasi ikon-ikon yang tidak penting agar halaman bersih, lapang, dan mudah dibaca.
+    3. Mengimplementasikan fungsionalitas DataTables dengan pemilihan jumlah data per halaman (5, 10, 25, 50), penomoran urut, navigasi halaman (Pagination), dan keterangan jumlah data aktif.
+  - **Halaman Detail & Audit Kuesioner (`Show.vue`)**:
+    1. **Card Ringkasan Audit Kuesioner**: Disederhanakan menampilkan persentase saja (misal `0% Terjawab (0/61)`) tanpa deretan teks panjang butir soal di dalam card.
+    2. **Navigasi Filter Section Interaktif**: Pertanyaan wajib yang belum dijawab dimunculkan langsung sebagai badge penanda di tombol navigasi section (`• X belum`) sehingga Super Admin dapat langsung mengklik section yang bersangkutan untuk meninjau butir soal yang belum terjawab.
+    3. **Card Section Kuesioner Berlatar Kuning UKDW**: Header card kuesioner menggunakan warna kuning lembut UKDW (`#FEFCE8` dengan border `#FDE047`) yang elegan ala landing page.
+- **Formulir Profil Lengkap 100% & Fitur Edit Profil oleh Super Admin**:
+  - Menyediakan 4 tab formulir profil lengkap persis sama dengan portal alumni (Data Pribadi, Data Akademik, Data Orang Tua, dan Karier & Perusahaan) yang dapat diisi dan diperbarui secara langsung oleh Super Admin untuk membantu alumni yang kesulitan memperbarui data.
+  - Menambahkan endpoint `POST /superadmin/alumni/{id}/profile` pada `DetailAlumniSuperAdminController.php` beserta sinkronisasi otomatis ke respon tracer `F1` s/d `F2H` via `KuesionerSyncService`.
+- **Navigasi & Automated Testing**:
+  - Menu **"Data Alumni"** aktif pada `Navbar.vue` Super Admin.
+  - Automated feature test suite di `tests/Feature/SuperAdminDaftarAlumniTest.php` (5 pengujian mencakup index, filter, show, authorization, dan update profile alumni oleh superadmin) lulus 100% (26 feature test suite Laravel lulus tanpa error).
+  - Standarisasi format kode PHP menggunakan Laravel Pint.
+
 ## [2026-09-10] Pembaruan UI/UX Alur Lompatan (Jump Logic): Dropdown Bertingkat (Cascading 2-Kolom: Section di Kiri & Pertanyaan di Kanan)
 - **Pembaruan Antarmuka Dropdown Alur Lompatan / Percabangan (`OptionModal.vue`)**:
   - Mengimplementasikan sistem **Dropdown Bertingkat 2 Kolom (*Cascading Flyout Master-Detail*)**:

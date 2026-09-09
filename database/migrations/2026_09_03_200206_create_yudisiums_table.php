@@ -13,26 +13,26 @@ return new class extends Migration
     {
         Schema::create('yudisiums', function (Blueprint $table) {
             $table->id();
-            
+
             // Relasi ke tabel data_akademiks (NIM)
             $table->string('nim')->unique();
             $table->foreign('nim')->references('nim')->on('data_akademiks')->cascadeOnDelete();
-            
+
             // Dosen
             $table->string('dosen_pembimbing_1')->nullable();
             $table->string('dosen_pembimbing_2')->nullable();
             $table->string('dosen_penguji_1')->nullable();
             $table->string('dosen_penguji_2')->nullable();
-            
+
             // Tugas Akhir
             $table->text('judul_ta')->nullable()->comment('Judul Skripsi/Thesis/Disertasi/Perancangan');
             $table->text('judul_ta_inggris')->nullable();
-            
+
             // Publikasi
             $table->string('url_publikasi')->nullable();
             $table->string('jenis_publikasi')->nullable();
             $table->string('status_publikasi')->nullable();
-            
+
             // Yudisium
             $table->string('keterangan_hasil_yudisium')->nullable();
             $table->enum('proses_yudisium', ['Belum', 'Proses', 'Lulus', 'Tidak Lulus'])->default('Belum');

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             // NIM sebagai primary identifier
             $table->string('nim')->unique();
-            
+
             // Identitas Dasar
             $table->string('nama')->nullable();
             $table->string('angkatan_masuk')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->enum('jenis_kelamin', ['Laki-laki', 'Perempuan'])->nullable();
             $table->string('golongan_darah', 5)->nullable();
             $table->string('warga_negara')->default('WNI');
-            
+
             // Kontak & Alamat
             $table->string('nomor_telepon')->nullable();
             $table->string('email_pribadi')->nullable();
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->foreignId('kabupaten_id')->nullable()->constrained('kabupatens')->nullOnDelete();
             $table->foreignId('provinsi_id')->nullable()->constrained('provinces')->nullOnDelete();
             $table->string('kode_pos')->nullable();
-            
+
             // Identitas Negara/Institusi
             $table->string('nik', 20)->nullable()->comment('Nomor KTP');
             $table->string('no_kk', 20)->nullable()->comment('Nomor Kartu Keluarga');
@@ -48,7 +48,7 @@ return new class extends Migration
             $table->decimal('ipk', 3, 2)->nullable()->comment('Indeks Prestasi Kumulatif');
             $table->integer('total_sks')->nullable();
             $table->decimal('total_angka_kualitas', 8, 2)->nullable();
-            
+
             $table->timestamps();
         });
     }

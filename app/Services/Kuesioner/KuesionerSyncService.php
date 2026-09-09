@@ -8,10 +8,10 @@ use App\Models\Response;
 
 /**
  * KuesionerSyncService
- * 
+ *
  * Fungsi: Menyinkronkan data profil alumni (Data Akademik, Akun User, Perusahaan, dan Atasan)
  * secara otomatis ke tabel `responses` untuk kelompok instrumen F1 s/d F2H.
- * 
+ *
  * Arsitektur:
  * - Mengeliminasi kebutuhan alumni mengisi ulang identitas dan tempat kerja di kuesioner.
  * - Menjaga tabel `responses` tetap lengkap 100% untuk semua 23 pertanyaan inti (F1..F23)
@@ -23,24 +23,24 @@ class KuesionerSyncService
     /**
      * Menyinkronkan data profil alumni ke tabel responses untuk pertanyaan F1 sampai F2H.
      *
-     * @param Alumni $alumni Model alumni yang akan disinkronkan datanya.
-     * @return void
+     * @param  Alumni  $alumni  Model alumni yang akan disinkronkan datanya.
      */
     public static function syncProfileResponses(Alumni $alumni): void
     {
-        $alumni->loadMissing(['dataAkademik', 'company.province', 'company.kabupaten', 'atasan', 'user', 'prodi']);
+        $alumni->refresh();
+        $alumni->load(['dataAkademik', 'company.province', 'company.kabupaten', 'atasan', 'user', 'prodi']);
 
         $alamatPerusahaanParts = array_filter([
             $alumni->company?->alamat,
             $alumni->company?->kabupaten?->nama_kabupaten,
             $alumni->company?->province?->nama_provinsi,
-            $alumni->zipcode
+            $alumni->zipcode,
         ]);
-        $alamatPerusahaan = !empty($alamatPerusahaanParts) ? implode(', ', $alamatPerusahaanParts) : null;
+        $alamatPerusahaan = ! empty($alamatPerusahaanParts) ? implode(', ', $alamatPerusahaanParts) : null;
 
         $isTeologi = ($alumni->prodi?->kode_prodi === '31' || substr($alumni->nim, 0, 2) === '31');
 
-        if (!$isTeologi) {
+        if (! $isTeologi) {
             $qF2D1 = Question::where('code', 'F2D1')->first();
             if ($qF2D1) {
                 Response::where('alumni_id', $alumni->id)->where('question_id', $qF2D1->id)->delete();
@@ -49,9 +49,9 @@ class KuesionerSyncService
 
         $profileMap = [
             'F1' => $alumni->nim,
-            'F2A' => $alumni->dataAkademik?->nama ?? $alumni->user?->name,
+            'F2A' => $alumni->dataAkademik?->nama,
             'F2B' => $alumni->dataAkademik?->nomor_telepon,
-            'F2C' => $alumni->dataAkademik?->email_pribadi ?? $alumni->user?->email,
+            'F2C' => $alumni->dataAkademik?->email_pribadi,
             'F2D' => $alumni->dataAkademik?->alamat_saat_ini,
             'F2D1' => $isTeologi ? $alumni->jenis_pekerjaan : null,
             'F2E' => $alumni->company?->nama_perusahaan,
@@ -64,12 +64,17 @@ class KuesionerSyncService
         ];
 
         foreach ($profileMap as $code => $val) {
-            if ($val === null || $val === '') {
+            $question = Question::where('code', $code)->first();
+            if (! $question) {
                 continue;
             }
 
-            $question = Question::where('code', $code)->first();
-            if ($question) {
+            if ($val === null || trim((string) $val) === '') {
+                // Jika data profil dikosongkan/dihapus, hapus respon otomatisnya agar tidak terhitung terisi
+                Response::where('alumni_id', $alumni->id)
+                    ->where('question_id', $question->id)
+                    ->delete();
+            } else {
                 Response::updateOrCreate(
                     ['alumni_id' => $alumni->id, 'question_id' => $question->id],
                     [

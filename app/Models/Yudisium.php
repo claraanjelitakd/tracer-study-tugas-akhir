@@ -10,6 +10,7 @@ class Yudisium extends Model
     use HasFactory;
 
     protected $table = 'yudisiums';
+
     protected $guarded = ['id'];
 
     public function dataAkademik()

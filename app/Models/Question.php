@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Model Question
- * 
+ *
  * Merepresentasikan butir pertanyaan dalam kuesioner tracer study.
- * 
+ *
  * Kolom penting:
  * - prodi_id: Nullable foreign key ke tabel 'prodis'. Jika diisi, pertanyaan
  *             hanya ditampilkan untuk alumni program studi tersebut (misal: F2E untuk Filsafat Keilahian).
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * - code: Kode unik pertanyaan (misal: F1, F2E, F3, F8, F17-1).
  * - type: Tipe input (single_choice, multiple_choice, text, number, searchable_select, dll).
  * - is_required: Menentukan apakah pertanyaan wajib diisi sebelum lanjut/submit.
- * 
+ *
  * Catatan Arsitektur:
  * Branching / alur lompatan (jump logic) tidak lagi disimpan di tabel ini, melainkan
  * dikelola secara modular per-opsi jawaban di tabel 'question_options' via kolom 'jump_to'.

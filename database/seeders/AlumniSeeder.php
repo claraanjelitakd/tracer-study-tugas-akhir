@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Alumni;
-use App\Models\Prodi;
-use App\Models\Company;
 use App\Models\Atasan;
+use App\Models\Company;
+use App\Models\Prodi;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class AlumniSeeder extends Seeder
 {
@@ -29,7 +29,7 @@ class AlumniSeeder extends Seeder
             'Supervisor',
             'Midle Manager',
             'Staff',
-            'Supervisor'
+            'Supervisor',
         ];
 
         $expertList = [
@@ -42,7 +42,7 @@ class AlumniSeeder extends Seeder
             'Food Quality Assurance & HACCP',
             'Clinical Medicine & Diagnostics',
             'Pastoral Care & Christian Ministry',
-            'English Curriculum & Instructional Design'
+            'English Curriculum & Instructional Design',
         ];
 
         $minatList = [
@@ -55,7 +55,7 @@ class AlumniSeeder extends Seeder
             'Food Biotechnology, Fermentation Science',
             'Public Health, Medical Research, Telemedicine',
             'Community Leadership, Interfaith Dialogue',
-            'Language Acquisition, EdTech, Translation'
+            'Language Acquisition, EdTech, Translation',
         ];
 
         $atasanDataList = [
@@ -69,7 +69,7 @@ class AlumniSeeder extends Seeder
         foreach ($alumniUsers as $index => $user) {
             $nim = $user->username;
             $parsedInfo = Alumni::parseNim($nim);
-            
+
             $prodiId = null;
             if ($parsedInfo) {
                 $prodiDb = Prodi::where('kode_prodi', $parsedInfo['kode_prodi'])->first();
@@ -88,14 +88,14 @@ class AlumniSeeder extends Seeder
             // Buat atau kaitkan data atasan
             $atasanInfo = $atasanDataList[$index % count($atasanDataList)];
             $atasan = Atasan::firstOrCreate(
-                ['email' => 'atasan.' . $index . '.' . $atasanInfo['email']],
+                ['email' => 'atasan.'.$index.'.'.$atasanInfo['email']],
                 [
                     'nama' => $atasanInfo['nama'],
                     'telepon' => $atasanInfo['telepon'],
                 ]
             );
 
-            $cleanUsername = strtolower(str_replace(' ', '', explode(' ', $user->name ?? 'alumni')[0])) . $index;
+            $cleanUsername = strtolower(str_replace(' ', '', explode(' ', $user->name ?? 'alumni')[0])).$index;
 
             Alumni::updateOrCreate(
                 ['user_id' => $user->id],
@@ -108,10 +108,10 @@ class AlumniSeeder extends Seeder
                     'jenis_pekerjaan' => ($parsedInfo && $parsedInfo['kode_prodi'] === '31') ? 'Gerejawi' : null,
                     'expert' => $expertList[$index % count($expertList)],
                     'minat' => $minatList[$index % count($minatList)],
-                    'linkedin_url' => 'https://linkedin.com/in/' . $cleanUsername,
+                    'linkedin_url' => 'https://linkedin.com/in/'.$cleanUsername,
                     'linkedin_username' => $cleanUsername,
-                    'instagram_url' => 'https://instagram.com/' . $cleanUsername,
-                    'facebook_url' => 'https://facebook.com/' . $cleanUsername,
+                    'instagram_url' => 'https://instagram.com/'.$cleanUsername,
+                    'facebook_url' => 'https://facebook.com/'.$cleanUsername,
                     'zipcode' => ($index % 3 == 0) ? '55281' : (($index % 3 == 1) ? '10120' : '23715'),
                 ]
             );

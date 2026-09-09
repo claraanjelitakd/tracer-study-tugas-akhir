@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\DataAkademik;
 use App\Models\Alumni;
-use App\Models\Province;
+use App\Models\DataAkademik;
 use App\Models\Kabupaten;
+use App\Models\Province;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class DataAkademikSeeder extends Seeder
 {
@@ -45,7 +45,7 @@ class DataAkademikSeeder extends Seeder
             'Michael Steven Kurniawan',
             'Rachel Amanda Sihombing',
             'Samuel Evan Prasetya',
-            'Vanessa Stephanie Tanudjaja'
+            'Vanessa Stephanie Tanudjaja',
         ];
 
         $agamaList = ['Kristen Protestan', 'Katolik', 'Islam', 'Kristen Protestan', 'Katolik'];
@@ -63,7 +63,7 @@ class DataAkademikSeeder extends Seeder
             // Update nama user agar sinkron di auth & navbar
             $user->update([
                 'name' => $nama,
-                'email' => strtolower(str_replace(' ', '.', explode(' ', $nama)[0] . '.' . $nim)) . '@students.ukdw.ac.id',
+                'email' => strtolower(str_replace(' ', '.', explode(' ', $nama)[0].'.'.$nim)).'@students.ukdw.ac.id',
             ]);
 
             $ipk = $ipkList[$index % count($ipkList)];
@@ -92,17 +92,17 @@ class DataAkademikSeeder extends Seeder
                     'warga_negara' => 'WNI',
 
                     // Dokumen Kenegaraan
-                    'nik' => '3404' . str_pad((string)(100000000000 + $index * 1234), 12, '0', STR_PAD_LEFT),
-                    'no_kk' => '340411' . str_pad((string)(2000000000 + $index * 5678), 10, '0', STR_PAD_LEFT),
-                    'nisn' => '003' . str_pad((string)(1234567 + $index), 7, '0', STR_PAD_LEFT),
-                    'no_bpjs' => '000189' . str_pad((string)(7654321 + $index), 7, '0', STR_PAD_LEFT),
-                    'npwp' => '09.' . rand(100, 999) . '.' . rand(100, 999) . '.' . rand(1, 9) . '-541.000',
+                    'nik' => '3404'.str_pad((string) (100000000000 + $index * 1234), 12, '0', STR_PAD_LEFT),
+                    'no_kk' => '340411'.str_pad((string) (2000000000 + $index * 5678), 10, '0', STR_PAD_LEFT),
+                    'nisn' => '003'.str_pad((string) (1234567 + $index), 7, '0', STR_PAD_LEFT),
+                    'no_bpjs' => '000189'.str_pad((string) (7654321 + $index), 7, '0', STR_PAD_LEFT),
+                    'npwp' => '09.'.rand(100, 999).'.'.rand(100, 999).'.'.rand(1, 9).'-541.000',
 
                     // Kontak & Domisili
-                    'nomor_telepon' => '0812' . rand(1000, 9999) . str_pad((string)$index, 4, '0', STR_PAD_LEFT),
-                    'email_pribadi' => strtolower(str_replace(' ', '', explode(' ', $nama)[0])) . ($index + 1) . '@gmail.com',
-                    'email_students' => $nim . '@students.ukdw.ac.id',
-                    'alamat_saat_ini' => 'Jl. Kenanga No. ' . ($index + 12) . ', RT 03/RW 05',
+                    'nomor_telepon' => '0812'.rand(1000, 9999).str_pad((string) $index, 4, '0', STR_PAD_LEFT),
+                    'email_pribadi' => strtolower(str_replace(' ', '', explode(' ', $nama)[0])).($index + 1).'@gmail.com',
+                    'email_students' => $nim.'@students.ukdw.ac.id',
+                    'alamat_saat_ini' => 'Jl. Kenanga No. '.($index + 12).', RT 03/RW 05',
                     'kelurahan' => $lokasi['kel'],
                     'kecamatan' => $lokasi['kec'],
                     'kabupaten_id' => $lokasi['kab'],

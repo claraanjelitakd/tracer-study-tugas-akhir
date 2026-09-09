@@ -3,20 +3,20 @@
 namespace App\Http\Controllers\SuperAdmin\Dashboard;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
 use App\Models\Alumni;
+use App\Models\Prodi;
 use App\Models\Question;
 use App\Models\QuestionSection;
 use App\Models\Response;
-use App\Models\Prodi;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 /**
  * Class DashboardController (SuperAdmin)
- * 
+ *
  * Fungsi:
  * Menampilkan halaman dasbor eksekutif utama untuk Superadmin.
- * 
+ *
  * Tujuan:
  * Menyajikan gambaran umum ekosistem Tracer Study secara menyeluruh,
  * mencakup status instrumen kuesioner, total responden alumni,
@@ -27,7 +27,6 @@ class DashboardController extends Controller
     /**
      * Tampilkan Dashboard Superadmin beserta metrik ringkasan sistem.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Inertia\Response
      */
     public function tampilkanDashboard(Request $request)

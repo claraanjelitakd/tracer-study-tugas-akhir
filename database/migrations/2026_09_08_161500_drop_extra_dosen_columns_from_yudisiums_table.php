@@ -22,7 +22,7 @@ return new class extends Migration
             if (Schema::hasColumn('yudisiums', 'dosen_penguji_4')) {
                 $colsToDrop[] = 'dosen_penguji_4';
             }
-            if (!empty($colsToDrop)) {
+            if (! empty($colsToDrop)) {
                 $table->dropColumn($colsToDrop);
             }
         });
