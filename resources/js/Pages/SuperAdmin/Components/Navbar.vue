@@ -32,6 +32,10 @@ const isPertanyaanActive = computed(() => {
     return page.url.startsWith('/superadmin/pertanyaan');
 });
 
+const isSectionsActive = computed(() => {
+    return page.url.startsWith('/superadmin/sections');
+});
+
 // Logout dengan konfirmasi SweetAlert2
 const handleLogout = () => {
     Swal.fire({
@@ -95,6 +99,17 @@ const handleLogout = () => {
                         >
                             Kelola Kuesioner
                         </Link>
+                        <Link 
+                            href="/superadmin/sections" 
+                            class="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                            :class="[
+                                isSectionsActive
+                                    ? 'text-[#005B3C] bg-emerald-50/70 font-bold'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            ]"
+                        >
+                            Kelola Section
+                        </Link>
                     </div>
                 </div>
 
@@ -130,6 +145,13 @@ const handleLogout = () => {
                 :class="isPertanyaanActive ? 'text-[#005B3C] bg-white shadow-2xs' : 'text-gray-600'"
             >
                 Kelola Kuesioner
+            </Link>
+            <Link 
+                href="/superadmin/sections" 
+                class="px-3 py-1.5 font-bold rounded-lg transition-colors"
+                :class="isSectionsActive ? 'text-[#005B3C] bg-white shadow-2xs' : 'text-gray-600'"
+            >
+                Kelola Section
             </Link>
         </div>
     </nav>

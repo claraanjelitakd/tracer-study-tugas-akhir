@@ -45,21 +45,42 @@ const emit = defineEmits([
 
 // Apakah tipe pertanyaan ini mendukung penambahan opsi pilihan jawaban
 const isOptionSupported = computed(() => {
-    return ['single_choice', 'multiple_choice', 'rating_5', 'dropdown'].includes(props.question.type);
+    return [
+        'single_choice',
+        'radio',
+        'radio_input',
+        'radio_text',
+        'multiple_choice',
+        'checkbox',
+        'rating_5',
+        'rating',
+        'dropdown',
+        'matrix',
+        'matrix_dual',
+    ].includes(props.question.type);
 });
 
-// Format label tipe pertanyaan agar mudah dipahami
+// Format label tipe pertanyaan agar mudah dipahami seperti di Google Forms
 const formatQuestionType = (type) => {
     const map = {
-        single_choice: 'Pilihan Tunggal (Radio)',
-        multiple_choice: 'Pilihan Ganda (Checkbox)',
-        text: 'Isian Teks Singkat',
+        single_choice: 'Pilihan ganda (Radio)',
+        radio: 'Pilihan ganda (Radio)',
+        radio_input: 'Pilihan ganda + Isian Angka (F3/F5)',
+        radio_text: 'Pilihan ganda + Isian Teks',
+        multiple_choice: 'Kotak Centang (Checkbox)',
+        checkbox: 'Kotak Centang (Checkbox)',
+        dropdown: 'Drop-down',
+        text: 'Jawaban singkat',
+        textarea: 'Paragraf',
         number: 'Isian Angka',
-        multiple_number: 'Isian Nominal / Gaji',
-        rating_5: 'Skala Rating (1-5)',
-        textarea: 'Uraian / Teks Panjang',
-        dropdown: 'Dropdown Pilihan',
+        multiple_number: 'Isian Rincian Gaji (F13)',
+        rating_5: 'Skala linier (1-5 / F17)',
+        rating: 'Rating',
+        matrix: 'Kisi pilihan ganda (Matriks)',
+        matrix_dual: 'Petak evaluasi ganda (Dual Matrix)',
         date: 'Tanggal',
+        time: 'Waktu',
+        file: 'Upload file',
     };
     return map[type] || type;
 };
@@ -68,12 +89,23 @@ const formatQuestionType = (type) => {
 const getTypeBadgeClass = (type) => {
     const map = {
         single_choice: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        radio: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        radio_input: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+        radio_text: 'bg-emerald-100 text-emerald-900 border-emerald-300',
         multiple_choice: 'bg-blue-50 text-blue-800 border-blue-200',
+        checkbox: 'bg-blue-50 text-blue-800 border-blue-200',
+        dropdown: 'bg-cyan-50 text-cyan-800 border-cyan-200',
         text: 'bg-amber-50 text-amber-800 border-amber-200',
+        textarea: 'bg-gray-100 text-gray-800 border-gray-200',
         number: 'bg-purple-50 text-purple-800 border-purple-200',
         multiple_number: 'bg-teal-50 text-teal-800 border-teal-200',
         rating_5: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-        textarea: 'bg-gray-100 text-gray-800 border-gray-200',
+        rating: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+        matrix: 'bg-violet-50 text-violet-800 border-violet-200',
+        matrix_dual: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200',
+        date: 'bg-rose-50 text-rose-800 border-rose-200',
+        time: 'bg-orange-50 text-orange-800 border-orange-200',
+        file: 'bg-stone-100 text-stone-800 border-stone-200',
     };
     return map[type] || 'bg-gray-50 text-gray-700 border-gray-200';
 };
@@ -82,7 +114,7 @@ const getTypeBadgeClass = (type) => {
 <template>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200/90 hover:border-emerald-500/50 hover:shadow-md transition-all duration-200 overflow-hidden">
         <!-- Header Kartu: Kode, Tipe, Prodi, & Action Buttons -->
-        <div class="p-5 sm:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="p-5 sm:p-6 border-b border-gray-100 bg-green-100 flex flex-col md:flex-row md:items-center justify-between gap-10">
             
             <!-- Metadata Pertanyaan -->
             <div class="flex flex-wrap items-center gap-2">
@@ -183,7 +215,7 @@ const getTypeBadgeClass = (type) => {
             </h3>
 
             <!-- Bagian Opsi Pilihan Jawaban (Jika Didukung) -->
-            <div v-if="isOptionSupported" class="mt-5 pt-4 border-t border-gray-100">
+            <div v-if="isOptionSupported" class="mt-5 pt-4 border-t border-yellow-100">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-black uppercase text-gray-500 tracking-wider">
@@ -207,7 +239,7 @@ const getTypeBadgeClass = (type) => {
                     <div 
                         v-for="opt in question.options" 
                         :key="opt.id"
-                        class="flex items-center justify-between p-3 rounded-xl bg-gray-50/80 hover:bg-gray-100/70 border border-gray-200/60 transition-colors group"
+                        class="flex items-center justify-between p-3 rounded-xl bg-green-100 hover:bg-yellow-100/70 border border-gray-200/60 transition-colors group"
                     >
                         <!-- Kiri: Bulatan/Kotak Simbol, Kode Opsi, & Teks Opsi -->
                         <div class="flex items-center gap-3 min-w-0 pr-2">

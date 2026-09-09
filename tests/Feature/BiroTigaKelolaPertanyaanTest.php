@@ -126,4 +126,25 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
             'order' => 1,
         ]);
     }
+
+    /**
+     * Memverifikasi pembuatan pertanyaan bertipe rating_5 otomatis menghasilkan 5 opsi skala penilaian.
+     */
+    public function test_storing_rating_question_auto_generates_five_options(): void
+    {
+        $response = $this->actingAs($this->admin)->post('/superadmin/pertanyaan', [
+            'question_section_id' => $this->section->id,
+            'code' => 'F99',
+            'question_text' => 'Penilaian Kualitas Fasilitas Belajar',
+            'type' => 'rating_5',
+            'is_required' => true,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $q = Question::where('code', 'F99')->first();
+        $this->assertNotNull($q);
+        $this->assertCount(5, $q->options);
+        $this->assertEquals('Sangat Rendah', $q->options[0]->option_text);
+        $this->assertEquals('Sangat Tinggi', $q->options[4]->option_text);
+    }
 }

@@ -43,14 +43,24 @@ class DaftarPertanyaanController extends Controller
         // 4. Map kode pertanyaan ke teks pertanyaan untuk label percabangan jump_to
         $targetQuestionMap = Question::pluck('question_text', 'code')->toArray();
 
-        // 5. Susun daftar pilihan target lompatan untuk dropdown
-        $availableJumpTargets = Question::orderBy('order', 'asc')
-            ->get(['id', 'code', 'question_text'])
+        // 5. Susun daftar pilihan target lompatan untuk dropdown dan pemilih bertingkat (grouped by section)
+        $availableJumpTargets = Question::with('section')
+            ->orderBy('order', 'asc')
+            ->get(['id', 'question_section_id', 'code', 'question_text'])
             ->map(function ($q) {
+                // Tentukan judul section untuk pengelompokan di dropdown bertingkat
+                $sectionTitle = $q->section
+                    ? 'Section '.$q->section->order.': '.$q->section->title
+                    : 'Pertanyaan Lainnya / Tanpa Section';
+
                 return [
+                    'id' => $q->id,
                     'code' => $q->code,
                     'label' => $q->code.' — '.Str::limit($q->question_text, 65),
                     'text' => $q->question_text,
+                    'section_id' => $q->question_section_id,
+                    'section_title' => $sectionTitle,
+                    'section_order' => $q->section?->order ?? 999,
                 ];
             });
 

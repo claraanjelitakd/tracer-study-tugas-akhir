@@ -1,5 +1,56 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
+## [2026-09-10] Pembaruan UI/UX Alur Lompatan (Jump Logic): Dropdown Bertingkat (Cascading 2-Kolom: Section di Kiri & Pertanyaan di Kanan)
+- **Pembaruan Antarmuka Dropdown Alur Lompatan / Percabangan (`OptionModal.vue`)**:
+  - Mengimplementasikan sistem **Dropdown Bertingkat 2 Kolom (*Cascading Flyout Master-Detail*)**:
+    1. **Kolom Kiri (Pilih Section)**: Menampilkan daftar seluruh bagian kuesioner (`Section 1: Identitas`, `Section 2: ...`) lengkap dengan badge total soal dan panah indikator bertingkat. Saat salah satu section diklik, section tersebut di-highlight aktif dengan latar hijau emerald `#005B3C`.
+    2. **Kolom Kanan (Daftar Pertanyaan Terkait)**: Menampilkan butir pertanyaan dari section yang dipilih di kolom kiri. Sesuai instruksi pengguna, tampilan **dibatasi tepat 5 pertanyaan dalam 1 layar pandang** (`h-[260px]`), dan jika terdapat lebih dari 5 butir soal, pengguna dapat melakukan **scroll** secara halus (`overflow-y-auto`).
+    3. **Format Mini Data Table**: Setiap baris di kolom kanan memuat badge kode kuesioner monospaced (`F1`, `F8`, `F17-1`), teks pertanyaan rapi 2 baris, dan indikator status `✓ Terpilih` / hover prompt `Pilih`.
+  - **Fitur Pencarian Real-time (Searchable)**: Kotak input pencarian di bagian atas pop-up menyaring pertanyaan secara instan lintas section. Jika section aktif tidak memiliki hasil yang cocok, sistem otomatis mengarahkan ke section pertama yang memiliki kecocokan.
+  - **Pilihan Alur Default Cepat**: Tombol cepat *"Alur Normal (Default)"* di bagian atas pop-up serta tombol (✕) pada kolom pemicu untuk memudahkan pengembalian alur kuesioner ke alur normal tanpa lompatan.
+  - **Aksesibilitas & Pengalaman Pengguna**: Penyesuaian lebar modal menjadi `max-w-2xl`, auto-focus pada input pencarian saat pop-up dibuka, dan penutupan otomatis saat klik di luar area modal (*click-outside*).
+- **Penyempurnaan Data Backend (`DaftarPertanyaanController.php`)**:
+  - Memuat relasi `section` pada query `$availableJumpTargets` (`question_section_id`, `section_title`, `section_order`) agar siap dikelompokkan secara terstruktur di frontend.
+
+## [2026-09-10] Modul CRUD & Pengaturan Urutan (Reorder) QuestionSection Superadmin, Integrasi UI/UX, dan Tabel UMP 2026
+- **Pengembangan Modul CRUD & Pengaturan Urutan Bagian Kuesioner (`QuestionSection`)**:
+  - Membuat controller backend baru [`KelolaSectionController.php`](file:///c:/study/tracerstudy/app/Http/Controllers/SuperAdmin/KelolaSection/KelolaSectionController.php) di `app/Http/Controllers/SuperAdmin/KelolaSection/` yang mencakup:
+    1. `index()`: Mengambil daftar section terurut berserta relasi instrumen kuesioner induk dan kalkulasi `withCount('questions')`.
+    2. `store()`: Menambahkan bagian baru dengan otomatisasi penentuan nomor urutan (`order`).
+    3. `update()`: Menyunting judul bagian dan kuesioner induk.
+    4. `destroy()`: Menghapus bagian kuesioner dengan pembersihan kaskade opsi dan butir pertanyaan demi integritas data.
+    5. `reorder()`: Mengatur ulang urutan posisi section (naik/turun secara directional menggunakan *order swapping* maupun pembaruan array massal).
+  - Mendaftarkan rute terpadu superadmin di `routes/web.php` (`superadmin.sections.*`).
+- **Standardisasi Tipe Pertanyaan Menyerupai Google Forms & Otomatisasi Opsi Rating**:
+  - Memperluas pilihan tipe pertanyaan pada [`QuestionModal.vue`](file:///c:/study/tracerstudy/resources/js/Pages/SuperAdmin/Pertanyaan/Components/QuestionModal.vue) menjadi terstruktur rapi dengan kategori:
+    1. *Teks & Isian*: Jawaban singkat (`text`), Paragraf (`textarea`), Isian Angka (`number`).
+    2. *Pilihan & Opsi*: Pilihan ganda radio (`single_choice`), Pilihan ganda + Isian Angka F3/F5 (`radio_input`), Pilihan ganda + Isian Teks Lainnya (`radio_text`), Kotak Centang (`multiple_choice`), Drop-down (`dropdown`).
+    3. *Skala & Penilaian*: Skala linier / Rating 1-5 (`rating_5`), Isian Rincian Gaji F13 (`multiple_number`), Kisi pilihan ganda (`matrix`), Petak evaluasi ganda (`matrix_dual`).
+    4. *Tanggal & Berkas*: Tanggal (`date`), Waktu (`time`), Upload file (`file`).
+  - **Otomatisasi Opsi Skala Rating**: Pada [`SimpanPertanyaanController.php`](file:///c:/study/tracerstudy/app/Http/Controllers/SuperAdmin/KelolaPertanyaan/SimpanPertanyaanController.php), saat admin membuat pertanyaan bertipe `rating_5` (atau memperbarui ke tipe tersebut), sistem backend secara otomatis membuatkan 5 pilihan skala penilaian standar (1: Sangat Rendah s/d 5: Sangat Tinggi) sehingga admin tidak perlu mengetik opsi rating manual satu per satu.
+  - Menambahkan *dynamic hint* di bawah kolom tipe pertanyaan yang menjelaskan fungsi dan perilaku tiap tipe.
+  - Memperbarui [`QuestionCard.vue`](file:///c:/study/tracerstudy/resources/js/Pages/SuperAdmin/Pertanyaan/Components/QuestionCard.vue) agar mengenali penambahan opsi dan menampilkan badge warna yang tepat untuk seluruh tipe baru (seperti `radio_input`, `radio_text`, `rating_5`, `matrix`, dll.).
+- **Antarmuka Pengguna Vue 3 Modul Kelola Section (`SuperAdmin/Section`)**:
+  - Membuat halaman utama [`resources/js/Pages/SuperAdmin/Section/Index.vue`](file:///c:/study/tracerstudy/resources/js/Pages/SuperAdmin/Section/Index.vue):
+    1. Menampilkan daftar kartu bagian dengan visual emerald UKDW `#005B3C` yang elegan, kartu rounded `[2rem]`, badge nomor urut, kuesioner induk, dan total butir soal.
+    2. Fitur pencarian instan berdasarkan judul bagian atau nama kuesioner.
+    3. Tombol navigasi langsung ke daftar butir soal masing-masing section (`?sec_id={id}`).
+    4. Kontrol pemindahan urutan posisi naik (▲) dan turun (▼) dengan status tombol nonaktif otomatis saat berada di batas atas/bawah.
+    5. Dialog peringatan SweetAlert2 jika section yang akan dihapus masih memuat butir pertanyaan aktif.
+  - Membuat komponen modal [`resources/js/Pages/SuperAdmin/Section/Components/SectionModal.vue`](file:///c:/study/tracerstudy/resources/js/Pages/SuperAdmin/Section/Components/SectionModal.vue) untuk alur pembuatan dan pengeditan section dengan validasi formulir dan umpan balik sukses/gagal.
+- **Integrasi Navigasi Terpadu Superadmin**:
+  - Menambahkan menu navigasi resmi **Kelola Section** pada [`Navbar.vue`](file:///c:/study/tracerstudy/resources/js/Pages/SuperAdmin/Components/Navbar.vue) (versi Desktop dan Mobile).
+  - Menambahkan tombol pintas **Kelola Section** pada halaman [`resources/js/Pages/SuperAdmin/Pertanyaan/Index.vue`](file:///c:/study/tracerstudy/resources/js/Pages/SuperAdmin/Pertanyaan/Index.vue) agar admin dapat beralih cepat antara manajemen butir soal dan manajemen bab/section.
+- **Penyusunan Tabel UMP 2026 Terhubung Foreign Key `kode_provinsi`**:
+  - Membuat migrasi tabel `umps` dengan relasi foreign key langsung ke kolom unique `kode_provinsi` pada tabel `provinces`.
+  - Model `Ump.php` dengan relasi `belongsTo(Province::class, 'kode_provinsi', 'kode_provinsi')` serta relasi timbal balik `umps()` dan `ump()` di `Province.php`.
+  - Membuat `UmpSeeder.php` berisi 38 data nominal UMP 2026 resmi seluruh provinsi di Indonesia dengan logika `updateOrCreate`.
+  - Menyiapkan `UmpFactory.php` untuk kebutuhan data mock testing.
+- **Automated Testing & Standarisasi Kode**:
+  - Membuat pengujian komprehensif di [`tests/Feature/SuperAdminKelolaSectionTest.php`](file:///c:/study/tracerstudy/tests/Feature/SuperAdminKelolaSectionTest.php) (6 pengujian mencakup index, store, update, destroy, directional reorder, dan bulk reorder) dan [`tests/Feature/UmpTest.php`](file:///c:/study/tracerstudy/tests/Feature/UmpTest.php).
+  - Seluruh 20 unit/feature test suite lulus 100%.
+  - Seluruh berkas PHP diformat sesuai standar dengan Laravel Pint.
+
 ## [2026-09-09] Refaktorisasi Modular Modul Kelola Pertanyaan Superadmin, Pemisahan Komponen Vue, Navigasi Terpadu & Integrasi SweetAlert2
 - **Pemisahan Controller Backend Menjadi Modular (Single-Responsibility)**:
   - Memecah controller monolitik `KelolaPertanyaanController.php` menjadi 3 controller modular di `app/Http/Controllers/SuperAdmin/KelolaPertanyaan/`:

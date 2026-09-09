@@ -6,7 +6,7 @@
   Desain mengikuti estetika bersih, profesional, dan modern seperti pada modul Profil Alumni.
 -->
 <script setup>
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import Swal from 'sweetalert2';
 
@@ -100,6 +100,99 @@ const activeSectionQuestions = computed(() => {
             return matchCode || matchText;
         })
         .sort((a, b) => a.order - b.order);
+});
+
+// ========================================================
+// 1.1 LOGIKA KHUSUS SECTION F17 (DUAL MATRIX PAIRING)
+// ========================================================
+// Deteksi khusus apakah section yang sedang aktif memuat pertanyaan F17
+const isF17Section = computed(() => {
+    return activeSectionQuestions.value.some((q) => q.code && q.code.startsWith('F17-'));
+});
+
+// Mode tampilan pada Section F17: 'paired' (berpasangan) atau 'flat' (kartu individual)
+const f17ViewMode = ref('paired');
+
+// Helper untuk mengekstrak nama aspek bersih tanpa suffix jenis kolom
+const getCleanAspectName = (text) => {
+    if (!text) return '';
+    if (text.includes('—')) return text.split('—')[0].trim();
+    if (text.includes('-')) return text.split('-')[0].trim();
+    return text;
+};
+
+// Menghitung nomor order berikutnya secara global kuesioner agar pertanyaan baru berada di urutan paling akhir
+const calculatedNextOrder = computed(() => {
+    if (!props.questions || props.questions.length === 0) return 1;
+    const maxOrder = Math.max(...props.questions.map((q) => q.order || 0));
+    return maxOrder + 1;
+});
+
+// Menggabungkan pertanyaan F17 menjadi pasangan ganjil & genap (A vs B) berdasarkan nomor kode numerik F17
+const f17AspectPairs = computed(() => {
+    if (!isF17Section.value) return [];
+    const questions = activeSectionQuestions.value;
+
+    // 1. Petakan pertanyaan F17 berdasarkan nomor urut numerik di kodenya (misal F17-55 => 55)
+    const questionByNum = {};
+    const unnumberedQuestions = [];
+
+    questions.forEach((q) => {
+        const match = q.code ? q.code.match(/^F17-(\d+)$/i) : null;
+        if (match) {
+            const num = parseInt(match[1], 10);
+            questionByNum[num] = q;
+        } else {
+            unnumberedQuestions.push(q);
+        }
+    });
+
+    // 2. Kumpulkan semua nomor aspek unik: Aspek = Math.ceil(Nomor / 2)
+    const aspectIndices = new Set();
+    Object.keys(questionByNum).forEach((numStr) => {
+        const num = parseInt(numStr, 10);
+        const aspectIdx = Math.ceil(num / 2);
+        aspectIndices.add(aspectIdx);
+    });
+
+    // 3. Susun pasangan berdasarkan nomor aspek yang terurut secara numerik
+    const sortedAspectIndices = Array.from(aspectIndices).sort((a, b) => a - b);
+    const pairs = [];
+
+    sortedAspectIndices.forEach((aspectNum) => {
+        const numA = (aspectNum - 1) * 2 + 1;
+        const numB = (aspectNum - 1) * 2 + 2;
+
+        const qA = questionByNum[numA] || null;
+        const qB = questionByNum[numB] || null;
+
+        const aspectName = qA 
+            ? getCleanAspectName(qA.question_text) 
+            : (qB ? getCleanAspectName(qB.question_text) : `Aspek #${aspectNum}`);
+
+        pairs.push({
+            aspectNumber: aspectNum,
+            aspectName,
+            expectedCodeA: `F17-${numA}`,
+            expectedCodeB: `F17-${numB}`,
+            qA,
+            qB,
+        });
+    });
+
+    // 4. Jika ada butir yang tidak berformat F17-angka, masukkan di akhir
+    for (let i = 0; i < unnumberedQuestions.length; i += 2) {
+        pairs.push({
+            aspectNumber: pairs.length + 1,
+            aspectName: getCleanAspectName(unnumberedQuestions[i].question_text),
+            expectedCodeA: unnumberedQuestions[i].code,
+            expectedCodeB: unnumberedQuestions[i + 1]?.code || null,
+            qA: unnumberedQuestions[i],
+            qB: unnumberedQuestions[i + 1] || null,
+        });
+    }
+
+    return pairs;
 });
 
 // ========================================================
@@ -318,6 +411,15 @@ const handleDeleteOption = (opt) => {
                                 />
                             </div>
 
+                            <!-- Tombol Kelola Section Kuesioner -->
+                            <!-- <Link
+                                href="/superadmin/sections"
+                                class="px-4 py-2.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-[#005B3C] border border-gray-200 hover:border-emerald-200 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                <span>Kelola Section</span>
+                            </Link> -->
+
                             <!-- Tombol Tambah Pertanyaan (Gaya Tombol Alumni) -->
                             <button
                                 type="button"
@@ -330,8 +432,210 @@ const handleDeleteOption = (opt) => {
                         </div>
                     </div>
 
-                    <!-- Daftar Kartu Pertanyaan -->
-                    <div v-if="activeSectionQuestions.length > 0" class="space-y-4">
+                    <!-- Banner Informasi & Pengaturan Khusus F17 Dual Matrix -->
+                    <div v-if="isF17Section" class="p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 to-teal-50/60 border border-emerald-200/90 shadow-xs space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-[#005B3C] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                                    F17
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-extrabold text-sm sm:text-base text-gray-900">
+                                            Instrumen Evaluasi Kompetensi (Dual Matrix A vs B)
+                                        </h4>
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#005B3C] text-white">
+                                            {{ f17AspectPairs.length }} Aspek ({{ activeSectionQuestions.length }} Butir Soal)
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-600 mt-0.5">
+                                        Di sisi alumni, pasangan soal ganjil & genap otomatis disatukan menjadi 1 baris tabel evaluasi berdampingan.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Tombol Alih Mode Tampilan: Matriks Berpasangan vs Butir Terpisah -->
+                            <div class="flex items-center bg-white p-1 rounded-xl border border-emerald-200/80 shadow-2xs self-start sm:self-auto shrink-0">
+                                <button
+                                    type="button"
+                                    @click="f17ViewMode = 'paired'"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                                    :class="f17ViewMode === 'paired' ? 'bg-[#005B3C] text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                    <span>Matriks Aspek ({{ f17AspectPairs.length }})</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="f17ViewMode = 'flat'"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                                    :class="f17ViewMode === 'flat' ? 'bg-[#005B3C] text-white shadow-2xs' : 'text-gray-600 hover:text-gray-900'"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>Semua Butir ({{ activeSectionQuestions.length }})</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Ringkasan Aturan Baku Penulisan -->
+                        <div class="pt-3 border-t border-emerald-200/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs text-emerald-950">
+                            <div class="p-2.5 rounded-xl bg-white/80 border border-emerald-100 flex items-start gap-2">
+                                <span class="text-base leading-none">🔹</span>
+                                <div>
+                                    <strong class="text-emerald-800 font-bold block">Kolom A: Nomor Ganjil</strong>
+                                    <span class="text-[11px] text-gray-600">Menilai kompetensi yang dikuasai alumni (contoh: <code class="bg-gray-100 px-1 rounded">F17-1</code>, <code class="bg-gray-100 px-1 rounded">F17-3</code>).</span>
+                                </div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-white/80 border border-emerald-100 flex items-start gap-2">
+                                <span class="text-base leading-none">🔸</span>
+                                <div>
+                                    <strong class="text-teal-800 font-bold block">Kolom B: Nomor Genap</strong>
+                                    <span class="text-[11px] text-gray-600">Menilai kontribusi perguruan tinggi (contoh: <code class="bg-gray-100 px-1 rounded">F17-2</code>, <code class="bg-gray-100 px-1 rounded">F17-4</code>).</span>
+                                </div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-white/80 border border-emerald-100 flex items-start gap-2 sm:col-span-2 lg:col-span-1">
+                                <span class="text-base leading-none">⭐</span>
+                                <div>
+                                    <strong class="text-gray-800 font-bold block">Format Teks & Tipe Soal</strong>
+                                    <span class="text-[11px] text-gray-600">Gunakan tanda pisah <code class="bg-gray-100 px-1 rounded">—</code>, tipe <strong>Pilihan Tunggal (Radio)</strong> atau <strong>Skala Rating (1-5)</strong>.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAMPILAN KHUSUS F17: DAFTAR ASPEK BERPASANGAN (A vs B) -->
+                    <div v-if="isF17Section && f17ViewMode === 'paired'" class="space-y-4">
+                        <div
+                            v-for="pair in f17AspectPairs"
+                            :key="'pair_' + pair.aspectNumber"
+                            class="bg-white rounded-2xl border border-gray-200 hover:border-emerald-300 shadow-xs hover:shadow-md transition-all overflow-hidden"
+                        >
+                            <!-- Header Bar Aspek -->
+                            <div class="px-5 py-3 bg-gray-50/80 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div class="flex items-center gap-3">
+                                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-black bg-emerald-100 text-[#005B3C]">
+                                        Aspek #{{ pair.aspectNumber }}
+                                    </span>
+                                    <h3 class="font-extrabold text-sm sm:text-base text-gray-900 tracking-tight">
+                                        {{ pair.aspectName }}
+                                    </h3>
+                                </div>
+
+                                <div class="text-[11px] font-semibold text-gray-500">
+                                    Berpasangan: 
+                                    <span class="text-emerald-700 font-bold font-mono">{{ pair.qA ? pair.qA.code : (pair.expectedCodeA + ' (Belum)') }}</span> 
+                                    & 
+                                    <span class="text-teal-700 font-bold font-mono">{{ pair.qB ? pair.qB.code : (pair.expectedCodeB + ' (Belum)') }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Dua Kolom: Kolom A vs Kolom B -->
+                            <div class="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <!-- Kartu Soal Kolom A (Kompetensi Dikuasai) -->
+                                <div v-if="pair.qA" class="p-4 rounded-xl bg-emerald-50/30 border border-emerald-100 space-y-2.5 relative">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-emerald-100 text-emerald-800 font-mono">
+                                            Kolom A • {{ pair.qA.code }}
+                                        </span>
+                                        <div class="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                @click="openEditQuestionModal(pair.qA)"
+                                                class="px-2 py-1 text-xs font-bold text-gray-600 hover:text-[#005B3C] hover:bg-white rounded-lg transition-colors cursor-pointer"
+                                                title="Edit Soal A"
+                                            >
+                                                ✎ Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="handleDeleteQuestion(pair.qA)"
+                                                class="px-2 py-1 text-xs font-bold text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                                                title="Hapus Soal A"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <p class="text-xs sm:text-sm font-bold text-gray-800 leading-snug">
+                                        {{ pair.qA.question_text }}
+                                    </p>
+
+                                    <!-- Indikator 5 Opsi Skala Rating -->
+                                    <div class="pt-2 border-t border-emerald-100/80 flex items-center justify-between text-[11px] text-gray-500">
+                                        <span class="font-medium">Pilihan Skala Rating:</span>
+                                        <div class="flex items-center gap-1 font-mono font-bold text-emerald-800">
+                                            <span v-for="opt in (pair.qA.options || [])" :key="opt.id" class="px-1.5 py-0.5 rounded bg-white border border-emerald-100 text-[10px]" :title="opt.option_text">
+                                                {{ opt.option_text?.substring(0, 1) || '•' }}
+                                            </span>
+                                            <span v-if="!pair.qA.options || pair.qA.options.length === 0" class="text-amber-600 text-xs">
+                                                Belum ada opsi
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Jika Pasangan A belum ada -->
+                                <div v-else class="p-4 rounded-xl bg-amber-50/50 border border-dashed border-amber-300 flex flex-col items-center justify-center text-center">
+                                    <span class="text-xs text-amber-700 font-bold">⚠️ Pasangan Kolom A ({{ pair.expectedCodeA }}) Belum Dibuat</span>
+                                    <p class="text-[11px] text-gray-500 mt-1">Buat soal bernomor ganjil untuk melengkapi aspek ini.</p>
+                                </div>
+
+                                <!-- Kartu Soal Kolom B (Kontribusi PT) -->
+                                <div v-if="pair.qB" class="p-4 rounded-xl bg-teal-50/30 border border-teal-100 space-y-2.5 relative">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-teal-100 text-teal-800 font-mono">
+                                            Kolom B • {{ pair.qB.code }}
+                                        </span>
+                                        <div class="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                @click="openEditQuestionModal(pair.qB)"
+                                                class="px-2 py-1 text-xs font-bold text-gray-600 hover:text-teal-700 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                                                title="Edit Soal B"
+                                            >
+                                                ✎ Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="handleDeleteQuestion(pair.qB)"
+                                                class="px-2 py-1 text-xs font-bold text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                                                title="Hapus Soal B"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <p class="text-xs sm:text-sm font-bold text-gray-800 leading-snug">
+                                        {{ pair.qB.question_text }}
+                                    </p>
+
+                                    <!-- Indikator 5 Opsi Skala Rating -->
+                                    <div class="pt-2 border-t border-teal-100/80 flex items-center justify-between text-[11px] text-gray-500">
+                                        <span class="font-medium">Pilihan Skala Rating:</span>
+                                        <div class="flex items-center gap-1 font-mono font-bold text-teal-800">
+                                            <span v-for="opt in (pair.qB.options || [])" :key="opt.id" class="px-1.5 py-0.5 rounded bg-white border border-teal-100 text-[10px]" :title="opt.option_text">
+                                                {{ opt.option_text?.substring(0, 1) || '•' }}
+                                            </span>
+                                            <span v-if="!pair.qB.options || pair.qB.options.length === 0" class="text-amber-600 text-xs">
+                                                Belum ada opsi
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Jika Pasangan B belum ada -->
+                                <div v-else class="p-4 rounded-xl bg-amber-50/50 border border-dashed border-amber-300 flex flex-col items-center justify-center text-center">
+                                    <span class="text-xs text-amber-700 font-bold">⚠️ Pasangan Kolom B ({{ pair.expectedCodeB }}) Belum Dibuat</span>
+                                    <p class="text-[11px] text-gray-500 mt-1">Buat soal bernomor genap untuk melengkapi aspek ini.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAMPILAN STANDAR: DAFTAR KARTU PERTANYAAN INDIVIDUAL -->
+                    <div v-else-if="activeSectionQuestions.length > 0" class="space-y-4">
                         <QuestionCard
                             v-for="(q, index) in activeSectionQuestions"
                             :key="q.id"
@@ -376,7 +680,7 @@ const handleDeleteOption = (opt) => {
             :sections="sections"
             :prodis="prodis"
             :defaultSectionId="activeSectionId"
-            :nextOrder="activeSectionQuestions.length + 1"
+            :nextOrder="calculatedNextOrder"
             @close="closeQuestionModal"
             @saved="closeQuestionModal"
         />

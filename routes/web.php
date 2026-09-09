@@ -13,6 +13,7 @@ use App\Http\Controllers\Otentikasi\UbahKataSandiController;
 use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\DaftarPertanyaanController;
 use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaOpsiController;
 use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\SimpanPertanyaanController;
+use App\Http\Controllers\SuperAdmin\KelolaSection\KelolaSectionController;
 use App\Http\Controllers\Tamu\BerandaController;
 use Illuminate\Support\Facades\Route;
 
@@ -99,6 +100,13 @@ Route::middleware('auth')->group(function () {
             Route::post('/superadmin/pertanyaan/{questionId}/options', [KelolaOpsiController::class, 'storeOption'])->name('superadmin.pertanyaan.options.store');
             Route::put('/superadmin/pertanyaan/options/{optionId}', [KelolaOpsiController::class, 'updateOption'])->name('superadmin.pertanyaan.options.update');
             Route::delete('/superadmin/pertanyaan/options/{optionId}', [KelolaOpsiController::class, 'destroyOption'])->name('superadmin.pertanyaan.options.destroy');
+
+            // Kelola Bagian Kuesioner / Section (CRUD & Reorder)
+            Route::get('/superadmin/sections', [KelolaSectionController::class, 'index'])->name('superadmin.sections.index');
+            Route::post('/superadmin/sections', [KelolaSectionController::class, 'store'])->name('superadmin.sections.store');
+            Route::post('/superadmin/sections/reorder', [KelolaSectionController::class, 'reorder'])->name('superadmin.sections.reorder');
+            Route::put('/superadmin/sections/{id}', [KelolaSectionController::class, 'update'])->name('superadmin.sections.update');
+            Route::delete('/superadmin/sections/{id}', [KelolaSectionController::class, 'destroy'])->name('superadmin.sections.destroy');
         });
 
     });

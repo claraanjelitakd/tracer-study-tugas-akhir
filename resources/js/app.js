@@ -22,15 +22,21 @@ router.on('finish', () => {
 createInertiaApp({
     title: (title) => `${title} - Tracer Study`,
     resolve: (name) => {
-        const pages = import.meta.glob('./pages/**/*.vue');
-        // Cari file vue yang cocok (mengabaikan besar-kecil huruf/case-insensitive)
-        const path = Object.keys(pages).find(
-            (key) => key.toLowerCase() === `./pages/${name}.vue`.toLowerCase()
-        );
-        if (!path) {
-            throw new Error(`Page not found: ./pages/${name}.vue`);
+        const pages = import.meta.glob('./Pages/**/*.vue');
+        const exactPath = `./Pages/${name}.vue`;
+
+        if (pages[exactPath]) {
+            return resolvePageComponent(exactPath, pages);
         }
-        return typeof pages[path] === 'function' ? pages[path]() : pages[path];
+
+        // Fallback case-insensitive jika ada pemanggilan rute yang berbeda besar/kecil huruf
+        const lowerPath = exactPath.toLowerCase();
+        const foundKey = Object.keys(pages).find((key) => key.toLowerCase() === lowerPath);
+        if (foundKey) {
+            return typeof pages[foundKey] === 'function' ? pages[foundKey]() : pages[foundKey];
+        }
+
+        throw new Error(`Page not found: ${exactPath}`);
     },
     setup({ el, App, props, plugin }) {
         const AppWrapper = {

@@ -18,4 +18,14 @@ class Province extends Model
     {
         return $this->hasMany(Kabupaten::class);
     }
+
+    public function umps()
+    {
+        return $this->hasMany(Ump::class, 'kode_provinsi', 'kode_provinsi');
+    }
+
+    public function ump()
+    {
+        return $this->hasOne(Ump::class, 'kode_provinsi', 'kode_provinsi')->latestOfMany('tahun');
+    }
 }
