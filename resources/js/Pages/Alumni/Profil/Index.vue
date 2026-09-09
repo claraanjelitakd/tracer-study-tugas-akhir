@@ -159,9 +159,8 @@ const submit = () => {
                         </Link>
                     </div>
                     <div class="flex items-center space-x-6">
-                        <div class="hidden sm:flex flex-col items-end">
+                        <div class="hidden sm:flex items-center">
                             <span class="text-gray-900 font-bold text-sm">{{ user.name }}</span>
-                            <span class="text-[#005B3C] text-xs font-semibold">Alumni Member</span>
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,34 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
+## [2026-09-09] Refaktorisasi Modular Modul Kelola Pertanyaan Superadmin, Pemisahan Komponen Vue, Navigasi Terpadu & Integrasi SweetAlert2
+- **Pemisahan Controller Backend Menjadi Modular (Single-Responsibility)**:
+  - Memecah controller monolitik `KelolaPertanyaanController.php` menjadi 3 controller modular di `app/Http/Controllers/SuperAdmin/KelolaPertanyaan/`:
+    1. `DaftarPertanyaanController.php`: Menangani aksi `index()` untuk memuat daftar butir pertanyaan, relasi sections, program studi, opsi, dan peta lompatan branching (`jump_to`).
+    2. `SimpanPertanyaanController.php`: Menangani operasi `store()`, `update()`, `destroy()`, dan `reorder()` urutan naik/turun pertanyaan.
+    3. `KelolaOpsiController.php`: Menangani operasi `storeOption()`, `updateOption()`, dan `destroyOption()`.
+  - Memperbarui `routes/web.php` untuk mengarahkan seluruh rute kuesioner superadmin ke controller modular baru.
+- **Pemisahan Komponen Vue pada Modul Kelola Pertanyaan (`SuperAdmin/Pertanyaan`)**:
+  - Memecah file tunggal `Index.vue` (811 baris) menjadi sub-komponen terstruktur di `resources/js/Pages/SuperAdmin/Pertanyaan/Components/`:
+    1. `SectionTabs.vue`: Navigasi tab horizontal antar-section kuesioner dengan badge nomor urut dan jumlah soal.
+    2. `QuestionCard.vue`: Kartu butir pertanyaan individu dengan kontrol aksi naik/turun urutan, edit/hapus soal, serta daftar opsi jawaban.
+    3. `QuestionModal.vue`: Modal dialog popup tambah dan edit butir pertanyaan kuesioner.
+    4. `OptionModal.vue`: Modal dialog popup tambah dan edit pilihan opsi jawaban dan alur percabangan (*jump logic*).
+    5. `Index.vue`: Komponen Orchestrator utama yang ringkas, bersih, dan mengelola sinkronisasi query string `?sec_id=` dan pencarian.
+- **Komponen Navigasi Terpadu Resmi Superadmin (`Navbar.vue`)**:
+  - Membuat satu file navigasi resmi terpadu di `resources/js/Pages/SuperAdmin/Components/Navbar.vue` yang digunakan bersama oleh Dashboard dan Kelola Kuesioner.
+  - Menampilkan branding UKDW, menu aktif, info pengguna, dan tombol logout dengan konfirmasi SweetAlert2.
+- **Penerapan SweetAlert2 Menyeluruh**:
+  - Menggantikan semua fungsi bawaan browser (`window.confirm`) dengan dialog interaktif SweetAlert2 bertema warna hijau emerald UKDW (`#005B3C`).
+  - Dilengkapi dialog konfirmasi hapus pertanyaan dan opsi jawaban, feedback sukses simpan/update, serta error alert validasi.
+- **Redesign Tampilan UI Menyerupai Profil Alumni & Perbaikan Tab Terpotong (Clipping)**:
+  - Menerapkan kartu rounded modern, bayangan halus, header gradien emerald UKDW `#005B3C`, dan tipografi Instrument Sans yang konsisten.
+  - Memperbaiki masalah tampilan terpotong (*clipping/overlap bug*) pada `SectionTabs.vue`:
+    1. Menghilangkan `sticky top-20` yang menutupi judul bagian (*Section Header*), *search bar*, dan tombol `+ Tambah Pertanyaan` saat halaman di-scroll atau pada layar beresolusi laptop/tablet.
+    2. Menambahkan *custom thin scrollbar* (3px) yang elegan pada baris navigasi tab horizontal untuk menggantikan scrollbar bawaan Windows yang tebal dan memotong konten di bawahnya.
+    3. Menambahkan fungsi *auto-scroll-into-view* reaktif agar tab yang aktif (misal Section 4, 5, dst.) otomatis bergeser ke tengah area pandang horizontal saat dipilih atau saat halaman dibuka via parameter URL `?sec_id=`.
+- **Dokumentasi Kuesioner Dinamis & Aturan F17**:
+  - Menambahkan bab penjelasan arsitektur kuesioner realtime dan aturan pasangan butir genap F17 ke `documentation.txt`.
+
 ## [2026-09-09] Fitur Total Salary Reaktif, Format Pengisian Ribuan (Akhiran .000 Otomatis) & Perlindungan Kesalahan Data pada Kuesioner F13
 - **Kalkulasi & Tampilan Total Salary Reaktif (Pertanyaan `multiple_number` / F13)**:
   - Menambahkan kartu ringkasan visual **Total Pendapatan (Total Salary)** dengan desain gradien hijau emerald yang elegan dan ikon finansial di bawah rincian pendapatan F13.

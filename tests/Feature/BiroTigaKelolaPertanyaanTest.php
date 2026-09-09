@@ -15,6 +15,7 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
     use DatabaseMigrations;
 
     protected User $admin;
+
     protected QuestionSection $section;
 
     protected function setUp(): void
@@ -22,10 +23,10 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
         parent::setUp();
 
         $this->admin = User::create([
-            'username' => 'admin_biro3',
-            'name' => 'Admin Biro 3 UKDW',
+            'username' => 'superadmin',
+            'name' => 'Super Administrator UKDW',
             'password' => Hash::make('password123'),
-            'role' => 'admin_biro3',
+            'role' => 'superadmin',
             'must_change_password' => false,
         ]);
 
@@ -56,13 +57,12 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
             'order' => 1,
         ]);
 
-        $response = $this->actingAs($this->admin)->get('/biro3/pertanyaan');
+        $response = $this->actingAs($this->admin)->get('/superadmin/pertanyaan');
         $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => 
-            $page->component('AdminBiroTiga/Pertanyaan/Index')
-                ->has('questions')
-                ->has('availableJumpTargets')
-                ->has('targetQuestionMap')
+        $response->assertInertia(fn ($page) => $page->component('SuperAdmin/Pertanyaan/Index')
+            ->has('questions')
+            ->has('availableJumpTargets')
+            ->has('targetQuestionMap')
         );
     }
 
@@ -90,7 +90,7 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
         ]);
 
         // Pindahkan Q2 ke atas
-        $response = $this->actingAs($this->admin)->post('/biro3/pertanyaan/reorder', [
+        $response = $this->actingAs($this->admin)->post('/superadmin/pertanyaan/reorder', [
             'id' => $q2->id,
             'direction' => 'up',
         ]);
@@ -114,7 +114,7 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
             'order' => 1,
         ]);
 
-        $response = $this->actingAs($this->admin)->post("/biro3/pertanyaan/{$q->id}/options", [
+        $response = $this->actingAs($this->admin)->post("/superadmin/pertanyaan/{$q->id}/options", [
             'option_text' => 'Sebelum lulus',
             'jump_to' => null,
         ]);

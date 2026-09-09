@@ -189,3 +189,27 @@ STANDAR DOKUMENTASI KODE & ALUR HUBUNGAN BACKEND-INERTIA-FRONTEND (STEP 9)
 4. Kuesioner Khusus (F13 & F17):
    - F13 (multiple_number): Input gaji format ribuan (suffix .000), total salary dihitung reaktif dan tersimpan otomatis di database (`answer_json.total` & `answer_text`).
    - F17 (komparasi berdampingan): Perbandingan Kolom A (Kemampuan Diri Saat Lulus) vs Kolom B (Kontribusi Kampus UKDW) dengan tabel rapi, skala 1 s/d 5, dan indikator komparasi minimalis tanpa overlap/clipping.
+
+5. Sinkronisasi Dinamis Kuesioner Superadmin ke Alumni & Aturan Khusus F17:
+   - **Mekanisme Real-Time**: Perubahan, penambahan, atau penghapusan butir pertanyaan serta opsi oleh Superadmin langsung termuat secara otomatis saat alumni membuka kuesioner tanpa perlu kompilasi ulang kode (karena `KuesionerController` membaca langsung dari database Eloquent).
+   - **Deteksi Otomatis F17**: Frontend `Kuesioner.vue` mendeteksi keberadaan pertanyaan berawalan kode `F17-` untuk mengaktifkan antarmuka tabel komparasi dua sisi (A vs B).
+   - **Aturan Berpasangan F17**: Superadmin harus menambahkan pertanyaan dalam jumlah genap (berpasangan A dan B):
+     * Pertanyaan A: Menilai kemampuan diri sendiri (skala 1 s/d 5).
+     * Pertanyaan B: Menilai kontribusi perguruan tinggi (skala 1 s/d 5).
+     * Nama aspek diambil otomatis dari teks pertanyaan A sebelum tanda strip (`getCleanAspectName`).
+   - **Pertanyaan Non-F17**: Secara dinamis dirender otomatis mengikuti nilai `type` pertanyaan (`single_choice`, `multiple_choice`, `text`, `number`, `multiple_number`, `textarea`).
+
+6. Arsitektur Modular Modul Kelola Pertanyaan Superadmin:
+   - **Modular Controller (Backend)**:
+     * `DaftarPertanyaanController.php`: Menangani pemuatan data butir pertanyaan, section, opsi, dan mapping alur lompatan (*jump logic*).
+     * `SimpanPertanyaanController.php`: Menangani operasi Create, Update, Delete, dan Reorder urutan posisi pertanyaan dalam section.
+     * `KelolaOpsiController.php`: Menangani operasi Create, Update, Delete opsi jawaban beserta target branching `jump_to`.
+   - **Modular Komponen (Frontend Vue)**:
+     * `Navbar.vue`: Komponen navigasi terpusat (1 file) resmi SuperAdmin dengan branding UKDW, menu aktif, dan konfirmasi logout SweetAlert2.
+     * `SectionTabs.vue`: Navigasi horizontal antar-section kuesioner dengan badge jumlah soal.
+     * `QuestionCard.vue`: Kartu butir pertanyaan individu dengan kontrol aksi naik/turun urutan, edit/hapus soal, serta daftar opsi jawaban.
+     * `QuestionModal.vue`: Modal popup dialog tambah & edit pertanyaan kuesioner.
+     * `OptionModal.vue`: Modal popup dialog tambah & edit pilihan opsi jawaban dan target lompatan jump logic.
+   - **Integrasi SweetAlert2**:
+     * Konfirmasi hapus pertanyaan dan opsi jawaban dialog interaktif (`Swal.fire`).
+     * Notifikasi keberhasilan dan error validasi dengan styling hijau emerald UKDW (`#005B3C`).

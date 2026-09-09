@@ -26,3 +26,8 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /scratch
+/.agents/skills/
+/.claude/
+/.mcp.json
+/boost.json
+/opencode.json

@@ -1,91 +1,105 @@
 <?php
 
+use App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DaftarAlumniController;
+use App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DetailAlumniController;
+use App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController;
+use App\Http\Controllers\Alumni\Dashboard\DashboardController;
+use App\Http\Controllers\Alumni\Kuesioner\KuesionerController;
+use App\Http\Controllers\Alumni\Kuesioner\SimpanJawabanController;
+use App\Http\Controllers\Alumni\Profil\ProfilController;
+use App\Http\Controllers\Alumni\Profil\SimpanProfilController;
+use App\Http\Controllers\Otentikasi\LoginController;
+use App\Http\Controllers\Otentikasi\UbahKataSandiController;
+use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\DaftarPertanyaanController;
+use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaOpsiController;
+use App\Http\Controllers\SuperAdmin\KelolaPertanyaan\SimpanPertanyaanController;
+use App\Http\Controllers\Tamu\BerandaController;
 use Illuminate\Support\Facades\Route;
 
 // =========================================================================
 // Rute Tamu (Guest)
 // =========================================================================
-Route::get('/', [\App\Http\Controllers\Tamu\BerandaController::class, 'tampilkanBeranda']);
+Route::get('/', [BerandaController::class, 'tampilkanBeranda']);
 
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [\App\Http\Controllers\Otentikasi\LoginController::class, 'tampilkanHalamanLogin'])->name('login');
-    Route::post('/login', [\App\Http\Controllers\Otentikasi\LoginController::class, 'prosesLogin']);
+    Route::get('/login', [LoginController::class, 'tampilkanHalamanLogin'])->name('login');
+    Route::post('/login', [LoginController::class, 'prosesLogin']);
 });
 
 // =========================================================================
 // Rute Otentikasi Sesi (Logout)
 // =========================================================================
 // Rute logout mendukung method POST & GET agar selalu berhasil mengarahkan pengguna kembali ke Beranda (Home)
-Route::match(['get', 'post'], '/logout', [\App\Http\Controllers\Otentikasi\LoginController::class, 'prosesLogout'])->name('logout');
+Route::match(['get', 'post'], '/logout', [LoginController::class, 'prosesLogout'])->name('logout');
 
 // =========================================================================
 // Rute Terotentikasi (Authenticated)
 // =========================================================================
 Route::middleware('auth')->group(function () {
-    
+
     // Ganti kata sandi wajib
-    Route::get('/change-password', [\App\Http\Controllers\Otentikasi\UbahKataSandiController::class, 'tampilkanUbahKataSandi'])->name('change-password');
-    Route::post('/change-password', [\App\Http\Controllers\Otentikasi\UbahKataSandiController::class, 'prosesUbahKataSandi']);
+    Route::get('/change-password', [UbahKataSandiController::class, 'tampilkanUbahKataSandi'])->name('change-password');
+    Route::post('/change-password', [UbahKataSandiController::class, 'prosesUbahKataSandi']);
 
     // Rute yang mengharuskan password bawaan sudah diganti
     Route::middleware('must_change_password')->group(function () {
-        
+
         // -----------------------------------------------------------------
         // Rute Alumni
         // -----------------------------------------------------------------
         Route::middleware('role:alumni')->group(function () {
             // Dashboard
-            Route::get('/alumni/dashboard', [\App\Http\Controllers\Alumni\Dashboard\DashboardController::class, 'tampilkanDashboard']);
-            
+            Route::get('/alumni/dashboard', [DashboardController::class, 'tampilkanDashboard']);
+
             // Profil
-            Route::get('/alumni/profile', [\App\Http\Controllers\Alumni\Profil\ProfilController::class, 'tampilkanHalamanProfil'])->name('alumni.profile');
-            Route::post('/alumni/profile', [\App\Http\Controllers\Alumni\Profil\SimpanProfilController::class, 'simpanPerubahanProfil']);
-            Route::post('/alumni/company', [\App\Http\Controllers\Alumni\Profil\SimpanProfilController::class, 'tambahPerusahaanBaru'])->name('alumni.company.store');
-            
+            Route::get('/alumni/profile', [ProfilController::class, 'tampilkanHalamanProfil'])->name('alumni.profile');
+            Route::post('/alumni/profile', [SimpanProfilController::class, 'simpanPerubahanProfil']);
+            Route::post('/alumni/company', [SimpanProfilController::class, 'tambahPerusahaanBaru'])->name('alumni.company.store');
+
             // Kuesioner
-            Route::get('/alumni/kuesioner', [\App\Http\Controllers\Alumni\Kuesioner\KuesionerController::class, 'tampilkanKuesioner']);
-            Route::post('/alumni/kuesioner', [\App\Http\Controllers\Alumni\Kuesioner\SimpanJawabanController::class, 'simpanJawabanKuesioner']);
+            Route::get('/alumni/kuesioner', [KuesionerController::class, 'tampilkanKuesioner']);
+            Route::post('/alumni/kuesioner', [SimpanJawabanController::class, 'simpanJawabanKuesioner']);
         });
-        
+
         // -----------------------------------------------------------------
         // Rute Admin Biro 3 (Biro Kemahasiswaan, Alumni & Pengembangan Karir)
         // -----------------------------------------------------------------
         Route::middleware('role:admin_biro3')->group(function () {
             // Dashboard Utama Biro 3
-            Route::get('/biro3/dashboard', [\App\Http\Controllers\AdminBiroTiga\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('biro3.dashboard');
+            Route::get('/biro3/dashboard', [App\Http\Controllers\AdminBiroTiga\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('biro3.dashboard');
 
             // Kelola Data Alumni, Verifikasi, & Sinkronisasi Profil LinkedIn
-            Route::get('/biro3/alumni', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DaftarAlumniController::class, 'tampilkanDaftarAlumni'])->name('biro3.alumni.index');
-            Route::get('/biro3/alumni/{id}', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DetailAlumniController::class, 'tampilkanDetailAlumni'])->name('biro3.alumni.show');
-            Route::post('/biro3/alumni/{id}/sync-linkedin', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController::class, 'sinkronisasiDataLinkedin'])->name('biro3.alumni.sync');
-            Route::post('/biro3/alumni/{id}/save-linkedin', [\App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController::class, 'simpanDataLinkedin'])->name('biro3.alumni.save');
+            Route::get('/biro3/alumni', [DaftarAlumniController::class, 'tampilkanDaftarAlumni'])->name('biro3.alumni.index');
+            Route::get('/biro3/alumni/{id}', [DetailAlumniController::class, 'tampilkanDetailAlumni'])->name('biro3.alumni.show');
+            Route::post('/biro3/alumni/{id}/sync-linkedin', [SinkronisasiLinkedinController::class, 'sinkronisasiDataLinkedin'])->name('biro3.alumni.sync');
+            Route::post('/biro3/alumni/{id}/save-linkedin', [SinkronisasiLinkedinController::class, 'simpanDataLinkedin'])->name('biro3.alumni.save');
         });
-        
+
         // -----------------------------------------------------------------
         // Rute Admin Prodi (Program Studi)
         // -----------------------------------------------------------------
         Route::middleware('role:admin_prodi')->group(function () {
             // Dashboard Utama Program Studi
-            Route::get('/prodi/dashboard', [\App\Http\Controllers\AdminProdi\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('prodi.dashboard');
+            Route::get('/prodi/dashboard', [App\Http\Controllers\AdminProdi\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('prodi.dashboard');
         });
-        
+
         // -----------------------------------------------------------------
         // Rute Superadmin (Otoritas Tertinggi & Pengaturan Instrumen Kuesioner)
         // -----------------------------------------------------------------
         Route::middleware('role:superadmin')->group(function () {
             // Dashboard Utama Superadmin
-            Route::get('/superadmin/dashboard', [\App\Http\Controllers\SuperAdmin\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('superadmin.dashboard');
+            Route::get('/superadmin/dashboard', [App\Http\Controllers\SuperAdmin\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('superadmin.dashboard');
 
-            // Kelola Butir Pertanyaan, Opsi Jawaban, & Alur Branching Kuesioner
-            Route::get('/superadmin/pertanyaan', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'index'])->name('superadmin.pertanyaan.index');
-            Route::post('/superadmin/pertanyaan', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'store'])->name('superadmin.pertanyaan.store');
-            Route::post('/superadmin/pertanyaan/reorder', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'reorder'])->name('superadmin.pertanyaan.reorder');
-            Route::put('/superadmin/pertanyaan/{id}', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'update'])->name('superadmin.pertanyaan.update');
-            Route::delete('/superadmin/pertanyaan/{id}', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'destroy'])->name('superadmin.pertanyaan.destroy');
-            Route::post('/superadmin/pertanyaan/{questionId}/options', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'storeOption'])->name('superadmin.pertanyaan.options.store');
-            Route::put('/superadmin/pertanyaan/options/{optionId}', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'updateOption'])->name('superadmin.pertanyaan.options.update');
-            Route::delete('/superadmin/pertanyaan/options/{optionId}', [\App\Http\Controllers\SuperAdmin\KelolaPertanyaan\KelolaPertanyaanController::class, 'destroyOption'])->name('superadmin.pertanyaan.options.destroy');
+            // Kelola Butir Pertanyaan, Opsi Jawaban, & Alur Branching Kuesioner (Modular Controllers)
+            Route::get('/superadmin/pertanyaan', [DaftarPertanyaanController::class, 'index'])->name('superadmin.pertanyaan.index');
+            Route::post('/superadmin/pertanyaan', [SimpanPertanyaanController::class, 'store'])->name('superadmin.pertanyaan.store');
+            Route::post('/superadmin/pertanyaan/reorder', [SimpanPertanyaanController::class, 'reorder'])->name('superadmin.pertanyaan.reorder');
+            Route::put('/superadmin/pertanyaan/{id}', [SimpanPertanyaanController::class, 'update'])->name('superadmin.pertanyaan.update');
+            Route::delete('/superadmin/pertanyaan/{id}', [SimpanPertanyaanController::class, 'destroy'])->name('superadmin.pertanyaan.destroy');
+            Route::post('/superadmin/pertanyaan/{questionId}/options', [KelolaOpsiController::class, 'storeOption'])->name('superadmin.pertanyaan.options.store');
+            Route::put('/superadmin/pertanyaan/options/{optionId}', [KelolaOpsiController::class, 'updateOption'])->name('superadmin.pertanyaan.options.update');
+            Route::delete('/superadmin/pertanyaan/options/{optionId}', [KelolaOpsiController::class, 'destroyOption'])->name('superadmin.pertanyaan.options.destroy');
         });
-        
+
     });
 });
