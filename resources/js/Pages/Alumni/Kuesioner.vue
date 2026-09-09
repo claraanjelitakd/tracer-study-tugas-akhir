@@ -70,6 +70,26 @@ const getInitialAnswers = () => {
                         }
                     }
                 }
+
+                // Normalisasi struktur multiple_number agar setiap opsi terisi (dan dalam satuan ribuan jika bernilai kelipatan 1000)
+                if (q.type === 'multiple_number') {
+                    if (!base[q.id] || typeof base[q.id] !== 'object') {
+                        base[q.id] = {};
+                    }
+                    if (q.options) {
+                        q.options.forEach(o => {
+                            const val = base[q.id][o.code];
+                            if (val !== undefined && val !== null && val !== '' && !isNaN(val)) {
+                                const num = parseInt(val, 10);
+                                base[q.id][o.code] = (num >= 1000 && num % 1000 === 0) ? (num / 1000) : num;
+                            } else {
+                                if (base[q.id][o.code] === undefined) {
+                                    base[q.id][o.code] = '';
+                                }
+                            }
+                        });
+                    }
+                }
             });
         });
     }
@@ -345,6 +365,81 @@ const filterNumberInput = (event) => {
     }
 };
 
+// Format angka ke mata uang Rupiah standar
+const formatRupiah = (val) => {
+    const num = Number(val) || 0;
+    return 'Rp ' + num.toLocaleString('id-ID');
+};
+
+// Menghitung total salary / total nominal untuk pertanyaan multiple_number (F13 dll)
+const getMultipleNumberTotal = (q) => {
+    if (!form.answers[q.id] || typeof form.answers[q.id] !== 'object') return 0;
+    let total = 0;
+    q.options?.forEach(opt => {
+        const val = form.answers[q.id][opt.code];
+        if (val !== null && val !== '' && !isNaN(val)) {
+            const num = parseInt(val, 10);
+            if (num > 0) {
+                // Jika alumni mengisi dalam ribuan (< 1.000.000), kalikan 1000. Jika sudah nominal penuh (>= 1.000.000), ambil nilainya langsung.
+                total += (num < 1000000 ? num * 1000 : num);
+            }
+        }
+    });
+    return total;
+};
+
+// Mendapatkan nilai nominal rupiah penuh terkonversi untuk preview per item multiple_number
+const getMultipleNumberItemPreview = (val) => {
+    if (val === null || val === '' || isNaN(val)) return 'Rp 0';
+    const num = parseInt(val, 10);
+    if (num <= 0) return 'Rp 0';
+    const actual = num < 1000000 ? num * 1000 : num;
+    return formatRupiah(actual);
+};
+
+// Pemetaan label rating ke skor angka 1 s/d 5 untuk instrumen F17
+const ratingScores = {
+    'Sangat Rendah': 1,
+    'Rendah': 2,
+    'Cukup': 3,
+    'Tinggi': 4,
+    'Sangat Tinggi': 5,
+};
+
+const getRatingScore = (val) => {
+    if (val === undefined || val === null || val === '') return null;
+    if (ratingScores[val]) return ratingScores[val];
+    const n = Number(val);
+    if (!isNaN(n) && n >= 1 && n <= 5) return n;
+    return null;
+};
+
+// Indikator ringkas perbandingan nilai A (Kemampuan Diri) dan B (Kontribusi Kampus)
+const getF17ComparisonBadge = (valA, valB) => {
+    const a = getRatingScore(valA);
+    const b = getRatingScore(valB);
+
+    if (a !== null && b !== null) {
+        if (a > b) {
+            return {
+                text: `A (${a}) > B (${b})`,
+                badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            };
+        } else if (a === b) {
+            return {
+                text: `A (${a}) = B (${b})`,
+                badgeClass: 'bg-purple-50 text-purple-800 border-purple-200'
+            };
+        } else {
+            return {
+                text: `A (${a}) < B (${b})`,
+                badgeClass: 'bg-blue-50 text-blue-800 border-blue-200'
+            };
+        }
+    }
+    return null;
+};
+
 // Navigasi Section: Berpindah ke section tertentu via stepper
 const setSection = (index) => {
     activeSectionIndex.value = index;
@@ -488,115 +583,105 @@ const handleNextOrSubmit = () => {
                     <!-- TAMPILAN KHUSUS F17: Evaluasi Kompetensi Berdampingan (A vs B) -->
                     <div v-if="isF17Section" class="space-y-6">
                         <!-- Header Banner F17 -->
-                        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm">
-                            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+                        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <span class="inline-block bg-[#FFD700] text-[#005B3C] text-xs font-black uppercase px-3 py-1 rounded-full mb-2 tracking-wider shadow-xs">
-                                        Instrumen F17
-                                    </span>
-                                    <h2 class="text-2xl font-black text-gray-800">Evaluasi Kompetensi Lulusan & Kontribusi Kampus</h2>
-                                    <p class="text-sm font-semibold text-gray-500 mt-1">Bandingkan tingkat kompetensi yang Anda kuasai saat lulus dengan kontribusi yang diberikan oleh perguruan tinggi.</p>
+                                    <div class="flex items-center gap-2 mb-1.5">
+                                        <span class="inline-block bg-[#005B3C] text-white text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md tracking-wider">
+                                            Instrumen F17
+                                        </span>
+                                        <span class="text-xs text-gray-500 font-medium">Evaluasi Kompetensi</span>
+                                    </div>
+                                    <h2 class="text-xl md:text-2xl font-black text-gray-900">
+                                        Perbandingan Penguasaan Diri vs Kontribusi Kampus
+                                    </h2>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Bandingkan tingkat kompetensi yang Anda kuasai saat lulus (Kolom A) dengan kontribusi perguruan tinggi UKDW (Kolom B).
+                                    </p>
                                 </div>
                                 <!-- Progress Counter -->
-                                <div class="flex items-center gap-3 bg-green-50 px-4 py-2.5 rounded-2xl shrink-0 shadow-xs">
+                                <div class="flex items-center gap-3 bg-gray-50 px-4 py-2.5 rounded-xl shrink-0 border border-gray-200/80">
                                     <div class="text-right">
-                                        <div class="text-xs font-bold text-gray-500">Progres Pengisian</div>
-                                        <div class="text-lg font-black text-[#005B3C]">{{ f17CompletedCount }} / {{ f17AspectPairs.length }} Aspek</div>
+                                        <div class="text-[11px] font-semibold text-gray-500">Progres Pengisian</div>
+                                        <div class="text-base font-black text-[#005B3C]">
+                                            {{ f17CompletedCount }} / {{ f17AspectPairs.length }} Aspek
+                                        </div>
                                     </div>
-                                    <div class="w-10 h-10 rounded-full bg-[#005B3C] text-white flex items-center justify-center font-black text-xs shadow-xs">
+                                    <div class="w-9 h-9 rounded-lg bg-[#005B3C] text-white flex items-center justify-center font-black text-xs shadow-xs">
                                         {{ Math.round((f17CompletedCount / (f17AspectPairs.length || 1)) * 100) }}%
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Dua Kolom Petunjuk A & B -->
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-                                <div class="p-4 rounded-2xl bg-emerald-50 flex items-start gap-3 shadow-xs">
-                                    <span class="w-8 h-8 rounded-xl bg-[#005B3C] text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">A</span>
-                                    <div>
-                                        <div class="font-black text-[#005B3C] text-sm">Tingkat Penguasaan Kompetensi Saat Lulus</div>
-                                        <div class="text-xs font-medium text-emerald-900 mt-0.5">Pada saat lulus, pada tingkat mana kompetensi di bawah ini Anda kuasai?</div>
-                                    </div>
-                                </div>
-                                <div class="p-4 rounded-2xl bg-amber-50 flex items-start gap-3 shadow-xs">
-                                    <span class="w-8 h-8 rounded-xl bg-[#FFD700] text-[#005B3C] flex items-center justify-center font-black text-sm shrink-0 shadow-xs">B</span>
-                                    <div>
-                                        <div class="font-black text-amber-900 text-sm">Kontribusi Perguruan Tinggi (Kampus)</div>
-                                        <div class="text-xs font-medium text-amber-950 mt-0.5">Pada saat lulus, bagaimana kontribusi perguruan tinggi dalam hal kompetensi di bawah ini?</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Keterangan Skala 1-5 -->
-                            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-5 pt-4 border-t border-gray-100 text-xs font-bold text-gray-600">
-                                <span class="text-gray-400 font-extrabold uppercase tracking-wider text-[11px]">Skala Penilaian:</span>
-                                <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-[10px] font-black shadow-xs">1</span> Sangat Rendah</span>
-                                <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-[10px] font-black shadow-xs">2</span> Rendah</span>
-                                <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-[10px] font-black shadow-xs">3</span> Cukup</span>
-                                <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-[10px] font-black shadow-xs">4</span> Tinggi</span>
-                                <span class="inline-flex items-center gap-1.5"><span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-[10px] font-black shadow-xs">5</span> Sangat Tinggi</span>
-                            </div>
                         </div>
 
                         <!-- Tabel Komparasi Berdampingan -->
-                        <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden">
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="overflow-x-auto">
-                                <table class="w-full text-sm min-w-[840px]">
+                                <table class="w-full text-sm min-w-[840px] border-collapse">
                                     <thead>
-                                        <tr class="bg-gray-50/80 text-gray-700">
-                                            <!-- Header Sisi A -->
-                                            <th class="py-4 px-3 w-[270px] bg-emerald-50/70">
-                                                <div class="flex items-center justify-center gap-2 mb-2">
-                                                    <span class="px-2 py-0.5 rounded-lg bg-[#005B3C] text-white text-xs font-black shadow-xs">A</span>
-                                                    <span class="font-black text-[#005B3C] text-xs uppercase tracking-wide">Kompetensi Dikuasai</span>
+                                        <tr class="border-b border-gray-200">
+                                            <!-- Header Kolom A (Kemampuan Diri) -->
+                                            <th class="py-4 px-4 w-[330px] bg-emerald-50/70 text-left border-r border-gray-200">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="w-6 h-6 rounded-md bg-[#005B3C] text-white flex items-center justify-center text-xs font-black">A</span>
+                                                    <span class="font-black text-emerald-950 text-sm">Kemampuan Diri Anda</span>
                                                 </div>
-                                                <div class="flex justify-between items-center px-1 text-xs font-bold text-gray-500">
-                                                    <span class="text-[11px] text-emerald-800">Sangat Rendah</span>
-                                                    <div class="flex gap-2">
-                                                        <span v-for="n in 5" :key="'ha'+n" class="w-7 text-center font-black text-emerald-900">{{ n }}</span>
+                                                <div class="text-xs text-emerald-800 font-medium mb-3">
+                                                    Tingkat kompetensi yang Anda kuasai saat lulus
+                                                </div>
+                                                <div class="flex items-center justify-between max-w-[240px] mx-auto px-1 text-xs font-bold text-emerald-900">
+                                                    <span class="text-[11px] text-emerald-700 font-medium">1 (Rendah)</span>
+                                                    <div class="flex gap-4">
+                                                        <span class="w-6 text-center">2</span>
+                                                        <span class="w-6 text-center">3</span>
+                                                        <span class="w-6 text-center">4</span>
                                                     </div>
-                                                    <span class="text-[11px] text-emerald-800">Sangat Tinggi</span>
+                                                    <span class="text-[11px] text-emerald-700 font-medium">5 (Tinggi)</span>
                                                 </div>
                                             </th>
 
-                                            <!-- Header Tengah (Aspek) -->
-                                            <th class="py-4 px-4 text-center font-black text-gray-700 uppercase tracking-wide text-xs">
+                                            <!-- Header Tengah (Aspek Kompetensi) -->
+                                            <th class="py-4 px-4 text-center bg-gray-50 text-gray-800 font-black text-xs uppercase tracking-wider">
                                                 Aspek Kompetensi
                                             </th>
 
-                                            <!-- Header Sisi B -->
-                                            <th class="py-4 px-3 w-[270px] bg-amber-50/70">
-                                                <div class="flex items-center justify-center gap-2 mb-2">
-                                                    <span class="px-2 py-0.5 rounded-lg bg-[#FFD700] text-[#005B3C] text-xs font-black shadow-xs">B</span>
-                                                    <span class="font-black text-amber-900 text-xs uppercase tracking-wide">Kontribusi Kampus</span>
+                                            <!-- Header Kolom B (Kontribusi Kampus) -->
+                                            <th class="py-4 px-4 w-[330px] bg-blue-50/70 text-left border-l border-gray-200">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="w-6 h-6 rounded-md bg-blue-700 text-white flex items-center justify-center text-xs font-black">B</span>
+                                                    <span class="font-black text-blue-950 text-sm">Kontribusi Kampus UKDW</span>
                                                 </div>
-                                                <div class="flex justify-between items-center px-1 text-xs font-bold text-gray-500">
-                                                    <span class="text-[11px] text-amber-900">Sangat Rendah</span>
-                                                    <div class="flex gap-2">
-                                                        <span v-for="n in 5" :key="'hb'+n" class="w-7 text-center font-black text-amber-950">{{ n }}</span>
+                                                <div class="text-xs text-blue-800 font-medium mb-3">
+                                                    Peran kurikulum & dosen UKDW membekali Anda
+                                                </div>
+                                                <div class="flex items-center justify-between max-w-[240px] mx-auto px-1 text-xs font-bold text-blue-900">
+                                                    <span class="text-[11px] text-blue-700 font-medium">1 (Rendah)</span>
+                                                    <div class="flex gap-4">
+                                                        <span class="w-6 text-center">2</span>
+                                                        <span class="w-6 text-center">3</span>
+                                                        <span class="w-6 text-center">4</span>
                                                     </div>
-                                                    <span class="text-[11px] text-amber-900">Sangat Tinggi</span>
+                                                    <span class="text-[11px] text-blue-700 font-medium">5 (Tinggi)</span>
                                                 </div>
                                             </th>
                                         </tr>
                                     </thead>
+
                                     <tbody class="divide-y divide-gray-100">
                                         <tr 
                                             v-for="pair in f17AspectPairs" 
                                             :key="'pair_' + pair.aspectNumber" 
-                                            class="hover:bg-gray-50/80 transition-colors"
-                                            :class="[
-                                                form.answers[pair.qA.id] && form.answers[pair.qB.id] ? 'bg-green-50/40' : ''
-                                            ]"
+                                            class="transition-colors hover:bg-gray-50/60"
+                                            :class="{'bg-gray-50/30': pair.aspectNumber % 2 === 0}"
                                         >
-                                            <!-- Opsi Lingkaran Sisi A -->
-                                            <td class="py-3 px-3 bg-emerald-50/20">
+                                            <!-- Pilihan Kolom A -->
+                                            <td class="py-4 px-4 bg-emerald-50/20 border-r border-gray-200">
                                                 <div class="flex items-center justify-between max-w-[240px] mx-auto">
                                                     <label 
                                                         v-for="(opt, idx) in pair.qA.options" 
                                                         :key="opt.id" 
-                                                        class="cursor-pointer relative p-0.5 select-none"
-                                                        :title="opt.option_text"
+                                                        class="cursor-pointer select-none"
+                                                        :title="'Kolom A: ' + opt.option_text"
                                                     >
                                                         <input 
                                                             type="radio" 
@@ -607,11 +692,11 @@ const handleNextOrSubmit = () => {
                                                             class="sr-only"
                                                         >
                                                         <div 
-                                                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black text-sm transition-all duration-150 shadow-xs"
+                                                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all"
                                                             :class="[
                                                                 form.answers[pair.qA.id] === opt.option_text
-                                                                    ? 'bg-[#005B3C] text-white shadow-sm scale-110'
-                                                                    : 'bg-white text-gray-600 hover:bg-emerald-100 hover:text-[#005B3C]'
+                                                                    ? 'bg-[#005B3C] text-white ring-2 ring-offset-1 ring-emerald-500 shadow-sm scale-105 font-black'
+                                                                    : 'bg-white text-gray-700 border border-emerald-300 hover:bg-emerald-100/70 hover:border-emerald-400'
                                                             ]"
                                                         >
                                                             {{ idx + 1 }}
@@ -620,26 +705,31 @@ const handleNextOrSubmit = () => {
                                                 </div>
                                             </td>
 
-                                            <!-- Nama Aspek (Tengah) -->
-                                            <td class="py-3 px-4 text-center">
-                                                <div class="flex flex-col items-center justify-center gap-1">
-                                                    <span class="font-black text-gray-800 text-sm md:text-base leading-snug">
+                                            <!-- Aspek Kompetensi (Tengah) -->
+                                            <td class="py-4 px-5 text-center">
+                                                <div class="flex flex-col items-center justify-center gap-1.5">
+                                                    <span class="font-bold text-gray-900 text-sm md:text-base leading-snug">
                                                         {{ pair.aspectNumber }}. {{ pair.aspectName }}
                                                     </span>
-                                                    <span class="inline-block text-[11px] font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md shadow-xs">
-                                                        {{ pair.qA.code }} & {{ pair.qB.code }}
+                                                    <!-- Badge perbandingan ringkas (A > B, A = B, A < B) jika keduanya terisi -->
+                                                    <span 
+                                                        v-if="getF17ComparisonBadge(form.answers[pair.qA.id], form.answers[pair.qB.id])"
+                                                        class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold border"
+                                                        :class="getF17ComparisonBadge(form.answers[pair.qA.id], form.answers[pair.qB.id]).badgeClass"
+                                                    >
+                                                        {{ getF17ComparisonBadge(form.answers[pair.qA.id], form.answers[pair.qB.id]).text }}
                                                     </span>
                                                 </div>
                                             </td>
 
-                                            <!-- Opsi Lingkaran Sisi B -->
-                                            <td class="py-3 px-3 bg-amber-50/20">
+                                            <!-- Pilihan Kolom B -->
+                                            <td class="py-4 px-4 bg-blue-50/20 border-l border-gray-200">
                                                 <div class="flex items-center justify-between max-w-[240px] mx-auto">
                                                     <label 
                                                         v-for="(opt, idx) in pair.qB.options" 
                                                         :key="opt.id" 
-                                                        class="cursor-pointer relative p-0.5 select-none"
-                                                        :title="opt.option_text"
+                                                        class="cursor-pointer select-none"
+                                                        :title="'Kolom B: ' + opt.option_text"
                                                     >
                                                         <input 
                                                             type="radio" 
@@ -650,11 +740,11 @@ const handleNextOrSubmit = () => {
                                                             class="sr-only"
                                                         >
                                                         <div 
-                                                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black text-sm transition-all duration-150 shadow-xs"
+                                                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all"
                                                             :class="[
                                                                 form.answers[pair.qB.id] === opt.option_text
-                                                                    ? 'bg-[#FFD700] text-[#005B3C] shadow-sm scale-110'
-                                                                    : 'bg-white text-gray-600 hover:bg-amber-100 hover:text-amber-900'
+                                                                    ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-500 shadow-sm scale-105 font-black'
+                                                                    : 'bg-white text-gray-700 border border-blue-300 hover:bg-blue-100/70 hover:border-blue-400'
                                                             ]"
                                                         >
                                                             {{ idx + 1 }}
@@ -878,20 +968,72 @@ const handleNextOrSubmit = () => {
 
                                 <!-- Tipe Multiple Number (F13 dll) -->
                                 <div v-else-if="q.type === 'multiple_number'" class="space-y-4">
-                                    <div v-for="opt in q.options" :key="opt.id" class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/90 rounded-2xl gap-3 shadow-xs">
-                                        <label class="font-bold text-gray-700 text-base">
-                                            {{ opt.option_text }}
-                                        </label>
-                                        <div class="relative w-full sm:w-64">
-                                            <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">Rp</span>
-                                            <input 
-                                                type="number" 
-                                                v-model="form.answers[q.id][opt.code]"
-                                                @keydown="filterNumberInput"
-                                                min="0"
-                                                placeholder="0"
-                                                class="w-full pl-12 pr-4 py-3 rounded-xl bg-white font-mono font-bold focus:ring-2 focus:ring-[#005B3C] border-0 shadow-xs text-right text-lg"
-                                            >
+                                    <!-- Petunjuk Pengisian Satuan Ribuan -->
+                                    <div class="flex items-center gap-2.5 p-3.5 bg-emerald-50/90 border border-emerald-200/70 rounded-2xl text-xs sm:text-sm text-emerald-900 shadow-2xs">
+                                        <svg class="w-5 h-5 text-[#005B3C] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>
+                                            <strong>Petunjuk Pengisian:</strong> Masukkan nominal dalam satuan <strong>ribuan rupiah</strong> (akhiran <code class="bg-white px-1.5 py-0.5 rounded font-mono font-bold text-emerald-800 border border-emerald-200">.000</code> otomatis). Contoh: masukkan <span class="font-bold text-emerald-950 underline">5000</span> untuk <strong>Rp 5.000.000</strong>, atau <span class="font-bold text-emerald-950 underline">750</span> untuk <strong>Rp 750.000</strong>.
+                                        </span>
+                                    </div>
+
+                                    <!-- Daftar Opsi Input Finansial -->
+                                    <div v-for="opt in q.options" :key="opt.id" class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/90 rounded-2xl gap-3 shadow-xs border border-gray-100 hover:border-gray-200 transition-colors">
+                                        <div class="space-y-1">
+                                            <label class="font-bold text-gray-800 text-base">
+                                                {{ opt.option_text }}
+                                            </label>
+                                            <div class="text-xs text-gray-500 font-medium">
+                                                Konversi: <span class="font-bold text-[#005B3C]">{{ getMultipleNumberItemPreview(form.answers[q.id]?.[opt.code]) }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-col items-end gap-1 w-full sm:w-72">
+                                            <div class="relative w-full flex items-center rounded-xl bg-white border border-gray-200 shadow-xs focus-within:ring-2 focus-within:ring-[#005B3C] focus-within:border-transparent transition-all overflow-hidden">
+                                                <span class="pl-3.5 pr-1 font-bold text-gray-400 select-none text-base">Rp</span>
+                                                <input 
+                                                    type="number" 
+                                                    v-model="form.answers[q.id][opt.code]"
+                                                    @keydown="filterNumberInput"
+                                                    min="0"
+                                                    placeholder="0"
+                                                    class="w-full py-2.5 px-2 bg-transparent font-mono font-bold border-0 focus:ring-0 text-right text-lg text-gray-900 placeholder-gray-300"
+                                                >
+                                                <span class="pr-3.5 pl-1.5 font-mono font-bold text-gray-500 select-none text-base bg-gray-100/80 py-2.5 border-l border-gray-200">.000</span>
+                                            </div>
+                                            <!-- Peringatan jika alumni mengetik angka sangat besar (misal 5.000.000 padahal cukup 5000) -->
+                                            <div v-if="form.answers[q.id]?.[opt.code] >= 1000000" class="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md text-right w-full">
+                                                ⚠️ Nilai terbaca di atas Rp 1 Miliar. Jika maksud Anda Rp 5.000.000, cukup ketik <strong>5000</strong>.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Kartu Ringkasan Total Salary (Total Pendapatan) -->
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 bg-linear-to-r from-emerald-50 via-teal-50 to-emerald-100/60 rounded-2xl border-2 border-[#005B3C]/30 shadow-xs gap-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-[#005B3C] text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div class="text-xs uppercase tracking-wider font-extrabold text-[#005B3C]">
+                                                    Total Akumulasi
+                                                </div>
+                                                <div class="text-base font-black text-gray-900">
+                                                    Total Pendapatan (Total Salary)
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="text-right sm:pl-4">
+                                            <div class="text-xl sm:text-2xl font-black font-mono text-[#005B3C] tracking-tight">
+                                                {{ formatRupiah(getMultipleNumberTotal(q)) }}
+                                            </div>
+                                            <div class="text-[11px] text-gray-500 font-medium">
+                                                *Otomatis dihitung & tersimpan ke database
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

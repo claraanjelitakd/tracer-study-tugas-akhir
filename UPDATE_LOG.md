@@ -1,5 +1,34 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
+## [2026-09-09] Fitur Total Salary Reaktif, Format Pengisian Ribuan (Akhiran .000 Otomatis) & Perlindungan Kesalahan Data pada Kuesioner F13
+- **Kalkulasi & Tampilan Total Salary Reaktif (Pertanyaan `multiple_number` / F13)**:
+  - Menambahkan kartu ringkasan visual **Total Pendapatan (Total Salary)** dengan desain gradien hijau emerald yang elegan dan ikon finansial di bawah rincian pendapatan F13.
+  - Nilai total dikalkulasi secara reaktif secara *real-time* saat alumni mengetikkan atau mengubah angka pada komponen gaji mana pun (Pekerjaan Utama, Lembur & Tips, Pekerjaan Lainnya).
+  - Dilengkapi label `*Otomatis dihitung & tersimpan ke database`.
+- **Format Input Satuan Ribuan dengan Suffix `.000` Otomatis**:
+  - Mengubah input komponen pendapatan menjadi input group modern dengan prefix `Rp` di sisi kiri, angka rata kanan monospace tebal, dan badge suffix `.000` di sisi kanan.
+  - Memberikan petunjuk pengisian yang jelas: `* Nominal diisi dalam satuan ribuan rupiah (akhiran .000 otomatis). Contoh: masukkan 5000 untuk Rp 5.000.000, atau 750 untuk Rp 750.000`.
+  - Menambahkan konversi langsung di bawah masing-masing opsi: `Konversi: Rp 5.000.000`.
+- **Proteksi Cerdas Pencegahan Kesalahan Data (*Anti Double-Multiplication*)**:
+  - Frontend: Jika alumni mengetik angka sangat besar (>= 1.000.000, misal mengetik 5.000.000 karena belum terbiasa dengan akhiran .000), muncul peringatan instan: `⚠️ Nilai terbaca di atas Rp 1 Miliar. Jika maksud Anda Rp 5.000.000, cukup ketik 5000`.
+  - Backend: `SimpanJawabanController.php` secara cerdas mendeteksi angka: jika `< 1.000.000` dikalikan 1000 ke Rupiah penuh, namun jika `>= 1.000.000` tetap disimpan apa adanya untuk mencegah data membengkak menjadi miliaran rupiah.
+- **Penyimpanan & Pembaruan Otomatis Nilai Total di Database**:
+  - Kolom `answer_json` kini menyimpan rincian nominal rupiah penuh per kode opsi plus key akumulasi `'total'` (contoh: `{"F13-01": 6500000, "F13-02": 750000, "F13-03": 0, "total": 7250000}`).
+  - Kolom `answer_text` memuat rincian terformat rupiah beserta total pendapatan (`"Dari Pekerjaan Utama: Rp 6.500.000, ..., Total Pendapatan: Rp 7.250.000"`).
+  - Jika alumni mengedit salah satu nilai pendapatan dan menyimpan kembali, total salary di database otomatis ter-update dan tersinkronisasi.
+- **Normalisasi Nilai saat Memuat Kembali Kuesioner**:
+  - `KuesionerController.php` dan `Kuesioner.vue` (`getInitialAnswers`) secara otomatis membagi 1000 nilai tersimpan di database agar saat alumni membuka kembali kuesioner, angka di dalam kotak input berakhiran `.000` tetap konsisten (misal: 6.500.000 tampil sebagai 6500).
+- **Pengujian Otomatis (Feature Test)**:
+  - Membuat `tests/Feature/AlumniKuesionerMultipleNumberTest.php` dengan 4 skenario uji (penyimpanan ribuan & kalkulasi total, pembaruan total saat data diubah, normalisasi ke ribuan saat kuesioner dimuat, dan proteksi input nominal penuh). Seluruh tes lolos 100% (25 assertions).
+- **Penyempurnaan Tampilan Evaluasi Kompetensi F17 (Berdampingan Bersih & Anti-Overlap)**:
+  - Menyederhanakan tampilan agar intuitif, profesional, dan bebas dari instruksi berlebihan (*no bloated AI text/emojis*).
+  - Menghilangkan *sticky header* yang sebelumnya menyebabkan tombol pilihan baris terpotong/tertutup (*clipping bug*).
+  - Struktur tabel komparasi berdampingan:
+    - **Kolom (A) Kemampuan Diri Anda**: Taraf penguasaan kompetensi saat lulus dengan aksen hijau emerald dan skala 1 (Rendah) s/d 5 (Tinggi).
+    - **Kolom Tengah**: Nama aspek kompetensi yang bersih, dilengkapi *pill indicator* minimalis (`A > B`, `A = B`, `A < B`) jika kedua kolom telah diisi.
+    - **Kolom (B) Kontribusi Kampus UKDW**: Peran kurikulum dan perkuliahan almamater dengan aksen biru royal dan skala 1 (Rendah) s/d 5 (Tinggi).
+  - Menjaga proporsi visual yang seimbang, *padding* leluasa, dan pengalaman pengisian yang lancar di berbagai ukuran layar.
+
 ## [2026-09-08] Standarisasi Dokumentasi Edukatif Kode & Pemetaan Eksplisit Backend-Inertia-Frontend
 - **Penambahan Komentar Penjelasan Baris demi Baris pada Backend (Controller)**:
   - `Alumni/Dashboard/DashboardController.php`: Memberikan komentar penjelasan detail pada setiap baris logika pengecekan pengguna login, pencarian data alumni, penghitungan jumlah respon kuesioner dari database, pengecekan status kelengkapan profil, serta pemetaan paket data (props) ke Inertia.

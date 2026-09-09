@@ -74,6 +74,9 @@ ARSITEKTUR KUESIONER (STEP 4 & 5)
    - Jika bernilai NULL, pertanyaan berlaku umum untuk semua program studi.
    - Jika diisi, pertanyaan hanya disajikan untuk alumni prodi terkait (disaring otomatis di `KuesionerController` tanpa hardcode di Vue, misal: F2E untuk prodi Filsafat Keilahian kode 31).
    - Admin Biro 3 dapat memilih target program studi dan memantau statusnya via badge prodi di panel Kelola Pertanyaan.
+5. Khusus Evaluasi Kompetensi (F17 / Komparasi Dual Berdampingan):
+   - Pasangan pertanyaan berdampingan: Pertanyaan ganjil = Kolom A (Kemampuan Diri Anda / Tingkat Penguasaan), Pertanyaan genap = Kolom B (Kontribusi Perguruan Tinggi).
+   - Tampilan menggunakan tabel komparatif dengan sticky header, tema warna kontras (Hijau Emerald untuk Diri vs Biru Royal untuk Kampus), serta indikator komparasi dinamis (Diri > Kampus, Selaras, Kampus > Diri) pada kolom tengah.
 
 PANEL BIRO 3: DIREKTORI ALUMNI & STANDARISASI NAVIGASI (STEP 6)
 1. Syarat Tampil Alumni di Biro 3:
@@ -115,8 +118,10 @@ ARSITEKTUR & STANDARISASI PENYIMPANAN RESPONSES (STEP 7)
      - `answer_json`: Object terstruktur `{"selected": "Kira-kira ... bulan sebelum lulus", "input": "4"}`.
      - `answer_text`: Kalimat utuh yang menggantikan titik-titik (contoh: "Kira-kira 4 bulan sebelum lulus").
    - **Rincian Angka / Pendapatan** (`multiple_number`, seperti F13):
-     - `answer_json`: Object key-value numerik `{"F13-01": 6500000, "F13-02": 750000, "F13-03": 0}` untuk perhitungan rata-rata gaji.
-     - `answer_text`: Kalimat terformat dengan label dan rupiah (contoh: "Dari Pekerjaan Utama: Rp 6.500.000, Dari Lembur: Rp 750.000").
+     - Format Pengisian: Satuan ribuan rupiah dengan visual suffix `.000` otomatis (contoh: ketik 5000 untuk Rp 5.000.000, 750 untuk Rp 750.000). Dilengkapi peringatan pintar jika nominal diinput dalam jutaan penuh (>= 1.000.000) untuk mencegah kesalahan perkalian ganda.
+     - `answer_json`: Object key-value numerik dalam rupiah penuh serta nilai total akumulasi `{"F13-01": 6500000, "F13-02": 750000, "F13-03": 0, "total": 7250000}`.
+     - `answer_text`: Kalimat terformat rapi dengan label, rupiah, dan total akumulasi (contoh: "Dari Pekerjaan Utama: Rp 6.500.000, Dari Lembur dan Tips: Rp 750.000, Dari Pekerjaan Lainnya: Rp 0, Total Pendapatan: Rp 7.250.000").
+     - Total Salary: Terkalkulasi secara reaktif dan otomatis disinkronisasi/diperbarui di database setiap kali alumni mengubah rincian pendapatan.
 
 3. Integrasi & Sinkronisasi Profil Alumni (F1 s/d F2H):
    - Instrumen profil (F1, F2A, F2B, F2C, F2D, F2D1, F2E, F2E1, F2E2, F2E3, F2F, F2G, F2H) ditarik otomatis dari `data_akademiks`, `alumnis`, `companies`, dan `atasans` melalui `QuestionMapping`.
@@ -180,3 +185,7 @@ STANDAR DOKUMENTASI KODE & ALUR HUBUNGAN BACKEND-INERTIA-FRONTEND (STEP 9)
 3. Standar Komentar Kode:
    - Setiap Controller wajib mencantumkan komentar per-variabel untuk menjelaskan sumber data, tabel database yang digunakan, dan tujuan props yang dikirim ke Inertia.
    - Setiap Komponen Vue wajib mencantumkan komentar di bagian script yang merinci asal-usul props dan controller tujuan untuk setiap aksi (submit/logout).
+
+4. Kuesioner Khusus (F13 & F17):
+   - F13 (multiple_number): Input gaji format ribuan (suffix .000), total salary dihitung reaktif dan tersimpan otomatis di database (`answer_json.total` & `answer_text`).
+   - F17 (komparasi berdampingan): Perbandingan Kolom A (Kemampuan Diri Saat Lulus) vs Kolom B (Kontribusi Kampus UKDW) dengan tabel rapi, skala 1 s/d 5, dan indikator komparasi minimalis tanpa overlap/clipping.

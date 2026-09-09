@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Alumni\Kuesioner;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
+use App\Models\QuestionMapping;
 use App\Models\Questionnaire;
 use App\Models\Response;
+use App\Services\Kuesioner\KuesionerSyncService;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 /**
  * KuesionerController
- * 
+ *
  * Fungsi: Menampilkan daftar pertanyaan kuesioner kepada alumni.
  * Tujuan: Menyediakan data kuesioner yang sudah diformat rapi dari sisi backend sehingga Frontend (Vue) tidak perlu melakukan logika kompleks.
  */
@@ -25,7 +26,7 @@ class KuesionerController extends Controller
         $pengguna = Auth::user();
         $alumni = $pengguna->alumni;
 
-        if (!$alumni) {
+        if (! $alumni) {
             abort(403, 'Profil Alumni tidak ditemukan.');
         }
 
@@ -33,32 +34,32 @@ class KuesionerController extends Controller
         $alumni->load(['dataAkademik', 'company.province', 'company.kabupaten', 'atasan', 'user']);
 
         // Sinkronisasi otomatis data profil (Identitas & Perusahaan/Atasan) ke responses
-        \App\Services\Kuesioner\KuesionerSyncService::syncProfileResponses($alumni);
+        KuesionerSyncService::syncProfileResponses($alumni);
 
         // Ambil kuesioner aktif mulai dari Section 3 (Waktu Mulai Mencari Kerja).
         // Section 1 (Identitas) & Section 2 (Perusahaan & Atasan) tidak perlu diisi ulang
         // karena sudah terisi dari profil alumni dan tersimpan otomatis di responses.
         $kuesioner = Questionnaire::where('is_active', true)
-            ->with(['sections' => function($query) use ($alumniProdiId) {
+            ->with(['sections' => function ($query) use ($alumniProdiId) {
                 $query->where('order', '>=', 3)
-                      ->orderBy('order', 'asc')
-                      ->with(['questions' => function($qQuery) use ($alumniProdiId) {
-                          $qQuery->where(function($sub) use ($alumniProdiId) {
-                              $sub->whereNull('prodi_id');
-                              if ($alumniProdiId) {
-                                  $sub->orWhere('prodi_id', $alumniProdiId);
-                              }
-                          })->orderBy('order', 'asc')
+                    ->orderBy('order', 'asc')
+                    ->with(['questions' => function ($qQuery) use ($alumniProdiId) {
+                        $qQuery->where(function ($sub) use ($alumniProdiId) {
+                            $sub->whereNull('prodi_id');
+                            if ($alumniProdiId) {
+                                $sub->orWhere('prodi_id', $alumniProdiId);
+                            }
+                        })->orderBy('order', 'asc')
                             ->with('options');
-                      }]);
+                    }]);
             }])
             ->first();
 
-        if (!$kuesioner) {
+        if (! $kuesioner) {
             return Inertia::render('Alumni/Kuesioner', [
                 'error' => 'Tidak ada kuesioner aktif saat ini.',
                 'questionnaire' => null,
-                'initialAnswers' => []
+                'initialAnswers' => [],
             ]);
         }
 
@@ -66,9 +67,9 @@ class KuesionerController extends Controller
         $jawabanTersimpan = Response::where('alumni_id', $alumni->id)
             ->get()
             ->keyBy('question_id');
-            
+
         // Ambil mapping untuk prefill otomatis dari database
-        $pemetaan = \App\Models\QuestionMapping::all()->keyBy('question_id');
+        $pemetaan = QuestionMapping::all()->keyBy('question_id');
 
         // Merakit default jawaban di backend agar Vue murni sebagai UI
         $jawabanAwal = [];
@@ -84,8 +85,9 @@ class KuesionerController extends Controller
                             $customText = '';
 
                             // Cari opsi database yang merupakan opsi lainnya jika ada
-                            $otherOption = $pertanyaan->options->first(function($opt) {
+                            $otherOption = $pertanyaan->options->first(function ($opt) {
                                 $t = strtolower($opt->option_text);
+
                                 return str_contains($t, 'lainnya') || str_contains($t, 'tuliskan') || str_contains($t, '...');
                             });
 
@@ -103,23 +105,24 @@ class KuesionerController extends Controller
                             }
 
                             $jawabanAwal[$pertanyaan->id] = $cleanArr;
-                            if (!empty($customText)) {
-                                $jawabanAwal[$pertanyaan->id . '_custom'] = $customText;
+                            if (! empty($customText)) {
+                                $jawabanAwal[$pertanyaan->id.'_custom'] = $customText;
                             }
-                        } else if (in_array($pertanyaan->type, ['single_choice', 'radio'])) {
+                        } elseif (in_array($pertanyaan->type, ['single_choice', 'radio'])) {
                             $textVal = $saved->answer_text ?? '';
                             if (str_starts_with($textVal, 'Lainnya: ')) {
                                 $customText = trim(substr($textVal, 9));
-                                $otherOption = $pertanyaan->options->first(function($opt) {
+                                $otherOption = $pertanyaan->options->first(function ($opt) {
                                     $t = strtolower($opt->option_text);
+
                                     return str_contains($t, 'lainnya') || str_contains($t, 'tuliskan') || str_contains($t, '...');
                                 });
                                 $jawabanAwal[$pertanyaan->id] = $otherOption ? $otherOption->option_text : 'Lainnya';
-                                $jawabanAwal[$pertanyaan->id . '_custom'] = $customText;
+                                $jawabanAwal[$pertanyaan->id.'_custom'] = $customText;
                             } else {
                                 $jawabanAwal[$pertanyaan->id] = $textVal;
                             }
-                        } else if (in_array($pertanyaan->type, ['radio_input', 'radio_text'])) {
+                        } elseif (in_array($pertanyaan->type, ['radio_input', 'radio_text'])) {
                             $json = $saved->answer_json ?? [];
                             $selected = $json['selected'] ?? ($saved->answer_text ?? '');
                             $input = $json['input'] ?? '';
@@ -133,7 +136,21 @@ class KuesionerController extends Controller
                                 'input' => $input,
                                 'inputs' => $inputsObj,
                             ];
-                        } else if (in_array($pertanyaan->type, ['matrix_dual', 'matrix', 'multiple_number'])) {
+                        } elseif ($pertanyaan->type === 'multiple_number') {
+                            $rawArr = $saved->answer_json ?? [];
+                            $formattedArr = [];
+                            foreach ($pertanyaan->options as $opsi) {
+                                $val = $rawArr[$opsi->code] ?? '';
+                                if ($val !== '' && $val !== null && is_numeric($val)) {
+                                    $intVal = (int) $val;
+                                    // Jika nilai tersimpan kelipatan 1000 (> 0), ubah ke ribuan untuk input berakhiran .000
+                                    $formattedArr[$opsi->code] = ($intVal >= 1000 && $intVal % 1000 === 0) ? ($intVal / 1000) : $intVal;
+                                } else {
+                                    $formattedArr[$opsi->code] = '';
+                                }
+                            }
+                            $jawabanAwal[$pertanyaan->id] = $formattedArr;
+                        } elseif (in_array($pertanyaan->type, ['matrix_dual', 'matrix'])) {
                             $jawabanAwal[$pertanyaan->id] = $saved->answer_json ?? [];
                         } else {
                             $jawabanAwal[$pertanyaan->id] = $saved->answer_text ?? '';
@@ -141,19 +158,25 @@ class KuesionerController extends Controller
                     } else {
                         if (in_array($pertanyaan->type, ['checkbox', 'multiple_choice'])) {
                             $jawabanAwal[$pertanyaan->id] = [];
-                        } else if ($pertanyaan->type === 'matrix_dual') {
+                        } elseif ($pertanyaan->type === 'matrix_dual') {
                             $obj = [];
-                            foreach ($pertanyaan->options as $opsi) { $obj[$opsi->id] = ['A' => null, 'B' => null]; }
+                            foreach ($pertanyaan->options as $opsi) {
+                                $obj[$opsi->id] = ['A' => null, 'B' => null];
+                            }
                             $jawabanAwal[$pertanyaan->id] = $obj;
-                        } else if ($pertanyaan->type === 'matrix') {
+                        } elseif ($pertanyaan->type === 'matrix') {
                             $obj = [];
-                            foreach ($pertanyaan->options as $opsi) { $obj[$opsi->id] = null; }
+                            foreach ($pertanyaan->options as $opsi) {
+                                $obj[$opsi->id] = null;
+                            }
                             $jawabanAwal[$pertanyaan->id] = $obj;
-                        } else if ($pertanyaan->type === 'multiple_number') {
+                        } elseif ($pertanyaan->type === 'multiple_number') {
                             $obj = [];
-                            foreach ($pertanyaan->options as $opsi) { $obj[$opsi->code] = ''; }
+                            foreach ($pertanyaan->options as $opsi) {
+                                $obj[$opsi->code] = '';
+                            }
                             $jawabanAwal[$pertanyaan->id] = $obj;
-                        } else if (in_array($pertanyaan->type, ['radio_input', 'radio_text'])) {
+                        } elseif (in_array($pertanyaan->type, ['radio_input', 'radio_text'])) {
                             $inputsObj = [];
                             foreach ($pertanyaan->options as $o) {
                                 $inputsObj[$o->id] = '';
@@ -165,7 +188,7 @@ class KuesionerController extends Controller
                             ];
                         } else {
                             $jawabanAwal[$pertanyaan->id] = '';
-                            
+
                             // Auto-fill dari database alumni, data_akademiks, companies, atau atasans jika ada mapping
                             if (isset($pemetaan[$pertanyaan->id])) {
                                 $namaKolom = $pemetaan[$pertanyaan->id]->column_name;
@@ -173,23 +196,23 @@ class KuesionerController extends Controller
 
                                 if ($namaTabel === 'data_akademiks') {
                                     $jawabanAwal[$pertanyaan->id] = $alumni->dataAkademik->$namaKolom ?? '';
-                                } else if ($namaTabel === 'alumnis') {
+                                } elseif ($namaTabel === 'alumnis') {
                                     $jawabanAwal[$pertanyaan->id] = $alumni->$namaKolom ?? '';
-                                } else if ($namaTabel === 'companies') {
+                                } elseif ($namaTabel === 'companies') {
                                     if ($namaKolom === 'alamat' && $alumni->company) {
                                         $parts = array_filter([
                                             $alumni->company->alamat,
                                             $alumni->company->kabupaten?->nama_kabupaten,
                                             $alumni->company->province?->nama_provinsi,
-                                            $alumni->zipcode
+                                            $alumni->zipcode,
                                         ]);
-                                        $jawabanAwal[$pertanyaan->id] = !empty($parts) ? implode(', ', $parts) : ($alumni->company->alamat ?? '');
+                                        $jawabanAwal[$pertanyaan->id] = ! empty($parts) ? implode(', ', $parts) : ($alumni->company->alamat ?? '');
                                     } else {
                                         $jawabanAwal[$pertanyaan->id] = $alumni->company->$namaKolom ?? '';
                                     }
-                                } else if ($namaTabel === 'atasans') {
+                                } elseif ($namaTabel === 'atasans') {
                                     $jawabanAwal[$pertanyaan->id] = $alumni->atasan->$namaKolom ?? '';
-                                } else if ($namaTabel === 'users') {
+                                } elseif ($namaTabel === 'users') {
                                     $jawabanAwal[$pertanyaan->id] = $pengguna->$namaKolom ?? '';
                                 }
                             }
@@ -230,9 +253,9 @@ class KuesionerController extends Controller
                                                 $alumni->company->alamat,
                                                 $alumni->company->kabupaten?->nama_kabupaten,
                                                 $alumni->company->province?->nama_provinsi,
-                                                $alumni->zipcode
+                                                $alumni->zipcode,
                                             ]);
-                                            $jawabanAwal[$pertanyaan->id] = !empty($parts) ? implode(', ', $parts) : ($alumni->company->alamat ?? '');
+                                            $jawabanAwal[$pertanyaan->id] = ! empty($parts) ? implode(', ', $parts) : ($alumni->company->alamat ?? '');
                                         }
                                         break;
                                 }
@@ -246,8 +269,7 @@ class KuesionerController extends Controller
         return Inertia::render('Alumni/Kuesioner', [
             'questionnaire' => $kuesioner,
             'initialAnswers' => $jawabanAwal,
-            'error' => null
+            'error' => null,
         ]);
     }
 }
-
