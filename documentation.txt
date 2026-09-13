@@ -275,4 +275,84 @@ STANDAR DOKUMENTASI KODE & ALUR HUBUNGAN BACKEND-INERTIA-FRONTEND (STEP 9)
      * Detail Audit Alumni: `resources/js/Pages/SuperAdmin/Alumni/Show.vue`
      * Controllers: `app/Http/Controllers/SuperAdmin/`
 
+10. PETA STRUKTUR LENGKAP FILE & DIREKTORI PROYEK:
+tracerstudy/
+├── app/                                            # [BACKEND] Inti Logika Aplikasi (Laravel)
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── AdminProdi/                         # Modul Administrator Program Studi (role: admin_prodi)
+│   │   │   │   ├── Dashboard/DashboardController.php     # KPI & statistik respon alumni prodi
+│   │   │   │   ├── KelolaAlumni/DaftarAlumniProdiController.php # Direktori & audit detail alumni prodi
+│   │   │   │   └── KelolaPertanyaan/
+│   │   │   │       ├── DaftarPertanyaanProdiController.php # Bank soal kuesioner prodi
+│   │   │   │       ├── KelolaOpsiProdiController.php       # Opsi pilihan jawaban prodi
+│   │   │   │       ├── KelolaSectionProdiController.php    # Bagian/seksi kuesioner prodi & urutan
+│   │   │   │       └── SimpanPertanyaanProdiController.php  # Simpan & perbarui butir soal prodi
+│   │   │   ├── Alumni/                             # Modul Alumni (role: alumni)
+│   │   │   │   ├── Dashboard/DashboardController.php     # Ringkasan progres & kelengkapan profil
+│   │   │   │   ├── Kuesioner/
+│   │   │   │   │   ├── KuesionerController.php       # Kuesioner tracer study universitas (F1-F22)
+│   │   │   │   │   ├── KuesionerProdiController.php  # Kuesioner khusus program studi
+│   │   │   │   │   └── SimpanJawabanController.php   # Simpan jawaban kuesioner universitas
+│   │   │   │   └── Profil/
+│   │   │   │       ├── ProfilController.php        # Halaman kelola data diri alumni
+│   │   │   │       └── SimpanProfilController.php  # Simpan perubahan profil pribadi, akademik, ortu, karier
+│   │   │   ├── SuperAdmin/                         # Modul Super Admin (role: superadmin)
+│   │   │   │   ├── Dashboard/DashboardController.php     # Metrik universitas & monitoring sistem
+│   │   │   │   ├── KelolaAlumni/
+│   │   │   │   │   ├── DaftarAlumniSuperAdminController.php # Direktori seluruh alumni universitas
+│   │   │   │   │   └── DetailAlumniSuperAdminController.php # Audit jawaban kuesioner univ, prodi, profil
+│   │   │   │   ├── KelolaPertanyaan/
+│   │   │   │   │   ├── DaftarPertanyaanController.php  # Kelola bank instrumen universitas
+│   │   │   │   │   ├── KelolaOpsiController.php        # Opsi jawaban & konfig jump_to
+│   │   │   │   │   └── SimpanPertanyaanController.php  # Simpan & edit soal universitas
+│   │   │   │   └── KelolaSection/
+│   │   │   │       └── KelolaSectionController.php     # Kelola bagian/seksi kuesioner univ
+│   │   │   ├── Otentikasi/                         # Modul Autentikasi Pengguna
+│   │   │   │   ├── LoginController.php             # Login multi-role
+│   │   │   │   └── UbahKataSandiController.php     # Form wajib ganti password awal
+│   │   │   └── Tamu/
+│   │   │       └── BerandaController.php           # Landing page publik & statistik alumni
+│   │   └── Middleware/
+│   │       ├── CheckMustChangePassword.php         # Interseptor jika user wajib ubah sandi
+│   │       ├── HandleInertiaRequests.php           # Shared data Inertia SPA
+│   │       └── RoleMiddleware.php                  # Pembatas hak akses role
+│   ├── Models/
+│   │   ├── User.php, Alumni.php, DataAkademik.php, DataOrangTua.php, Yudisium.php, Prodi.php
+│   │   ├── Company.php, Atasan.php, Province.php, Kabupaten.php, Ump.php
+│   │   ├── Questionnaire.php, QuestionSection.php, Question.php, QuestionOption.php, Response.php
+│   │   └── ProdiQuestionSection.php, ProdiQuestion.php, ProdiQuestionOption.php, ProdiResponse.php
+│   └── Services/
+│       ├── Kuesioner/KelengkapanTracerService.php  # Audit kelengkapan kuesioner & profil
+│       ├── Kuesioner/KuesionerSyncService.php      # Auto-sync data akademik ke prodi_responses
+│       └── LinkedIn/LinkedInService.php           # Sinkronisasi data profil LinkedIn
+├── database/
+│   ├── migrations/                                 # Seluruh DDL tabel master, kuesioner univ & prodi
+│   └── seeders/                                    # Seeder database (User, Soal Univ, Soal Prodi SI & Filsafat)
+├── resources/js/Pages/
+│   ├── AdminProdi/                                 # Antarmuka Admin Program Studi
+│   │   ├── Dashboard.vue                           # Dashboard KPI & aktivitas prodi
+│   │   ├── Alumni/Index.vue & Alumni/Show.vue      # Direktori & detail audit 3-tab
+│   │   ├── Pertanyaan/Index.vue                    # Kelola soal & opsi prodi
+│   │   ├── Section/Index.vue                       # Kelola bagian/seksi prodi
+│   │   └── Components/Navbar.vue                   # Header navigasi resmi admin prodi
+│   ├── Alumni/                                     # Antarmuka Alumni
+│   │   ├── Dashboard.vue                           # Dashboard kemajuan tracer alumni
+│   │   ├── Kuesioner.vue                           # [INDUK] Form kuesioner universitas (~490 baris)
+│   │   ├── KuesionerProdi.vue                      # Form kuesioner khusus prodi (auto-prefill)
+│   │   ├── Components/Kuesioner/                   # [MODULAR] Navbar, Stepper, Banner, TabelF17, KartuPertanyaan, Navigasi
+│   │   └── Profil/Index.vue & Components/          # Formulir data pribadi, akademik, orang tua, karier
+│   ├── SuperAdmin/                                 # Antarmuka Super Admin
+│   │   ├── Dashboard.vue, Alumni/Index.vue, Alumni/Show.vue
+│   │   ├── Pertanyaan/Index.vue & Components/
+│   │   ├── Section/Index.vue & Components/
+│   │   └── Components/Navbar.vue
+│   ├── AdminBiroTiga/                              # Antarmuka Admin Biro 3
+│   ├── Otentikasi/                                 # Login.vue & UbahKataSandi.vue
+│   └── Tamu/                                       # Beranda.vue (Landing Page Publik)
+└── routes/
+    ├── web.php                                     # Seluruh endpoint URL web aplikasi
+    └── console.php                                 # Task scheduler console
+
+
 

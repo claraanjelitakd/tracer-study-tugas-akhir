@@ -56,24 +56,58 @@
     6. `Navigasi.vue`: Menangani tombol navigasi melayang di desktop (< Kembali & > Lanjut/Selesai) dan fixed bottom bar di smartphone.
   - Komponen induk `Kuesioner.vue` kini ringkas dan terfokus (berkurang dari 1.621 baris menjadi ~490 baris), hanya bertugas mengorkestrasi state form Inertia, alur jump logic, dan persistensi sesi lokal (`localStorage`).
 
-- **Peta Struktur File & Direktori Pembaruan Ini**:
+- **Peta Lengkap Struktur File & Direktori Pembaruan Ini**:
   ```text
-  ├── app/Services/Kuesioner/KuesionerSyncService.php             # Sinkronisasi otomatis data akademik ke prodi_responses
-  ├── app/Http/Controllers/Alumni/Kuesioner/
-  │   ├── KuesionerController.php                                 # Controller Kuesioner Universitas
-  │   └── KuesionerProdiController.php                            # Controller Kuesioner Program Studi
-  ├── database/seeders/ProdiQuestionnaireSeeder.php               # Seeder 9 section & 52 soal Prodi Sistem Informasi
-  ├── resources/js/Pages/Alumni/
-  │   ├── Kuesioner.vue                                           # [INDUK] Kuesioner Tracer Study Universitas
-  │   ├── KuesionerProdi.vue                                      # Kuesioner Khusus Program Studi
-  │   └── Components/Kuesioner/                                   # [MODULAR] 6 Komponen Kuesioner
-  │       ├── Navbar.vue, Stepper.vue, Banner.vue
-  │       ├── TabelF17.vue, KartuPertanyaan.vue, Navigasi.vue
-  ├── resources/js/Pages/AdminProdi/                              # Modul Admin Prodi
-  │   ├── Dashboard.vue, Components/Navbar.vue
-  │   ├── Section/Index.vue, Pertanyaan/Index.vue
-  │   └── Alumni/Index.vue, Alumni/Show.vue
-  └── resources/js/Pages/SuperAdmin/Alumni/Show.vue               # Tab Audit Kuesioner Prodi di Super Admin
+  tracerstudy/
+  ├── app/
+  │   ├── Http/Controllers/
+  │   │   ├── AdminProdi/                                             # [MODUL BARU] Pengelolaan Program Studi
+  │   │   │   ├── Dashboard/DashboardController.php                  # KPI & statistik alumni prodi
+  │   │   │   ├── KelolaAlumni/DaftarAlumniProdiController.php        # Direktori & audit detail alumni prodi (/prodi/alumni/{id})
+  │   │   │   └── KelolaPertanyaan/
+  │   │   │       ├── DaftarPertanyaanProdiController.php             # Bank soal kuesioner prodi
+  │   │   │       ├── KelolaOpsiProdiController.php                   # CRUD pilihan opsi jawaban prodi
+  │   │   │       ├── KelolaSectionProdiController.php                # CRUD seksi & urutan kuesioner prodi
+  │   │   │       └── SimpanPertanyaanProdiController.php              # Simpan & edit butir soal prodi
+  │   │   ├── Alumni/Kuesioner/
+  │   │   │   ├── KuesionerController.php                             # Kuesioner Tracer Study Universitas
+  │   │   │   ├── KuesionerProdiController.php                        # [BARU] Kuesioner Khusus Prodi & auto-prefill akademik
+  │   │   │   └── SimpanJawabanController.php                         # Simpan jawaban kuesioner univ
+  │   │   └── SuperAdmin/
+  │   │       └── KelolaAlumni/DetailAlumniSuperAdminController.php   # Audit detail alumni (+ tab kuesioner prodi)
+  │   ├── Models/
+  │   │   ├── ProdiQuestionSection.php                                # [MODEL BARU] Seksi kuesioner prodi
+  │   │   ├── ProdiQuestion.php                                       # [MODEL BARU] Butir pertanyaan prodi
+  │   │   ├── ProdiQuestionOption.php                                 # [MODEL BARU] Opsi jawaban kuesioner prodi
+  │   │   └── ProdiResponse.php                                       # [MODEL BARU] Jawaban kuesioner prodi alumni
+  │   └── Services/Kuesioner/
+  │       └── KuesionerSyncService.php                                # [BARU] Centralized auto-sync data akademik ke prodi_responses
+  ├── database/
+  │   ├── migrations/
+  │   │   ├── 2026_09_13_090000_add_prodi_id_to_users_table.php       # Menghubungkan user admin_prodi ke prodis.id
+  │   │   ├── 2026_09_13_092000_create_prodi_questionnaire_tables.php # 4 tabel mandiri kuesioner prodi
+  │   │   └── 2026_09_13_093000_remove_prodi_id_from_questions_table.php # Pembersihan kolom prodi_id di questions
+  │   └── seeders/
+  │       └── ProdiQuestionnaireSeeder.php                            # Seeder 9 section & 52 butir instrumen Prodi SI & Filsafat
+  └── resources/js/Pages/
+      ├── AdminProdi/                                                 # [UI BARU] Antarmuka Admin Program Studi
+      │   ├── Dashboard.vue                                           # Dashboard resmi admin prodi (estetika hijau UKDW)
+      │   ├── Alumni/Index.vue                                        # Master data mahasiswa & alumni prodi
+      │   ├── Alumni/Show.vue                                         # Audit detail 3-tab (Kuesioner Prodi, Univ, Profil)
+      │   ├── Pertanyaan/Index.vue                                    # Kelola pertanyaan & opsi (bebas ikon slop)
+      │   ├── Section/Index.vue                                       # Kelola bagian kuesioner prodi
+      │   └── Components/Navbar.vue                                   # Navbar resmi admin prodi
+      ├── Alumni/
+      │   ├── Kuesioner.vue                                           # [DEKOMPOSISI] Induk form kuesioner universitas (~490 baris)
+      │   ├── KuesionerProdi.vue                                      # Halaman kuesioner prodi alumni (auto-prefill readonly)
+      │   └── Components/Kuesioner/                                   # [MODULAR] 6 Komponen Pecahan Kuesioner:
+      │       ├── Navbar.vue                                          # Header atas & tombol kembali
+      │       ├── Stepper.vue                                         # Stepper bulat 1..N & auto scroll
+      │       ├── Banner.vue                                          # Banner hijau judul bagian
+      │       ├── TabelF17.vue                                        # Dual-matrix F17 (Kemampuan Diri vs Kampus)
+      │       ├── KartuPertanyaan.vue                                 # Dispatcher renderer butir soal & opsi input
+      │       └── Navigasi.vue                                        # Floating action buttons desktop & mobile bar
+      └── SuperAdmin/Alumni/Show.vue                                  # Tampilan audit detail alumni dengan tab Kuesioner Prodi
   ```
 
 - **Pembersihan Desain Visual & Standarisasi Komentar Kode**:
