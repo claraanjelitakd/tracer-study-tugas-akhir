@@ -56,6 +56,26 @@
     6. `Navigasi.vue`: Menangani tombol navigasi melayang di desktop (< Kembali & > Lanjut/Selesai) dan fixed bottom bar di smartphone.
   - Komponen induk `Kuesioner.vue` kini ringkas dan terfokus (berkurang dari 1.621 baris menjadi ~490 baris), hanya bertugas mengorkestrasi state form Inertia, alur jump logic, dan persistensi sesi lokal (`localStorage`).
 
+- **Peta Struktur File & Direktori Pembaruan Ini**:
+  ```text
+  ├── app/Services/Kuesioner/KuesionerSyncService.php             # Sinkronisasi otomatis data akademik ke prodi_responses
+  ├── app/Http/Controllers/Alumni/Kuesioner/
+  │   ├── KuesionerController.php                                 # Controller Kuesioner Universitas
+  │   └── KuesionerProdiController.php                            # Controller Kuesioner Program Studi
+  ├── database/seeders/ProdiQuestionnaireSeeder.php               # Seeder 9 section & 52 soal Prodi Sistem Informasi
+  ├── resources/js/Pages/Alumni/
+  │   ├── Kuesioner.vue                                           # [INDUK] Kuesioner Tracer Study Universitas
+  │   ├── KuesionerProdi.vue                                      # Kuesioner Khusus Program Studi
+  │   └── Components/Kuesioner/                                   # [MODULAR] 6 Komponen Kuesioner
+  │       ├── Navbar.vue, Stepper.vue, Banner.vue
+  │       ├── TabelF17.vue, KartuPertanyaan.vue, Navigasi.vue
+  ├── resources/js/Pages/AdminProdi/                              # Modul Admin Prodi
+  │   ├── Dashboard.vue, Components/Navbar.vue
+  │   ├── Section/Index.vue, Pertanyaan/Index.vue
+  │   └── Alumni/Index.vue, Alumni/Show.vue
+  └── resources/js/Pages/SuperAdmin/Alumni/Show.vue               # Tab Audit Kuesioner Prodi di Super Admin
+  ```
+
 - **Pembersihan Desain Visual & Standarisasi Komentar Kode**:
   - Menghapus seluruh ikon/emoji berlebihan di seluruh modul Admin Prodi agar tampilan lebih formal, profesional, dan tidak "slop".
   - Menambahkan komentar kode penjelasan (*docblocks & inline comments*) yang deskriptif dan terstruktur dalam Bahasa Indonesia pada seluruh controller, model, migration, dan komponen Vue terkait.

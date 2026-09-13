@@ -246,3 +246,33 @@ STANDAR DOKUMENTASI KODE & ALUR HUBUNGAN BACKEND-INERTIA-FRONTEND (STEP 9)
        6. `Navigasi.vue`: Menangani tombol navigasi desktop melayang (< Kembali & > Lanjut/Selesai) serta fixed bottom bar di smartphone.
      * Komponen induk `Kuesioner.vue` kini ramping (~490 baris) dan bertindak murni sebagai orkestrator form Inertia, alur jump logic, dan persistensi sesi lokal (`localStorage`).
 
+9. PANDUAN PENCARIAN CEPAT FILE & LOKASI STRUKTUR KODE (CHEATSHEET):
+   - **Jika ingin mengedit Kuesioner Tracer Universitas (Alumni)**:
+     * File Induk: `resources/js/Pages/Alumni/Kuesioner.vue`
+     * Sub-Komponen: `resources/js/Pages/Alumni/Components/Kuesioner/`
+       - Navbar: `Navbar.vue`
+       - Stepper: `Stepper.vue`
+       - Banner: `Banner.vue`
+       - Tabel F17: `TabelF17.vue`
+       - Input Soal: `KartuPertanyaan.vue`
+       - Tombol Navigasi: `Navigasi.vue`
+     * Controller: `app/Http/Controllers/Alumni/Kuesioner/KuesionerController.php`
+   - **Jika ingin mengedit Kuesioner Khusus Program Studi (Alumni)**:
+     * Halaman View: `resources/js/Pages/Alumni/KuesionerProdi.vue`
+     * Controller: `app/Http/Controllers/Alumni/Kuesioner/KuesionerProdiController.php`
+     * Seeder Instrumen: `database/seeders/ProdiQuestionnaireSeeder.php`
+   - **Jika ingin mengedit Logika Sinkronisasi Data Akademik Otomatis**:
+     * Service: `app/Services/Kuesioner/KuesionerSyncService.php` (method `syncProdiResponses()`)
+   - **Jika ingin mengedit Modul Admin Program Studi**:
+     * Dashboard: `resources/js/Pages/AdminProdi/Dashboard.vue`
+     * Kelola Pertanyaan: `resources/js/Pages/AdminProdi/Pertanyaan/Index.vue`
+     * Kelola Section: `resources/js/Pages/AdminProdi/Section/Index.vue`
+     * Direktori Alumni: `resources/js/Pages/AdminProdi/Alumni/Index.vue`
+     * Detail Audit Alumni: `resources/js/Pages/AdminProdi/Alumni/Show.vue`
+     * Controllers: `app/Http/Controllers/AdminProdi/`
+   - **Jika ingin mengedit Modul Super Admin**:
+     * Kelola Kuesioner Univ: `resources/js/Pages/SuperAdmin/Pertanyaan/Index.vue`
+     * Detail Audit Alumni: `resources/js/Pages/SuperAdmin/Alumni/Show.vue`
+     * Controllers: `app/Http/Controllers/SuperAdmin/`
+
+
