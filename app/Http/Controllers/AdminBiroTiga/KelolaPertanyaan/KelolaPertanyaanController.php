@@ -28,8 +28,8 @@ class KelolaPertanyaanController extends Controller
      */
     public function index(Request $request)
     {
-        // Memuat semua pertanyaan beserta relasi section, options, dan prodi
-        $questions = Question::with(['section.questionnaire', 'options', 'prodi'])
+        // Memuat semua pertanyaan beserta relasi section dan options
+        $questions = Question::with(['section.questionnaire', 'options'])
             ->orderBy('order', 'asc')
             ->get();
 
@@ -70,7 +70,6 @@ class KelolaPertanyaanController extends Controller
     {
         $validated = $request->validate([
             'question_section_id' => 'required|exists:question_sections,id',
-            'prodi_id' => 'nullable|exists:prodis,id',
             'code' => 'required|string|unique:questions,code|max:50',
             'question_text' => 'required|string',
             'type' => 'required|string',
@@ -99,7 +98,6 @@ class KelolaPertanyaanController extends Controller
 
         $validated = $request->validate([
             'question_section_id' => 'required|exists:question_sections,id',
-            'prodi_id' => 'nullable|exists:prodis,id',
             'code' => 'required|string|max:50|unique:questions,code,'.$question->id,
             'question_text' => 'required|string',
             'type' => 'required|string',

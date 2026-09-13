@@ -1,5 +1,65 @@
 # UPDATE LOG - SERU (Sistem Ekosistem Rekam Jejak Alumni)
 
+## [2026-09-13] Arsitektur Kuesioner Khusus Program Studi, Harmonisasi Antarmuka Admin Prodi & Super Admin, Serta Integrasi Otomatis Data Akademik
+- **Pemisahan dan Rekonstruksi Kuesioner Khusus Program Studi (Database & Model Terpisah)**:
+  - **Penghapusan Kolom `prodi_id` pada Kuesioner Utama**: Menghapus kolom `prodi_id` dari tabel kuesioner umum universitas (`questions`) melalui migrasi `2026_09_13_090001_remove_prodi_id_from_questions_table.php`, serta membersihkan seluruh elemen terkait di antarmuka Super Admin (`QuestionModal.vue`, `QuestionCard.vue`, `SuperAdmin/Pertanyaan/Index.vue`). Kuesioner universitas kini murni terpusat untuk kuesioner tingkat universitas.
+  - **Arsitektur Tabel Kuesioner Prodi yang Mandiri & Hierarkis**:
+    1. `prodi_question_sections`: Menyimpan bagian/seksi kuesioner berbasis `prodi_id` (`id`, `prodi_id`, `title`, `description`, `order`).
+    2. `prodi_questions`: Menyimpan butir pertanyaan khusus prodi dengan tipe input dinamis (`single_choice`, `multiple_choice`, `text`, `number`, `date`, `rating_5`, `radio_input`, dll.).
+    3. `prodi_question_options`: Menyimpan opsi pilihan jawaban butir pertanyaan khusus prodi.
+    4. `prodi_responses`: Menyimpan respon dan jawaban alumni khusus kuesioner program studi mereka (`answer_text` dan `answer_json`).
+  - **Seeding Kuesioner Prodi Sistem Informasi & Prodi Lain**:
+    - Menjalankan `ProdiQuestionnaireSeeder` dengan 9 Section dan 52 Butir Pertanyaan Evaluasi Komprehensif khusus Program Studi Sistem Informasi (Mulai dari data diri, konsentrasi peminatan, profil lulusan, kurikulum, fasilitas lab, hingga jejaring alumni).
+    - Memindahkan data butir kuesioner prodi lama (seperti Filsafat Keilahian) ke struktur tabel kuesioner prodi baru.
+
+- **Pengambilan Otomatis (Auto-Prefill & Auto-Save) Data Akademik pada Kuesioner Prodi**:
+  - **3 Pertanyaan Identitas Utama (`Nama`, `NIM`, `Tahun Kelulusan`)**:
+    - Pertanyaan kode `PSI-1-01` (Nama), `PSI-1-02` (NIM), dan `PSI-1-03` (Tahun Kelulusan) pada Kuesioner Program Studi kini secara cerdas terhubung dan diambil otomatis dari pangkalan Data Akademik (`data_akademiks`) alumni.
+  - **Tampilan Antarmuka Khusus di Frontend Alumni (`KuesionerProdi.vue`)**:
+    - Ditampilkan dalam format input khusus `readonly` dengan badge hijau resmi: *"✓ Data Akademik - Kolom ini diambil secara otomatis dari pangkalan Data Akademik resmi Anda"*, sehingga alumni tidak perlu mengetik ulang data yang sudah tercatat di sistem.
+  - **Sinkronisasi Otomatis di Backend (`KuesionerProdiController.php`)**:
+    - Method `tampilkanKuesionerProdi()` secara otomatis memetakan data akademik alumni ke `$initialAnswers` dan langsung menyimpannya ke tabel `prodi_responses` (`updateOrCreate`).
+    - Method `simpanJawaban()` menyertakan fallback otomatis untuk menjamin bahwa data identitas akademik tetap tersimpan utuh meskipun input dikirimkan kosong.
+
+- **Harmonisasi Modul & Antarmuka Admin Prodi (Disetarakan dengan Super Admin)**:
+  - **Dashboard Admin Prodi (`/prodi/dashboard`)**:
+    - Didesain ulang menyerupai `/superadmin/dashboard` dengan header hijau solid resmi UKDW `#0D542B`.
+    - 4 kartu metrik KPI elegan berlatar putih bersih (Total Alumni Prodi, Sudah Mengisi Tracer Univ, Sudah Mengisi Kuesioner Prodi, Profil Lengkap).
+    - 2 modul navigasi cepat (Kelola Kuesioner Prodi & Direktori Alumni Prodi).
+    - Tabel ringkasan 5 aktivitas alumni terbaru dengan badge status tracer universitas dan kuesioner prodi.
+  - **Kelola Section Prodi (`/prodi/sections`)**:
+    - Controller baru `KelolaSectionProdiController.php` dengan operasi CRUD lengkap, pencarian, dan fitur reorder posisi urutan section (naik/turun).
+    - Halaman view `AdminProdi/Section/Index.vue` dengan header hijau UKDW, modal tambah/edit section, dan konfirmasi SweetAlert2.
+  - **Kelola Pertanyaan Prodi (`/prodi/pertanyaan`)**:
+    - Pembersihan total seluruh ikon 3D dan emoji (📁, 🗑️, ✎, ❓, ✕), digantikan dengan tombol teks elegan (`Edit`, `Hapus`, `+ Tambah Opsi`) dan badge rapi.
+  - **Direktori Mahasiswa & Alumni Prodi (`/prodi/alumni`)**:
+    - Didesain ulang menyerupai `/superadmin/alumni` dengan filter pencarian, filter tahun kelulusan, filter status tracer universitas, dan kuesioner prodi.
+    - Tombol aksi "Lihat Detail" mengarah ke halaman audit alumni `/prodi/alumni/{id}`.
+  - **Detail Alumni Prodi (`/prodi/alumni/{id}`)**:
+    - Method `DaftarAlumniProdiController::show()` dengan proteksi otorisasi ketat berbasis `prodi_id`.
+    - Halaman `AdminProdi/Alumni/Show.vue` dengan 3 Tab:
+      1. Tab 1: Kuesioner Khusus Prodi (filter per-section, capaian pengisian, jawaban rinci).
+      2. Tab 2: Kuesioner Tracer Universitas (filter section kuesioner universitas).
+      3. Tab 3: Detail Profil Mahasiswa (Biodata Pribadi, Kontak, Data Akademik, Data Orang Tua, Pekerjaan & Perusahaan).
+
+- **Penambahan Tab Audit Kuesioner Prodi pada Detail Alumni Super Admin (`/superadmin/alumni/{id}`)**:
+  - `DetailAlumniSuperAdminController.php` kini memuat relasi kuesioner prodi beserta jawaban alumni dari tabel `prodi_responses`.
+  - `SuperAdmin/Alumni/Show.vue` menampilkan metrik 3-kolom pada header (Profil, Kuesioner Universitas, Kuesioner Prodi) serta tab khusus *"Kuesioner Khusus Prodi"* sehingga Super Admin dapat mengaudit evaluasi program studi setiap alumni secara transparan.
+
+- **Modularisasi Komponen Kuesioner Tracer Study Alumni (`resources/js/Pages/Alumni/Kuesioner.vue`)**:
+  - Memecah file monolitik `Kuesioner.vue` (yang sebelumnya mencapai 1.621 baris kode) menjadi komponen-komponen terisolasi dan mandiri di dalam folder `resources/js/Pages/Alumni/Components/Kuesioner/`:
+    1. `Navbar.vue`: Menangani header atas, logo UKDW, dan tombol kembali ke dashboard alumni.
+    2. `Stepper.vue`: Menangani tahapan bulatan angka 1 s/d N, judul seksi, indikator centang selesai, dan auto-scroll horizontal.
+    3. `Banner.vue`: Menangani kartu banner hijau judul bagian ("Bagian X dari Y") dan petunjuk pengisian.
+    4. `TabelF17.vue`: Menangani tabel perbandingan kompetensi dual-matrix F17 (Kolom A vs Kolom B) secara mandiri.
+    5. `KartuPertanyaan.vue`: Menangani rendering butir pertanyaan individual beserta seluruh varian input (`rating_5`, `searchable_select`, `radio`, `checkbox`, `radio_input`, `multiple_number`, `number`, `text`, serta layout 2 kolom berdampingan F6 & F7).
+    6. `Navigasi.vue`: Menangani tombol navigasi melayang di desktop (< Kembali & > Lanjut/Selesai) dan fixed bottom bar di smartphone.
+  - Komponen induk `Kuesioner.vue` kini ringkas dan terfokus (berkurang dari 1.621 baris menjadi ~490 baris), hanya bertugas mengorkestrasi state form Inertia, alur jump logic, dan persistensi sesi lokal (`localStorage`).
+
+- **Pembersihan Desain Visual & Standarisasi Komentar Kode**:
+  - Menghapus seluruh ikon/emoji berlebihan di seluruh modul Admin Prodi agar tampilan lebih formal, profesional, dan tidak "slop".
+  - Menambahkan komentar kode penjelasan (*docblocks & inline comments*) yang deskriptif dan terstruktur dalam Bahasa Indonesia pada seluruh controller, model, migration, dan komponen Vue terkait.
+
 ## [2026-09-10] Perbaikan Perhitungan Data Terhapus pada Profil Alumni & Penambahan Indikator Persentase Progres di Dashboard Alumni
 - **Perbaikan Bug Perhitungan Data Profil yang Dihapus (`SimpanProfilController` & `KelengkapanTracerService`)**:
   - **Penyebab Utama**:

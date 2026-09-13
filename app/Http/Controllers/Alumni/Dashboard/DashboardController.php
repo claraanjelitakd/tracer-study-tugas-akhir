@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Alumni\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alumni;
+use App\Models\ProdiQuestion;
+use App\Models\ProdiResponse;
 use App\Services\Kuesioner\KelengkapanTracerService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,7 +42,12 @@ class DashboardController extends Controller
         $questionnaireTotalCount = 61;
         $questionnaireMissing = [];
 
+        $prodiQuestionsCount = 0;
+        $prodiAnsweredCount = 0;
+        $prodiCompleted = false;
+
         if ($alumni) {
+            $alumni->load('prodi');
             $eval = KelengkapanTracerService::evaluasiKelengkapanTotal($alumni);
 
             $profilePercentage = $eval['profile']['percentage'] ?? 0;
@@ -54,6 +61,18 @@ class DashboardController extends Controller
             $questionnaireAnsweredCount = $eval['questionnaire']['answered_count'] ?? 0;
             $questionnaireTotalCount = $eval['questionnaire']['total_mandatory'] ?? 61;
             $questionnaireMissing = $eval['questionnaire']['missing_questions'] ?? [];
+
+            // Evaluasi Kuesioner Program Studi
+            if ($alumni->prodi_id) {
+                $prodiQIds = ProdiQuestion::where('prodi_id', $alumni->prodi_id)->pluck('id');
+                $prodiQuestionsCount = $prodiQIds->count();
+                if ($prodiQuestionsCount > 0) {
+                    $prodiAnsweredCount = ProdiResponse::where('alumni_id', $alumni->id)
+                        ->whereIn('prodi_question_id', $prodiQIds)
+                        ->count();
+                    $prodiCompleted = ($prodiAnsweredCount >= $prodiQuestionsCount);
+                }
+            }
         }
 
         return Inertia::render('Alumni/Dashboard', [
@@ -69,6 +88,9 @@ class DashboardController extends Controller
             'questionnaireAnsweredCount' => $questionnaireAnsweredCount,
             'questionnaireTotalCount' => $questionnaireTotalCount,
             'questionnaireMissing' => $questionnaireMissing,
+            'prodiQuestionsCount' => $prodiQuestionsCount,
+            'prodiAnsweredCount' => $prodiAnsweredCount,
+            'prodiCompleted' => $prodiCompleted,
         ]);
     }
 }

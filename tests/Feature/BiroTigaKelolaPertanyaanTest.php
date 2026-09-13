@@ -128,9 +128,9 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
     }
 
     /**
-     * Memverifikasi pembuatan pertanyaan bertipe rating_5 otomatis menghasilkan 5 opsi skala penilaian.
+     * Memverifikasi pembuatan pertanyaan bertipe rating_5 tidak menyimpan opsi di tabel question_options (skala murni).
      */
-    public function test_storing_rating_question_auto_generates_five_options(): void
+    public function test_storing_rating_question_does_not_store_options(): void
     {
         $response = $this->actingAs($this->admin)->post('/superadmin/pertanyaan', [
             'question_section_id' => $this->section->id,
@@ -143,8 +143,6 @@ class BiroTigaKelolaPertanyaanTest extends TestCase
         $response->assertSessionHasNoErrors();
         $q = Question::where('code', 'F99')->first();
         $this->assertNotNull($q);
-        $this->assertCount(5, $q->options);
-        $this->assertEquals('Sangat Rendah', $q->options[0]->option_text);
-        $this->assertEquals('Sangat Tinggi', $q->options[4]->option_text);
+        $this->assertCount(0, $q->options);
     }
 }

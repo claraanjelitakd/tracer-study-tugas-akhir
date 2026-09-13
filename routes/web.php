@@ -3,8 +3,14 @@
 use App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DaftarAlumniController;
 use App\Http\Controllers\AdminBiroTiga\KelolaAlumni\DetailAlumniController;
 use App\Http\Controllers\AdminBiroTiga\KelolaAlumni\SinkronisasiLinkedinController;
+use App\Http\Controllers\AdminProdi\KelolaAlumni\DaftarAlumniProdiController;
+use App\Http\Controllers\AdminProdi\KelolaPertanyaan\DaftarPertanyaanProdiController;
+use App\Http\Controllers\AdminProdi\KelolaPertanyaan\KelolaOpsiProdiController;
+use App\Http\Controllers\AdminProdi\KelolaPertanyaan\KelolaSectionProdiController;
+use App\Http\Controllers\AdminProdi\KelolaPertanyaan\SimpanPertanyaanProdiController;
 use App\Http\Controllers\Alumni\Dashboard\DashboardController;
 use App\Http\Controllers\Alumni\Kuesioner\KuesionerController;
+use App\Http\Controllers\Alumni\Kuesioner\KuesionerProdiController;
 use App\Http\Controllers\Alumni\Kuesioner\SimpanJawabanController;
 use App\Http\Controllers\Alumni\Profil\ProfilController;
 use App\Http\Controllers\Alumni\Profil\SimpanProfilController;
@@ -59,9 +65,13 @@ Route::middleware('auth')->group(function () {
             Route::post('/alumni/profile', [SimpanProfilController::class, 'simpanPerubahanProfil']);
             Route::post('/alumni/company', [SimpanProfilController::class, 'tambahPerusahaanBaru'])->name('alumni.company.store');
 
-            // Kuesioner
+            // Kuesioner Umum Tracer Study
             Route::get('/alumni/kuesioner', [KuesionerController::class, 'tampilkanKuesioner']);
             Route::post('/alumni/kuesioner', [SimpanJawabanController::class, 'simpanJawabanKuesioner']);
+
+            // Kuesioner Khusus Program Studi
+            Route::get('/alumni/kuesioner-prodi', [KuesionerProdiController::class, 'tampilkanKuesionerProdi'])->name('alumni.kuesioner-prodi');
+            Route::post('/alumni/kuesioner-prodi', [KuesionerProdiController::class, 'simpanJawaban'])->name('alumni.kuesioner-prodi.simpan');
         });
 
         // -----------------------------------------------------------------
@@ -84,6 +94,32 @@ Route::middleware('auth')->group(function () {
         Route::middleware('role:admin_prodi')->group(function () {
             // Dashboard Utama Program Studi
             Route::get('/prodi/dashboard', [App\Http\Controllers\AdminProdi\Dashboard\DashboardController::class, 'tampilkanDashboard'])->name('prodi.dashboard');
+
+            // Direktori & Detail Alumni Khusus Program Studi
+            Route::get('/prodi/alumni', [DaftarAlumniProdiController::class, 'index'])->name('prodi.alumni.index');
+            Route::get('/prodi/alumni/{id}', [DaftarAlumniProdiController::class, 'show'])->name('prodi.alumni.show');
+
+            // Kelola Section Kuesioner Prodi
+            Route::get('/prodi/sections', [KelolaSectionProdiController::class, 'index'])->name('prodi.sections.index');
+            Route::post('/prodi/sections/reorder', [KelolaSectionProdiController::class, 'reorder'])->name('prodi.sections.reorder');
+            Route::post('/prodi/sections', [KelolaSectionProdiController::class, 'store'])->name('prodi.sections.store');
+            Route::put('/prodi/sections/{id}', [KelolaSectionProdiController::class, 'update'])->name('prodi.sections.update');
+            Route::delete('/prodi/sections/{id}', [KelolaSectionProdiController::class, 'destroy'])->name('prodi.sections.destroy');
+            // Alias rute tunggal untuk backward compatibility form modal pertanyaan
+            Route::post('/prodi/section', [KelolaSectionProdiController::class, 'store'])->name('prodi.section.store');
+            Route::put('/prodi/section/{id}', [KelolaSectionProdiController::class, 'update'])->name('prodi.section.update');
+            Route::delete('/prodi/section/{id}', [KelolaSectionProdiController::class, 'destroy'])->name('prodi.section.destroy');
+
+            // Kelola Pertanyaan & Opsi Kuesioner Khusus Prodi
+            Route::get('/prodi/pertanyaan', [DaftarPertanyaanProdiController::class, 'index'])->name('prodi.pertanyaan.index');
+            Route::post('/prodi/pertanyaan', [SimpanPertanyaanProdiController::class, 'store'])->name('prodi.pertanyaan.store');
+            Route::put('/prodi/pertanyaan/{id}', [SimpanPertanyaanProdiController::class, 'update'])->name('prodi.pertanyaan.update');
+            Route::delete('/prodi/pertanyaan/{id}', [SimpanPertanyaanProdiController::class, 'destroy'])->name('prodi.pertanyaan.destroy');
+
+            // Kelola Pilihan Opsi Pertanyaan Prodi
+            Route::post('/prodi/opsi', [KelolaOpsiProdiController::class, 'store'])->name('prodi.opsi.store');
+            Route::put('/prodi/opsi/{id}', [KelolaOpsiProdiController::class, 'update'])->name('prodi.opsi.update');
+            Route::delete('/prodi/opsi/{id}', [KelolaOpsiProdiController::class, 'destroy'])->name('prodi.opsi.destroy');
         });
 
         // -----------------------------------------------------------------

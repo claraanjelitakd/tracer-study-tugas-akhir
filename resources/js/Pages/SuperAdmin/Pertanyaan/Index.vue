@@ -670,7 +670,6 @@ const handleDeleteOption = (opt) => {
             :isEdit="isEditingQuestion"
             :question="selectedQuestion"
             :sections="sections"
-            :prodis="prodis"
             :defaultSectionId="activeSectionId"
             :nextOrder="calculatedNextOrder"
             @close="closeQuestionModal"

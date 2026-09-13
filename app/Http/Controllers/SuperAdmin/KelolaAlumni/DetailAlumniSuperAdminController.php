@@ -9,6 +9,8 @@ use App\Models\Company;
 use App\Models\DataAkademik;
 use App\Models\DataOrangTua;
 use App\Models\Kabupaten;
+use App\Models\ProdiQuestionSection;
+use App\Models\ProdiResponse;
 use App\Models\Province;
 use App\Models\Questionnaire;
 use App\Models\Response;
@@ -65,15 +67,10 @@ class DetailAlumniSuperAdminController extends Controller
         // Ambil seluruh section dan pertanyaan dari kuesioner aktif
         $alumniProdiId = $alumni->prodi_id;
         $kuesioner = Questionnaire::where('is_active', true)
-            ->with(['sections' => function ($secQuery) use ($alumniProdiId) {
+            ->with(['sections' => function ($secQuery) {
                 $secQuery->orderBy('order', 'asc')
-                    ->with(['questions' => function ($qQuery) use ($alumniProdiId) {
-                        $qQuery->where(function ($sub) use ($alumniProdiId) {
-                            $sub->whereNull('prodi_id');
-                            if ($alumniProdiId) {
-                                $sub->orWhere('prodi_id', $alumniProdiId);
-                            }
-                        })->orderBy('order', 'asc')
+                    ->with(['questions' => function ($qQuery) {
+                        $qQuery->orderBy('order', 'asc')
                             ->with('options');
                     }]);
             }])
@@ -225,6 +222,97 @@ class DetailAlumniSuperAdminController extends Controller
             'telepon_atasan' => $atasan?->telepon ?? '',
         ];
 
+        // 7. Muat Kuesioner Khusus Program Studi jika alumni terafiliasi prodi
+        $prodiSectionsWithAnswers = [];
+        $prodiEvaluasi = [
+            'is_complete' => false,
+            'percentage' => 0,
+            'answered_count' => 0,
+            'total_questions' => 0,
+        ];
+
+        if ($alumni->prodi_id) {
+            $prodiSections = ProdiQuestionSection::where('prodi_id', $alumni->prodi_id)
+                ->with(['questions' => function ($qQuery) {
+                    $qQuery->orderBy('order', 'asc')->with('options');
+                }])
+                ->orderBy('order', 'asc')
+                ->get();
+
+            $savedProdiResponses = ProdiResponse::where('alumni_id', $alumni->id)
+                ->get()
+                ->keyBy('prodi_question_id');
+
+            $totalProdiQuestions = 0;
+            $totalProdiAnswered = 0;
+
+            foreach ($prodiSections as $pSection) {
+                $pQuestionsList = [];
+
+                foreach ($pSection->questions as $pQuestion) {
+                    $totalProdiQuestions++;
+                    $pResp = $savedProdiResponses->get($pQuestion->id);
+
+                    $hasAnswer = false;
+                    $displayAnswer = null;
+
+                    if ($pResp) {
+                        if (! empty($pResp->answer_text) && trim((string) $pResp->answer_text) !== '') {
+                            $hasAnswer = true;
+                            $displayAnswer = (string) $pResp->answer_text;
+                        } elseif (is_array($pResp->answer_json) && count($pResp->answer_json) > 0) {
+                            $hasAnswer = true;
+                            $displayAnswer = implode(', ', $pResp->answer_json);
+                        }
+                    }
+
+                    if ($hasAnswer) {
+                        $totalProdiAnswered++;
+                    }
+
+                    $pQuestionsList[] = [
+                        'id' => $pQuestion->id,
+                        'code' => $pQuestion->code,
+                        'question_text' => $pQuestion->question_text,
+                        'type' => $pQuestion->type,
+                        'is_mandatory' => (bool) $pQuestion->is_required,
+                        'is_answered' => $hasAnswer,
+                        'answer_text' => $displayAnswer,
+                        'options' => $pQuestion->options->map(function ($opt) {
+                            return [
+                                'id' => $opt->id,
+                                'text' => $opt->option_text,
+                            ];
+                        }),
+                    ];
+                }
+
+                $unansweredProdiCount = count(array_filter($pQuestionsList, function ($item) {
+                    return $item['is_mandatory'] && ! $item['is_answered'];
+                }));
+
+                $prodiSectionsWithAnswers[] = [
+                    'id' => $pSection->id,
+                    'title' => $pSection->title,
+                    'description' => $pSection->description,
+                    'order' => $pSection->order,
+                    'questions' => $pQuestionsList,
+                    'unanswered_mandatory_count' => $unansweredProdiCount,
+                ];
+            }
+
+            $prodiPercentage = $totalProdiQuestions > 0
+                ? round(($totalProdiAnswered / $totalProdiQuestions) * 100)
+                : 0;
+
+            $prodiEvaluasi = [
+                'is_complete' => ($totalProdiQuestions > 0 && $totalProdiAnswered >= $totalProdiQuestions),
+                'percentage' => $prodiPercentage,
+                'answered_count' => $totalProdiAnswered,
+                'total_questions' => $totalProdiQuestions,
+            ];
+        }
+
         $provinces = Province::orderBy('nama_provinsi', 'asc')->get();
         $kabupatens = Kabupaten::orderBy('nama_kabupaten', 'asc')->get();
         $companies = Company::select('id', 'nama_perusahaan', 'province_id', 'kabupaten_id', 'alamat', 'kode_pos', 'skala', 'status_verifikasi')->get();
@@ -233,6 +321,8 @@ class DetailAlumniSuperAdminController extends Controller
             'alumni' => $alumni,
             'evaluasi' => $evaluasi,
             'sections' => $sectionsWithAnswers,
+            'prodiSections' => $prodiSectionsWithAnswers,
+            'prodiEvaluasi' => $prodiEvaluasi,
             'formData' => $formData,
             'provinces' => $provinces,
             'kabupatens' => $kabupatens,

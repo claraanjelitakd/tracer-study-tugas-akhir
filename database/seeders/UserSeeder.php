@@ -38,6 +38,38 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // 1c. Seed Admin Prodi untuk Setiap Program Studi
+        $prodiUserMapping = [
+            '71' => ['username' => 'admin_ti', 'name' => 'Admin Prodi Informatika'],
+            '72' => ['username' => 'admin_si', 'name' => 'Admin Prodi Sistem Informasi'],
+            '11' => ['username' => 'admin_manajemen', 'name' => 'Admin Prodi Manajemen'],
+            '12' => ['username' => 'admin_akuntansi', 'name' => 'Admin Prodi Akuntansi'],
+            '21' => ['username' => 'admin_arsitektur', 'name' => 'Admin Prodi Arsitektur'],
+            '22' => ['username' => 'admin_desainproduk', 'name' => 'Admin Prodi Desain Produk'],
+            '41' => ['username' => 'admin_biologi', 'name' => 'Admin Prodi Biologi'],
+            '42' => ['username' => 'admin_tekpangan', 'name' => 'Admin Prodi Teknologi Pangan'],
+            '61' => ['username' => 'admin_kedokteran', 'name' => 'Admin Prodi Kedokteran'],
+            '31' => ['username' => 'admin_filsafat', 'name' => 'Admin Prodi Filsafat Keilahian'],
+            '81' => ['username' => 'admin_pbi', 'name' => 'Admin Prodi Pendidikan Bahasa Inggris'],
+            '82' => ['username' => 'admin_humanitas', 'name' => 'Admin Prodi Studi Humanitas'],
+        ];
+
+        foreach ($prodiUserMapping as $kode => $userData) {
+            $prodi = Prodi::where('kode_prodi', $kode)->first();
+            if ($prodi) {
+                User::updateOrCreate(
+                    ['username' => $userData['username']],
+                    [
+                        'name' => $userData['name'],
+                        'password' => $adminPassword,
+                        'role' => 'admin_prodi',
+                        'prodi_id' => $prodi->id,
+                        'must_change_password' => false,
+                    ]
+                );
+            }
+        }
+
         // 2. Seed 10 Data User Alumni Dummy
         $prodiList = Prodi::all();
         if ($prodiList->isEmpty()) {

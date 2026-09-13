@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Prodi;
 use App\Models\Question;
 use Illuminate\Database\Seeder;
 
@@ -13,11 +12,6 @@ class QuestionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Cari ID Prodi Filsafat Keilahian (Kode 31) untuk pertanyaan F2E spesifik prodi.
-        // Pertanyaan lain bernilai prodi_id = null (berlaku untuk semua program studi).
-        $prodiFilsafat = Prodi::where('kode_prodi', '31')->first();
-        $prodiFilsafatId = $prodiFilsafat ? $prodiFilsafat->id : null;
-
         $questions = [
             // Identitas & Informasi Pribadi (Section 1)
             ['question_section_id' => 1, 'code' => 'F1', 'question_text' => 'Nomor Mahasiswa', 'type' => 'text', 'is_required' => true, 'order' => 1],
@@ -27,9 +21,7 @@ class QuestionSeeder extends Seeder
             ['question_section_id' => 1, 'code' => 'F2D', 'question_text' => 'Alamat Sekarang', 'type' => 'text', 'is_required' => true, 'order' => 5],
 
             // Status Pekerjaan & Perusahaan (Section 2)
-            // Catatan: F2D1 khusus ditujukan untuk alumni Prodi Filsafat Keilahian (kode 31).
-            ['question_section_id' => 2, 'prodi_id' => $prodiFilsafatId, 'code' => 'F2D1', 'question_text' => 'Jenis Pekerjaan Anda (Khusus Alumni Teologi)', 'type' => 'single_choice', 'is_required' => true, 'order' => 6],
-            ['question_section_id' => 2, 'code' => 'F2E', 'question_text' => 'Nama Perusahaan/ Instansi/ Institusi', 'type' => 'text', 'is_required' => false, 'order' => 7],
+            ['question_section_id' => 2, 'code' => 'F2E', 'question_text' => 'Nama Perusahaan/ Instansi/ Institusi', 'type' => 'text', 'is_required' => false, 'order' => 6],
             ['question_section_id' => 2, 'code' => 'F2E1', 'question_text' => 'Nama Atasan di Perusahaan/Instansi/Institusi tempat anda bekerja', 'type' => 'text', 'is_required' => false, 'order' => 8],
             ['question_section_id' => 2, 'code' => 'F2E2', 'question_text' => 'Nomor Telepon Atasan di Perusahaan/Instansi/Institusi tempat anda bekerja', 'type' => 'text', 'is_required' => false, 'order' => 9],
             ['question_section_id' => 2, 'code' => 'F2E3', 'question_text' => 'Email Atasan di Perusahaan/ Instansi/ Institusi tempat anda bekerja', 'type' => 'text', 'is_required' => false, 'order' => 10],

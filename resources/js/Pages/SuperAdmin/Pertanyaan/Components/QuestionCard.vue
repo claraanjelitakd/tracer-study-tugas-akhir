@@ -110,20 +110,6 @@ const formatQuestionType = (type) => {
                 >
                     {{ question.is_required ? 'Wajib Diisi' : 'Opsional' }}
                 </span>
-
-                <!-- Badge Prodi -->
-                <span 
-                    v-if="question.prodi" 
-                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-gray-200 text-gray-800"
-                >
-                    Khusus: {{ question.prodi.kode_prodi }}
-                </span>
-                <span 
-                    v-else 
-                    class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-white border border-gray-200"
-                >
-                    Semua Prodi
-                </span>
             </div>
 
             <!-- Tombol Pengatur Posisi & Aksi Pertanyaan -->
@@ -254,6 +240,15 @@ const formatQuestionType = (type) => {
                 <div v-else class="p-4 rounded-xl bg-gray-50 text-center text-xs text-gray-400">
                     Belum ada opsi jawaban. Klik "Tambah Opsi" untuk memasukkan pilihan.
                 </div>
+            </div>
+
+            <!-- Catatan khusus tipe rating_5 (Skala Murni Tanpa Opsi Tambahan) -->
+            <div v-else-if="question.type === 'rating_5'" class="mt-4 pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 bg-emerald-50/50 p-3 rounded-xl gap-1">
+                <span class="font-bold text-emerald-900 flex items-center gap-1.5">
+                    <span>⭐</span>
+                    <span>Skala Penilaian Range 1 s/d 5 (Jawaban berupa angka murni)</span>
+                </span>
+                <span class="font-mono text-xs font-semibold text-emerald-800">Skor 1 (Min) ↔ Skor 5 (Maks)</span>
             </div>
         </div>
     </div>

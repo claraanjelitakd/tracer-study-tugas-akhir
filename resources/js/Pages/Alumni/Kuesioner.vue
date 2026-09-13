@@ -1,33 +1,57 @@
 <!--
-  Halaman Kuesioner Tracer Study Alumni
-  Fungsi: Menampilkan kuesioner tracer study per section dengan stepper navigasi interaktif.
-  Fitur: 
-  - Stepper tahapan dinamis, validasi form per step, navigasi responsif tanpa bayangan tebal.
-  - Percabangan (Jump Logic) berbasis `question_options.jump_to` murni dari database.
-  - Struktur Form Inertia (`form.answers`):
-    * Kunci `[question_id]`: Menyimpan jawaban utama (array untuk multiple_choice, object untuk radio_input, teks/angka untuk single_choice/number).
-    * Kunci `[question_id + '_custom']`: Menyimpan teks uraian bebas jika alumni memilih opsi 'Lainnya / Tuliskan'.
-  - Backend Sinkronisasi:
-    * Menerima payload Inertia dan menyimpannya secara rapi ke `responses` (Dual Storage: `answer_text` untuk teks bersih siap ekspor Excel & `answer_json` untuk array murni).
-    * Data profil (F1..F2H) terintegrasi otomatis dan tidak perlu diisi ulang oleh alumni.
+  Halaman: Kuesioner Tracer Study Alumni (Komponen Induk)
+  File: resources/js/Pages/Alumni/Kuesioner.vue
+  Fungsi: Mengorkestrasi state kuesioner, validasi per bagian, persistensi sesi,
+          dan alur logika lompatan (jump logic), serta merender sub-komponen modular:
+          - Navbar: Header atas dan tombol kembali
+          - Stepper: Indikator tahapan bulatan 1 s/d N
+          - Banner: Judul dan deskripsi seksi aktif
+          - TabelF17: Tabel khusus evaluasi kompetensi A vs B
+          - KartuPertanyaan: Renderer butir pertanyaan beserta variasi tipe input
+          - Navigasi: Kontrol navigasi desktop & mobile
 -->
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
-import SearchableSelect from '@/components/form/searchable-select.vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import Navbar from './Components/Kuesioner/Navbar.vue';
+import Stepper from './Components/Kuesioner/Stepper.vue';
+import Banner from './Components/Kuesioner/Banner.vue';
+import TabelF17 from './Components/Kuesioner/TabelF17.vue';
+import KartuPertanyaan from './Components/Kuesioner/KartuPertanyaan.vue';
+import Navigasi from './Components/Kuesioner/Navigasi.vue';
 
-// Menerima data kuesioner dari Backend yang sudah diproses
+// Props dari backend Laravel
 const props = defineProps({
     questionnaire: Object,
     initialAnswers: Object,
     error: String,
 });
 
-// Storage keys untuk persistensi sesi jika halaman direfresh
+// Kunci penyimpanan sesi lokal (localStorage)
 const SECTION_STORAGE_KEY = 'tracerstudy_alumni_kuesioner_section';
 const ANSWERS_STORAGE_KEY = 'tracerstudy_alumni_kuesioner_answers';
+const COMPLETED_SECTIONS_STORAGE_KEY = 'tracerstudy_alumni_kuesioner_completed_sections';
 
-// Inisialisasi jawaban: gabungkan data backend dengan draft lokal jika pernah direfresh
+// Inisialisasi daftar index section yang sudah selesai dikerjakan dari cache
+const getInitialCompletedSections = () => {
+    const set = new Set();
+    if (typeof window !== 'undefined') {
+        try {
+            const cached = localStorage.getItem(COMPLETED_SECTIONS_STORAGE_KEY);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(idx => set.add(Number(idx)));
+                }
+            }
+        } catch (e) {
+            console.error('Gagal membaca cache completed sections:', e);
+        }
+    }
+    return set;
+};
+
+// Inisialisasi jawaban formulir: gabungkan data backend dengan draft lokal
 const getInitialAnswers = () => {
     let base = JSON.parse(JSON.stringify(props.initialAnswers || {}));
     if (typeof window !== 'undefined') {
@@ -42,7 +66,7 @@ const getInitialAnswers = () => {
         }
     }
 
-    // Normalisasi struktur radio_input agar inputs per-opsi selalu terisolasi mandiri
+    // Normalisasi struktur radio_input & multiple_number
     if (props.questionnaire?.sections) {
         props.questionnaire.sections.forEach(sec => {
             sec.questions?.forEach(q => {
@@ -53,14 +77,12 @@ const getInitialAnswers = () => {
                         if (!base[q.id].inputs || typeof base[q.id].inputs !== 'object') {
                             base[q.id].inputs = {};
                         }
-                        // Jika dari cache lama ada input string tunggal tapi inputs per-opsi belum ada
                         if (base[q.id].selected && base[q.id].input !== undefined && q.options) {
                             const matchedOpt = q.options.find(o => o.option_text === base[q.id].selected);
                             if (matchedOpt && !base[q.id].inputs[matchedOpt.id]) {
                                 base[q.id].inputs[matchedOpt.id] = base[q.id].input;
                             }
                         }
-                        // Pastikan setiap opsi memiliki key tersendiri dan tidak kosong null
                         if (q.options) {
                             q.options.forEach(o => {
                                 if (base[q.id].inputs[o.id] === undefined) {
@@ -71,7 +93,6 @@ const getInitialAnswers = () => {
                     }
                 }
 
-                // Normalisasi struktur multiple_number agar setiap opsi terisi (dan dalam satuan ribuan jika bernilai kelipatan 1000)
                 if (q.type === 'multiple_number') {
                     if (!base[q.id] || typeof base[q.id] !== 'object') {
                         base[q.id] = {};
@@ -97,7 +118,7 @@ const getInitialAnswers = () => {
     return base;
 };
 
-// Inisialisasi section aktif: baca dari query URL atau localStorage
+// Inisialisasi section aktif
 const getInitialSectionIndex = () => {
     if (typeof window !== 'undefined') {
         try {
@@ -119,172 +140,29 @@ const getInitialSectionIndex = () => {
     return 0;
 };
 
-// Helper getter nilai input untuk pertanyaan bertipe radio_input secara independen per opsi
-const getRadioInputVal = (qId, optId) => {
-    if (!form.answers[qId] || typeof form.answers[qId] !== 'object') return '';
-    if (!form.answers[qId].inputs) return '';
-    return form.answers[qId].inputs[optId] ?? '';
-};
-
-// Helper setter nilai input untuk pertanyaan bertipe radio_input secara independen per opsi
-const setRadioInputVal = (qId, optId, val) => {
-    if (!form.answers[qId] || typeof form.answers[qId] !== 'object') {
-        form.answers[qId] = { selected: '', input: '', inputs: {} };
-    }
-    if (!form.answers[qId].inputs) {
-        form.answers[qId].inputs = {};
-    }
-    form.answers[qId].inputs[optId] = val;
-    form.answers[qId].input = val;
-};
-
-// Handler saat opsi radio_input dipilih/berganti: update input aktif tanpa merusak input opsi lain
-const handleRadioOptionSelect = (qId, optId) => {
-    if (!form.answers[qId] || typeof form.answers[qId] !== 'object') {
-        form.answers[qId] = { selected: '', input: '', inputs: {} };
-    }
-    if (!form.answers[qId].inputs) {
-        form.answers[qId].inputs = {};
-    }
-    form.answers[qId].input = form.answers[qId].inputs[optId] ?? '';
-};
-
-// Menyimpan index section kuesioner yang sedang aktif
+// State Reaktif Kuesioner
 const activeSectionIndex = ref(getInitialSectionIndex());
-
-// Inisialisasi data form menggunakan useForm bawaan Inertia
+const completedSectionIndices = ref(getInitialCompletedSections());
 const form = useForm({ answers: getInitialAnswers() });
 
-// Validasi batas index section saat data kuesioner tersedia
-onMounted(() => {
-    if (props.questionnaire?.sections?.length) {
-        if (activeSectionIndex.value >= props.questionnaire.sections.length) {
-            activeSectionIndex.value = 0;
-        }
-    }
-});
-
-// Simpan perpindahan section ke URL & localStorage agar saat direfresh tidak pindah tampilan
-watch(activeSectionIndex, (newIdx) => {
+// Simpan daftar section selesai ke localStorage
+const saveCompletedSections = () => {
     if (typeof window !== 'undefined') {
-        localStorage.setItem(SECTION_STORAGE_KEY, newIdx.toString());
-        const url = new URL(window.location.href);
-        url.searchParams.set('sec', newIdx.toString());
-        window.history.replaceState({}, '', url.toString());
+        try {
+            localStorage.setItem(
+                COMPLETED_SECTIONS_STORAGE_KEY,
+                JSON.stringify(Array.from(completedSectionIndices.value))
+            );
+        } catch (e) {
+            console.error('Gagal menyimpan cache completed sections:', e);
+        }
     }
-});
-
-// Simpan draft jawaban ke localStorage secara real-time agar jika direfresh data tidak hilang
-let draftTimer = null;
-watch(() => form.answers, (newAnswers) => {
-    if (typeof window !== 'undefined') {
-        clearTimeout(draftTimer);
-        draftTimer = setTimeout(() => {
-            try {
-                localStorage.setItem(ANSWERS_STORAGE_KEY, JSON.stringify(newAnswers));
-            } catch (e) {
-                console.error('Gagal menyimpan cache jawaban:', e);
-            }
-        }, 250);
-    }
-}, { deep: true });
-
-// Daftar urutan seluruh pertanyaan di kuesioner (flattened secara terurut)
-const allQuestionsList = computed(() => {
-    if (!props.questionnaire?.sections) return [];
-    const list = [];
-    props.questionnaire.sections.forEach(sec => {
-        if (sec.questions) {
-            sec.questions.forEach(q => {
-                list.push(q);
-            });
-        }
-    });
-    return list;
-});
-
-// Peta index urutan pertanyaan berdasarkan kode pertanyaan
-const questionIndexMap = computed(() => {
-    const map = {};
-    allQuestionsList.value.forEach((q, idx) => {
-        map[q.code] = idx;
-    });
-    return map;
-});
-
-// Hitung pertanyaan mana saja yang dilewati (skipped) karena branching jump_to
-const skippedQuestionIds = computed(() => {
-    const skipped = new Set();
-    const questions = allQuestionsList.value;
-    const indexMap = questionIndexMap.value;
-
-    questions.forEach((q, currentIndex) => {
-        if (skipped.has(q.id)) return;
-
-        const currentAnswer = form.answers[q.id];
-        if (!currentAnswer) return;
-
-        let selectedValue = currentAnswer;
-        if (typeof currentAnswer === 'object' && currentAnswer !== null && currentAnswer.selected !== undefined) {
-            selectedValue = currentAnswer.selected;
-        }
-        if (!selectedValue) return;
-
-        let targetCode = null;
-
-        // Ambil target lompatan murni dari opsi yang dipilih (QuestionOption.jump_to)
-        if (q.options && q.options.length > 0) {
-            const selectedOpt = q.options.find(opt => opt.option_text === selectedValue || opt.code === selectedValue);
-            if (selectedOpt && selectedOpt.jump_to) {
-                targetCode = selectedOpt.jump_to;
-            }
-        }
-
-        // Jika ada target jump, lewati semua pertanyaan antara pertanyaan saat ini dan target
-        if (targetCode) {
-            let targetIndex = indexMap[targetCode];
-            if (targetIndex === undefined) {
-                const matchedIndex = questions.findIndex((item, idx) => idx > currentIndex && (item.code === targetCode || item.code.startsWith(targetCode + '-')));
-                if (matchedIndex !== -1) {
-                    targetIndex = matchedIndex;
-                }
-            }
-
-            if (targetIndex !== undefined && targetIndex > currentIndex) {
-                for (let i = currentIndex + 1; i < targetIndex; i++) {
-                    skipped.add(questions[i].id);
-                }
-            }
-        }
-    });
-
-    return skipped;
-});
-
-const isQuestionVisible = (questionId) => {
-    return !skippedQuestionIds.value.has(questionId);
 };
 
-// Mengecek apakah suatu section memiliki pertanyaan yang terlihat
-const isSectionVisible = (section) => {
-    if (!section || !section.questions || section.questions.length === 0) return false;
-    return section.questions.some(q => isQuestionVisible(q.id));
-};
-
-// Section yang sedang aktif saat ini
+// Section aktif saat ini
 const currentSection = computed(() => {
-    return props.questionnaire?.sections?.[activeSectionIndex.value] || null;
-});
-
-// Menentukan apakah saat ini berada di section yang dapat diisi terakhir
-const isLastVisibleSection = computed(() => {
-    if (!props.questionnaire?.sections) return true;
-    for (let i = activeSectionIndex.value + 1; i < props.questionnaire.sections.length; i++) {
-        if (isSectionVisible(props.questionnaire.sections[i])) {
-            return false;
-        }
-    }
-    return true;
+    if (!props.questionnaire?.sections) return null;
+    return props.questionnaire.sections[activeSectionIndex.value] || null;
 });
 
 // Deteksi khusus Section F17 (Evaluasi Kompetensi Dual Matrix A vs B)
@@ -329,7 +207,7 @@ const f17CompletedCount = computed(() => {
     }).length;
 });
 
-// Kelompokkan pertanyaan dalam section: jika ada pertanyaan number/text pendek berurutan seperti F6 dan F7, jadikan pasangan side-by-side
+// Kelompokkan pertanyaan dalam section: buat berpasangan kanan-kiri khusus F6 dan F7
 const groupedQuestions = computed(() => {
     if (!currentSection.value?.questions) return [];
     const questions = currentSection.value.questions;
@@ -358,20 +236,92 @@ const groupedQuestions = computed(() => {
     return groups;
 });
 
-// Mencegah karakter aneh pada input angka
-const filterNumberInput = (event) => {
-    if (['e', 'E', '+', '-', '.'].includes(event.key)) {
-        event.preventDefault();
+// Evaluasi Logika Percabangan (Branching / Jump Logic)
+const questionOptionMap = computed(() => {
+    const map = {};
+    props.questionnaire?.sections?.forEach(sec => {
+        sec.questions?.forEach(q => {
+            q.options?.forEach(opt => {
+                if (opt.jump_to) {
+                    map[q.id + '_' + opt.option_text] = opt.jump_to;
+                }
+            });
+        });
+    });
+    return map;
+});
+
+// Menentukan apakah suatu butir pertanyaan terlihat (tidak dilewati oleh alur percabangan)
+const isQuestionVisible = (qId) => {
+    if (!props.questionnaire?.sections) return true;
+
+    for (const sec of props.questionnaire.sections) {
+        if (!sec.questions) continue;
+        for (const q of sec.questions) {
+            if (q.id === qId) return true;
+
+            const selectedAnswer = form.answers[q.id];
+            if (selectedAnswer) {
+                let jumpTarget = null;
+
+                if (typeof selectedAnswer === 'string') {
+                    jumpTarget = questionOptionMap.value[q.id + '_' + selectedAnswer];
+                } else if (typeof selectedAnswer === 'object' && selectedAnswer.selected) {
+                    jumpTarget = questionOptionMap.value[q.id + '_' + selectedAnswer.selected];
+                }
+
+                if (jumpTarget) {
+                    let isSkipped = false;
+                    let foundTarget = false;
+                    let scanning = false;
+
+                    for (const s of props.questionnaire.sections) {
+                        for (const targetQ of s.questions || []) {
+                            if (targetQ.id === q.id) {
+                                scanning = true;
+                                continue;
+                            }
+                            if (scanning) {
+                                if (targetQ.code === jumpTarget) {
+                                    foundTarget = true;
+                                    break;
+                                }
+                                if (targetQ.id === qId) {
+                                    isSkipped = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (foundTarget || isSkipped) break;
+                    }
+
+                    if (isSkipped) return false;
+                }
+            }
+        }
     }
+    return true;
 };
 
-// Format angka ke mata uang Rupiah standar
-const formatRupiah = (val) => {
-    const num = Number(val) || 0;
-    return 'Rp ' + num.toLocaleString('id-ID');
+// Menentukan apakah suatu section terlihat (memiliki setidaknya satu pertanyaan yang terlihat)
+const isSectionVisible = (section) => {
+    if (!section || !section.questions || section.questions.length === 0) return true;
+    return section.questions.some(q => isQuestionVisible(q.id));
 };
 
-// Menghitung total salary / total nominal untuk pertanyaan multiple_number (F13 dll)
+// Menentukan apakah section saat ini adalah section terlihat terakhir
+const isLastVisibleSection = computed(() => {
+    if (!props.questionnaire?.sections) return true;
+    const total = props.questionnaire.sections.length;
+    for (let i = activeSectionIndex.value + 1; i < total; i++) {
+        if (isSectionVisible(props.questionnaire.sections[i])) {
+            return false;
+        }
+    }
+    return true;
+});
+
+// Menghitung total salary untuk multiple_number (F13)
 const getMultipleNumberTotal = (q) => {
     if (!form.answers[q.id] || typeof form.answers[q.id] !== 'object') return 0;
     let total = 0;
@@ -380,7 +330,6 @@ const getMultipleNumberTotal = (q) => {
         if (val !== null && val !== '' && !isNaN(val)) {
             const num = parseInt(val, 10);
             if (num > 0) {
-                // Jika alumni mengisi dalam ribuan (< 1.000.000), kalikan 1000. Jika sudah nominal penuh (>= 1.000.000), ambil nilainya langsung.
                 total += (num < 1000000 ? num * 1000 : num);
             }
         }
@@ -388,67 +337,154 @@ const getMultipleNumberTotal = (q) => {
     return total;
 };
 
-// Mendapatkan nilai nominal rupiah penuh terkonversi untuk preview per item multiple_number
-const getMultipleNumberItemPreview = (val) => {
-    if (val === null || val === '' || isNaN(val)) return 'Rp 0';
-    const num = parseInt(val, 10);
-    if (num <= 0) return 'Rp 0';
-    const actual = num < 1000000 ? num * 1000 : num;
-    return formatRupiah(actual);
+// Helper getter nilai input untuk radio_input
+const getRadioInputVal = (qId, optId) => {
+    if (!form.answers[qId] || typeof form.answers[qId] !== 'object') return '';
+    if (!form.answers[qId].inputs) return '';
+    return form.answers[qId].inputs[optId] ?? '';
 };
 
-// Pemetaan label rating ke skor angka 1 s/d 5 untuk instrumen F17
-const ratingScores = {
-    'Sangat Rendah': 1,
-    'Rendah': 2,
-    'Cukup': 3,
-    'Tinggi': 4,
-    'Sangat Tinggi': 5,
-};
+// Memeriksa apakah satu butir pertanyaan sudah terjawab dengan valid
+const isQuestionAnswered = (q) => {
+    if (!q) return true;
+    if (!isQuestionVisible(q.id)) return true;
+    if (!q.is_required) return true;
 
-const getRatingScore = (val) => {
-    if (val === undefined || val === null || val === '') return null;
-    if (ratingScores[val]) return ratingScores[val];
-    const n = Number(val);
-    if (!isNaN(n) && n >= 1 && n <= 5) return n;
-    return null;
-};
+    const ans = form.answers[q.id];
 
-// Indikator ringkas perbandingan nilai A (Kemampuan Diri) dan B (Kontribusi Kampus)
-const getF17ComparisonBadge = (valA, valB) => {
-    const a = getRatingScore(valA);
-    const b = getRatingScore(valB);
-
-    if (a !== null && b !== null) {
-        if (a > b) {
-            return {
-                text: `A (${a}) > B (${b})`,
-                badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            };
-        } else if (a === b) {
-            return {
-                text: `A (${a}) = B (${b})`,
-                badgeClass: 'bg-purple-50 text-purple-800 border-purple-200'
-            };
-        } else {
-            return {
-                text: `A (${a}) < B (${b})`,
-                badgeClass: 'bg-blue-50 text-blue-800 border-blue-200'
-            };
+    switch (q.type) {
+        case 'rating_5': {
+            const n = Number(ans);
+            return !isNaN(n) && n >= 1 && n <= 5;
         }
+
+        case 'text': {
+            return ans !== undefined && ans !== null && ans.toString().trim() !== '';
+        }
+
+        case 'number': {
+            return ans !== undefined && ans !== null && ans.toString().trim() !== '' && !isNaN(ans);
+        }
+
+        case 'searchable_select': {
+            return ans !== undefined && ans !== null && ans.toString().trim() !== '';
+        }
+
+        case 'radio':
+        case 'single_choice': {
+            if (!ans || typeof ans !== 'string' || ans.trim() === '') return false;
+            const lower = ans.toLowerCase();
+            if (lower.includes('lainnya') || lower.includes('tuliskan') || ans.includes('...')) {
+                const customAns = form.answers[q.id + '_custom'];
+                return customAns !== undefined && customAns !== null && customAns.toString().trim() !== '';
+            }
+            return true;
+        }
+
+        case 'checkbox':
+        case 'multiple_choice': {
+            if (!Array.isArray(ans) || ans.length === 0) return false;
+            const hasCustom = ans.some(v => {
+                const s = (v || '').toString().toLowerCase();
+                return s.includes('lainnya') || s.includes('tuliskan') || s.includes('...');
+            });
+            if (hasCustom) {
+                const customAns = form.answers[q.id + '_custom'];
+                return customAns !== undefined && customAns !== null && customAns.toString().trim() !== '';
+            }
+            return true;
+        }
+
+        case 'radio_input':
+        case 'radio_text': {
+            if (!ans || typeof ans !== 'object' || !ans.selected) return false;
+            const sel = ans.selected;
+            if (sel.includes('...') || sel.includes('…') || sel.toLowerCase().includes('lainnya')) {
+                const matchedOpt = q.options?.find(o => o.option_text === sel);
+                const inputVal = matchedOpt ? getRadioInputVal(q.id, matchedOpt.id) : (ans.input || '');
+                return inputVal !== undefined && inputVal !== null && inputVal.toString().trim() !== '';
+            }
+            return true;
+        }
+
+        case 'multiple_number': {
+            return getMultipleNumberTotal(q) > 0;
+        }
+
+        default:
+            return ans !== undefined && ans !== null && ans !== '';
     }
-    return null;
+};
+
+// Memeriksa apakah seluruh pertanyaan wajib di suatu section sudah terjawab
+const isSectionAnswered = (section) => {
+    if (!section || !section.questions || section.questions.length === 0) return true;
+
+    const isF17 = section.questions.some(q => q.code && q.code.startsWith('F17-'));
+    if (isF17) {
+        return f17AspectPairs.value.length > 0 && f17CompletedCount.value === f17AspectPairs.value.length;
+    }
+
+    const visibleQuestions = section.questions.filter(q => isQuestionVisible(q.id));
+    if (visibleQuestions.length === 0) return true;
+
+    const requiredQuestions = visibleQuestions.filter(q => q.is_required);
+    if (requiredQuestions.length > 0) {
+        return requiredQuestions.every(q => isQuestionAnswered(q));
+    }
+
+    return visibleQuestions.some(q => isQuestionAnswered(q));
+};
+
+// Menentukan status selesai suatu section
+const isSectionCompleted = (index) => {
+    const sec = props.questionnaire?.sections?.[index];
+    if (!sec) return false;
+    return completedSectionIndices.value.has(index) || isSectionAnswered(sec);
+};
+
+// Menentukan warna konektor garis antar section
+const isLineCompleted = (index) => {
+    const currentCompleted = isSectionCompleted(index);
+    const nextCompleted = isSectionCompleted(index + 1);
+    const currentActive = (activeSectionIndex.value === index);
+    const nextActive = (activeSectionIndex.value === index + 1);
+
+    return (currentCompleted && (nextCompleted || nextActive)) || 
+           (currentActive && nextCompleted) || 
+           (index < activeSectionIndex.value && currentCompleted);
+};
+
+// Sinkronisasi status kelengkapan seluruh section berdasarkan data jawaban
+const syncSectionCompletion = () => {
+    if (!props.questionnaire?.sections) return;
+    props.questionnaire.sections.forEach((sec, idx) => {
+        if (isSectionAnswered(sec)) {
+            completedSectionIndices.value.add(idx);
+        } else if (idx === activeSectionIndex.value) {
+            completedSectionIndices.value.delete(idx);
+        }
+    });
+    saveCompletedSections();
 };
 
 // Navigasi Section: Berpindah ke section tertentu via stepper
 const setSection = (index) => {
+    if (currentSection.value && isSectionAnswered(currentSection.value)) {
+        completedSectionIndices.value.add(activeSectionIndex.value);
+        saveCompletedSections();
+    }
     activeSectionIndex.value = index;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// Navigasi Section: Kembali ke section terlihat sebelumnya
+// Navigasi Section: Kembali ke section sebelumnya
 const prevSection = () => {
     if (activeSectionIndex.value > 0) {
+        if (currentSection.value && isSectionAnswered(currentSection.value)) {
+            completedSectionIndices.value.add(activeSectionIndex.value);
+            saveCompletedSections();
+        }
         let prevIdx = activeSectionIndex.value - 1;
         while (prevIdx > 0 && !isSectionVisible(props.questionnaire.sections[prevIdx])) {
             prevIdx--;
@@ -466,18 +502,28 @@ const handleNextOrSubmit = () => {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
+                completedSectionIndices.value.add(activeSectionIndex.value);
+                saveCompletedSections();
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem(ANSWERS_STORAGE_KEY);
                     localStorage.removeItem(SECTION_STORAGE_KEY);
+                    localStorage.removeItem(COMPLETED_SECTIONS_STORAGE_KEY);
                 }
             }
         });
     } else {
+        // Tandai section saat ini selesai
+        completedSectionIndices.value.add(activeSectionIndex.value);
+        saveCompletedSections();
+
         // Simpan progress parsial ke backend dan lompat ke section berikutnya yang terlihat
         form.post('/alumni/kuesioner', {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
+                completedSectionIndices.value.add(activeSectionIndex.value);
+                saveCompletedSections();
+
                 let nextIdx = activeSectionIndex.value + 1;
                 while (nextIdx < props.questionnaire.sections.length && !isSectionVisible(props.questionnaire.sections[nextIdx])) {
                     nextIdx++;
@@ -492,681 +538,132 @@ const handleNextOrSubmit = () => {
         });
     }
 };
+
+// Lifecycle Hooks & Watchers
+onMounted(() => {
+    if (props.questionnaire?.sections?.length) {
+        if (activeSectionIndex.value >= props.questionnaire.sections.length) {
+            activeSectionIndex.value = 0;
+        }
+        syncSectionCompletion();
+    }
+});
+
+watch(activeSectionIndex, (newIdx) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(SECTION_STORAGE_KEY, newIdx.toString());
+        const url = new URL(window.location.href);
+        url.searchParams.set('sec', newIdx.toString());
+        window.history.replaceState({}, '', url.toString());
+    }
+});
+
+let draftTimer = null;
+watch(() => form.answers, (newAnswers) => {
+    if (typeof window !== 'undefined') {
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(() => {
+            try {
+                localStorage.setItem(ANSWERS_STORAGE_KEY, JSON.stringify(newAnswers));
+            } catch (e) {
+                console.error('Gagal menyimpan cache jawaban:', e);
+            }
+        }, 800);
+    }
+    syncSectionCompletion();
+}, { deep: true });
 </script>
 
 <template>
     <Head title="Kuesioner Tracer Study" />
 
-    <div class="min-h-screen bg-[#E8F5E9] font-sans text-gray-900 antialiased flex flex-col relative pb-32">
-        
-        <!-- Top Navigation -->
-        <nav class="bg-[#005B3C] sticky top-0 z-50 py-3">
-            <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white p-1.5 rounded-xl">
-                        <img src="/uploads/logo/logo-ukdw.png" onerror="this.src='https://www.ukdw.ac.id/wp-content/uploads/2017/10/logo-ukdw.png'" alt="UKDW Logo" class="h-10 w-10 object-contain">
-                    </div>
-                    <span class="text-white font-black text-2xl tracking-wide">Tracer Study</span>
-                </div>
-                <Link href="/alumni/dashboard" class="px-5 py-2.5 bg-white/15 text-white hover:bg-white/25 font-bold rounded-2xl transition-colors shadow-xs">
-                    Kembali
-                </Link>
-            </div>
-        </nav>
+    <div class="min-h-screen bg-[#E8F5E9] font-sans text-gray-900 antialiased flex flex-col relative pb-28 md:pb-32">
+        <!-- Header Atas: Navbar & Stepper Tahapan -->
+        <header class="sticky top-0 z-50 w-full shadow-md bg-white">
+            <!-- 1. Navbar Atas (Logo UKDW & Tombol Kembali) -->
+            <Navbar />
 
-        <!-- Stepper Navigasi Tahapan Section -->
-        <div v-if="questionnaire?.sections" class="w-full bg-white shadow-xs border-b border-gray-100 mb-8 overflow-x-auto pb-3 pt-4 custom-scrollbar">
-            <div class="flex items-center justify-between px-4 md:px-8 min-w-max max-w-5xl mx-auto">
-                <template v-for="(section, index) in questionnaire.sections" :key="section.id">
-                    
-                    <!-- Lingkaran Tahapan -->
-                    <div 
-                        class="flex flex-col relative items-center justify-center cursor-pointer group px-2 md:px-3 py-1 transition-all duration-200"
-                        @click="setSection(index)"
-                    >
-                        <div class="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full font-black text-sm md:text-lg transition-all duration-200 z-10 shadow-xs"
-                            :class="[
-                                activeSectionIndex === index ? 'bg-[#FFD700] text-[#005B3C] shadow-md scale-110' : 
-                                (index < activeSectionIndex ? 'bg-[#005B3C] text-white shadow-xs' : 
-                                'bg-gray-100 text-gray-400')
-                            ]"
-                        >
-                            <svg v-if="index < activeSectionIndex" class="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                            <span v-else>{{ index + 1 }}</span>
-                        </div>
-                        
-                        <!-- Judul Tahapan -->
-                        <span class="text-[11px] md:text-xs font-black mt-2 text-center w-24 md:w-28 leading-tight transition-colors line-clamp-2"
-                            :class="activeSectionIndex === index ? 'text-[#005B3C]' : 'text-gray-400 group-hover:text-gray-600'"
-                        >
-                            {{ section.title }}
-                        </span>
-                    </div>
-                    
-                    <!-- Garis Penghubung antar Lingkaran -->
-                    <div v-if="index < questionnaire.sections.length - 1" class="flex-1 h-1.5 md:h-2 rounded-full transition-colors duration-300 mx-1 md:mx-2 min-w-[20px]" :class="index < activeSectionIndex ? 'bg-[#005B3C]' : 'bg-gray-200'"></div>
-                </template>
-            </div>
-        </div>
+            <!-- 2. Stepper Tahapan (Bulatan Angka 1 s/d N & Judul Bagian) -->
+            <Stepper 
+                v-if="questionnaire?.sections"
+                :sections="questionnaire.sections"
+                :active-index="activeSectionIndex"
+                :completed-indices="completedSectionIndices"
+                :is-section-completed="isSectionCompleted"
+                :is-line-completed="isLineCompleted"
+                @select-section="setSection"
+            />
+        </header>
 
-        <!-- Main Form Content Area -->
-        <main class="flex-1 p-4 w-full mx-auto" :class="isF17Section ? 'max-w-6xl' : 'max-w-4xl'">
-            
-            <div v-if="error" class="bg-red-50 text-red-700 p-6 rounded-3xl font-bold mb-6 shadow-xs">
+        <!-- Area Konten Formulir Utama -->
+        <main 
+            class="flex-1 px-3 py-4 sm:px-4 md:px-6 w-full mx-auto mt-3 sm:mt-6 md:mt-8" 
+            :class="isF17Section ? 'max-w-6xl' : 'max-w-5xl'"
+        >
+            <!-- Pesan Error jika kuesioner tidak aktif -->
+            <div 
+                v-if="error" 
+                class="bg-red-50 text-red-700 p-4 sm:p-6 rounded-2xl sm:rounded-3xl font-bold mb-4 sm:mb-6 shadow-xs text-sm sm:text-base"
+            >
                 {{ error }}
             </div>
 
+            <!-- Formulir Kuesioner Aktif -->
             <div v-else-if="questionnaire && currentSection">
-                
-                <!-- Section Header Banner -->
-                <div class="mb-8 text-center bg-[#005B3C] p-8 md:p-10 rounded-[2rem] text-white shadow-sm">
-                    <span class="inline-block bg-[#FFD700] text-[#005B3C] text-xs font-black uppercase px-3.5 py-1 rounded-full mb-2 tracking-wider shadow-xs">
-                        Bagian {{ activeSectionIndex + 1 }} dari {{ questionnaire.sections.length }}
-                    </span>
-                    <h1 class="text-2xl md:text-4xl font-black tracking-tight mb-2">{{ currentSection.title }}</h1>
-                    <p class="text-green-100 font-medium text-base md:text-lg">Pilih jawaban yang paling sesuai. Kolom <span class="text-[#FFD700] font-black">*</span> wajib diisi.</p>
-                </div>
+                <!-- 3. Banner Hijau Judul Bagian -->
+                <Banner 
+                    :current-index="activeSectionIndex"
+                    :total-sections="questionnaire.sections.length"
+                    :title="currentSection.title"
+                />
 
-                <!-- Banner Integrasi Profil & Perusahaan -->
-                <div class="mb-8 p-5 bg-emerald-50 rounded-[1.8rem] flex items-center gap-4 text-emerald-900 shadow-xs">
-                    <div class="w-11 h-11 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <div class="flex-1 text-xs md:text-sm">
-                        <span class="font-black block text-emerald-950 text-sm md:text-base">Data Identitas, Perusahaan & Atasan Terintegrasi</span>
-                        Identitas pribadi, detail perusahaan, dan atasan Anda otomatis ditarik dari profil alumni Anda dan tidak perlu diisi ulang di sini.
-                    </div>
-                </div>
+                <form @submit.prevent="handleNextOrSubmit" class="space-y-4 sm:space-y-8">
+                    <!-- 4. Khusus Instrumen F17: Evaluasi Kompetensi Dual Matrix (A vs B) -->
+                    <TabelF17 
+                        v-if="isF17Section"
+                        :pairs="f17AspectPairs"
+                        :form="form"
+                    />
 
-                <form @submit.prevent="handleNextOrSubmit" class="space-y-8">
-                    
-                    <!-- TAMPILAN KHUSUS F17: Evaluasi Kompetensi Berdampingan (A vs B) -->
-                    <div v-if="isF17Section" class="space-y-6">
-                        <!-- Header Banner F17 -->
-                        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1.5">
-                                        <span class="inline-block bg-[#005B3C] text-white text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-md tracking-wider">
-                                            Instrumen F17
-                                        </span>
-                                        <span class="text-xs text-gray-500 font-medium">Evaluasi Kompetensi</span>
-                                    </div>
-                                    <h2 class="text-xl md:text-2xl font-black text-gray-900">
-                                        Perbandingan Penguasaan Diri vs Kontribusi Kampus
-                                    </h2>
-                                    <p class="text-sm text-gray-600 mt-1">
-                                        Bandingkan tingkat kompetensi yang Anda kuasai saat lulus (Kolom A) dengan kontribusi perguruan tinggi UKDW (Kolom B).
-                                    </p>
-                                </div>
-                                <!-- Progress Counter -->
-                                <div class="flex items-center gap-3 bg-gray-50 px-4 py-2.5 rounded-xl shrink-0 border border-gray-200/80">
-                                    <div class="text-right">
-                                        <div class="text-[11px] font-semibold text-gray-500">Progres Pengisian</div>
-                                        <div class="text-base font-black text-[#005B3C]">
-                                            {{ f17CompletedCount }} / {{ f17AspectPairs.length }} Aspek
-                                        </div>
-                                    </div>
-                                    <div class="w-9 h-9 rounded-lg bg-[#005B3C] text-white flex items-center justify-center font-black text-xs shadow-xs">
-                                        {{ Math.round((f17CompletedCount / (f17AspectPairs.length || 1)) * 100) }}%
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tabel Komparasi Berdampingan -->
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm min-w-[840px] border-collapse">
-                                    <thead>
-                                        <tr class="border-b border-gray-200">
-                                            <!-- Header Kolom A (Kemampuan Diri) -->
-                                            <th class="py-4 px-4 w-[330px] bg-emerald-50/70 text-left border-r border-gray-200">
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <span class="w-6 h-6 rounded-md bg-[#005B3C] text-white flex items-center justify-center text-xs font-black">A</span>
-                                                    <span class="font-black text-emerald-950 text-sm">Kemampuan Diri Anda</span>
-                                                </div>
-                                                <div class="text-xs text-emerald-800 font-medium mb-3">
-                                                    Tingkat kompetensi yang Anda kuasai saat lulus
-                                                </div>
-                                                <div class="flex items-center justify-between max-w-[240px] mx-auto px-1 text-xs font-bold text-emerald-900">
-                                                    <span class="text-[11px] text-emerald-700 font-medium">1 (Rendah)</span>
-                                                    <div class="flex gap-4">
-                                                        <span class="w-6 text-center">2</span>
-                                                        <span class="w-6 text-center">3</span>
-                                                        <span class="w-6 text-center">4</span>
-                                                    </div>
-                                                    <span class="text-[11px] text-emerald-700 font-medium">5 (Tinggi)</span>
-                                                </div>
-                                            </th>
-
-                                            <!-- Header Tengah (Aspek Kompetensi) -->
-                                            <th class="py-4 px-4 text-center bg-gray-50 text-gray-800 font-black text-xs uppercase tracking-wider">
-                                                Aspek Kompetensi
-                                            </th>
-
-                                            <!-- Header Kolom B (Kontribusi Kampus) -->
-                                            <th class="py-4 px-4 w-[330px] bg-blue-50/70 text-left border-l border-gray-200">
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <span class="w-6 h-6 rounded-md bg-blue-700 text-white flex items-center justify-center text-xs font-black">B</span>
-                                                    <span class="font-black text-blue-950 text-sm">Kontribusi Kampus UKDW</span>
-                                                </div>
-                                                <div class="text-xs text-blue-800 font-medium mb-3">
-                                                    Peran kurikulum & dosen UKDW membekali Anda
-                                                </div>
-                                                <div class="flex items-center justify-between max-w-[240px] mx-auto px-1 text-xs font-bold text-blue-900">
-                                                    <span class="text-[11px] text-blue-700 font-medium">1 (Rendah)</span>
-                                                    <div class="flex gap-4">
-                                                        <span class="w-6 text-center">2</span>
-                                                        <span class="w-6 text-center">3</span>
-                                                        <span class="w-6 text-center">4</span>
-                                                    </div>
-                                                    <span class="text-[11px] text-blue-700 font-medium">5 (Tinggi)</span>
-                                                </div>
-                                            </th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody class="divide-y divide-gray-100">
-                                        <tr 
-                                            v-for="pair in f17AspectPairs" 
-                                            :key="'pair_' + pair.aspectNumber" 
-                                            class="transition-colors hover:bg-gray-50/60"
-                                            :class="{'bg-gray-50/30': pair.aspectNumber % 2 === 0}"
-                                        >
-                                            <!-- Pilihan Kolom A -->
-                                            <td class="py-4 px-4 bg-emerald-50/20 border-r border-gray-200">
-                                                <div class="flex items-center justify-between max-w-[240px] mx-auto">
-                                                    <label 
-                                                        v-for="(opt, idx) in pair.qA.options" 
-                                                        :key="opt.id" 
-                                                        class="cursor-pointer select-none"
-                                                        :title="'Kolom A: ' + opt.option_text"
-                                                    >
-                                                        <input 
-                                                            type="radio" 
-                                                            :name="'question_' + pair.qA.id" 
-                                                            :value="opt.option_text" 
-                                                            v-model="form.answers[pair.qA.id]" 
-                                                            :required="pair.qA.is_required" 
-                                                            class="sr-only"
-                                                        >
-                                                        <div 
-                                                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all"
-                                                            :class="[
-                                                                form.answers[pair.qA.id] === opt.option_text
-                                                                    ? 'bg-[#005B3C] text-white ring-2 ring-offset-1 ring-emerald-500 shadow-sm scale-105 font-black'
-                                                                    : 'bg-white text-gray-700 border border-emerald-300 hover:bg-emerald-100/70 hover:border-emerald-400'
-                                                            ]"
-                                                        >
-                                                            {{ idx + 1 }}
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </td>
-
-                                            <!-- Aspek Kompetensi (Tengah) -->
-                                            <td class="py-4 px-5 text-center">
-                                                <div class="flex flex-col items-center justify-center gap-1.5">
-                                                    <span class="font-bold text-gray-900 text-sm md:text-base leading-snug">
-                                                        {{ pair.aspectNumber }}. {{ pair.aspectName }}
-                                                    </span>
-                                                    <!-- Badge perbandingan ringkas (A > B, A = B, A < B) jika keduanya terisi -->
-                                                    <span 
-                                                        v-if="getF17ComparisonBadge(form.answers[pair.qA.id], form.answers[pair.qB.id])"
-                                                        class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold border"
-                                                        :class="getF17ComparisonBadge(form.answers[pair.qA.id], form.answers[pair.qB.id]).badgeClass"
-                                                    >
-                                                        {{ getF17ComparisonBadge(form.answers[pair.qA.id], form.answers[pair.qB.id]).text }}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            <!-- Pilihan Kolom B -->
-                                            <td class="py-4 px-4 bg-blue-50/20 border-l border-gray-200">
-                                                <div class="flex items-center justify-between max-w-[240px] mx-auto">
-                                                    <label 
-                                                        v-for="(opt, idx) in pair.qB.options" 
-                                                        :key="opt.id" 
-                                                        class="cursor-pointer select-none"
-                                                        :title="'Kolom B: ' + opt.option_text"
-                                                    >
-                                                        <input 
-                                                            type="radio" 
-                                                            :name="'question_' + pair.qB.id" 
-                                                            :value="opt.option_text" 
-                                                            v-model="form.answers[pair.qB.id]" 
-                                                            :required="pair.qB.is_required" 
-                                                            class="sr-only"
-                                                        >
-                                                        <div 
-                                                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all"
-                                                            :class="[
-                                                                form.answers[pair.qB.id] === opt.option_text
-                                                                    ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-500 shadow-sm scale-105 font-black'
-                                                                    : 'bg-white text-gray-700 border border-blue-300 hover:bg-blue-100/70 hover:border-blue-400'
-                                                            ]"
-                                                        >
-                                                            {{ idx + 1 }}
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAMPILAN STANDAR: Pertanyaan di Section Lainnya -->
-                    <div v-else class="space-y-8">
+                    <!-- 5. Daftar Pertanyaan Kuesioner Standar (Non-F17) -->
+                    <div v-else class="space-y-4 sm:space-y-8">
                         <template v-for="(group, gIdx) in groupedQuestions" :key="'grp_' + gIdx">
-                            
-                            <!-- KELOMPOK DUA PERTANYAAN BERDAMPINGAN (Khusus F6 dan F7: Kanan-Kiri Kotak) -->
-                            <div v-if="group.type === 'pair'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <template v-for="q in group.items" :key="q.id">
-                                    <div 
-                                        v-show="isQuestionVisible(q.id)" 
-                                        class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm relative z-0 flex flex-col justify-between"
-                                    >
-                                        <div>
-                                            <h2 class="text-lg md:text-xl font-black text-gray-800 mb-6 leading-relaxed flex items-start gap-3">
-                                                <span class="shrink-0 bg-[#FFD700] text-[#005B3C] px-3 py-1 rounded-xl text-sm font-black shadow-xs">{{ q.code }}</span>
-                                                <span>{{ q.question_text }} <span v-if="q.is_required" class="text-red-500 font-black">*</span></span>
-                                            </h2>
-                                        </div>
-
-                                        <div class="mt-4">
-                                            <input 
-                                                type="number" 
-                                                v-model="form.answers[q.id]" 
-                                                :required="q.is_required && isQuestionVisible(q.id)"
-                                                @keydown="filterNumberInput"
-                                                min="0"
-                                                class="w-full rounded-2xl bg-gray-50/90 p-5 text-gray-900 font-black font-mono focus:bg-white focus:ring-2 focus:ring-[#005B3C] transition-all text-2xl text-center border-0 shadow-xs"
-                                                placeholder="0"
-                                            >
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <!-- PERTANYAAN TUNGGAL (Ukuran Penuh) -->
-                            <template v-else>
-                                <div 
-                                    v-for="q in group.items" 
+                            <!-- Pertanyaan 2 Kolom Berdampingan (Khusus F6 dan F7) -->
+                            <div v-if="group.type === 'pair'" class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-6">
+                                <KartuPertanyaan 
+                                    v-for="q in group.items"
                                     :key="q.id"
-                                    v-show="isQuestionVisible(q.id)" 
-                                    class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm mb-6 relative z-0"
-                                    :style="{ zIndex: q.type === 'searchable_select' ? 10 : 1 }"
-                                >
-                                
-                                <h2 class="text-xl md:text-2xl font-black text-gray-800 mb-6 leading-relaxed flex items-start gap-4">
-                                    <span class="shrink-0 bg-[#FFD700] text-[#005B3C] px-3.5 py-1 rounded-xl text-base font-black shadow-xs">{{ q.code }}</span>
-                                    <span>{{ q.question_text }} <span v-if="q.is_required" class="text-red-500 font-black">*</span></span>
-                                </h2>
-
-                                <!-- Tipe Text -->
-                                <div v-if="q.type === 'text'">
-                                    <div v-if="q.code === 'F1'" class="relative max-w-md">
-                                        <input 
-                                            type="text" 
-                                            v-model="form.answers[q.id]" 
-                                            readonly
-                                            class="w-full rounded-2xl bg-gray-100 p-5 text-gray-800 font-mono font-black text-xl cursor-not-allowed border-0 shadow-inner"
-                                        >
-                                        <span class="absolute right-4 top-1/2 -translate-y-1/2 bg-green-100 text-[#005B3C] text-xs font-black px-3.5 py-1.5 rounded-full shadow-xs">
-                                            NIM Terverifikasi
-                                        </span>
-                                    </div>
-                                    <input 
-                                        v-else
-                                        type="text" 
-                                        v-model="form.answers[q.id]" 
-                                        :required="q.is_required && isQuestionVisible(q.id)"
-                                        class="w-full rounded-2xl bg-gray-50/90 p-5 text-gray-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#005B3C] transition-all text-lg border-0 shadow-xs"
-                                        placeholder="Ketik jawabanmu di sini..."
-                                    >
-                                </div>
-
-                                <!-- Tipe Number -->
-                                <div v-else-if="q.type === 'number'">
-                                    <input 
-                                        type="number" 
-                                        v-model="form.answers[q.id]" 
-                                        :required="q.is_required && isQuestionVisible(q.id)"
-                                        @keydown="filterNumberInput"
-                                        min="0"
-                                        class="w-full max-w-xs rounded-2xl bg-gray-50/90 p-5 text-gray-900 font-black font-mono focus:bg-white focus:ring-2 focus:ring-[#005B3C] transition-all text-xl text-center border-0 shadow-xs"
-                                        placeholder="0"
-                                    >
-                                </div>
-
-                                <!-- Tipe Searchable Select -->
-                                <div v-else-if="q.type === 'searchable_select'" class="relative">
-                                    <SearchableSelect 
-                                        v-model="form.answers[q.id]" 
-                                        :options="q.options" 
-                                        :required="q.is_required && isQuestionVisible(q.id)" 
-                                        placeholder="Cari bidang pekerjaan..." 
-                                    />
-                                </div>
-
-                                <!-- Tipe Radio / Single Choice -->
-                                <div v-else-if="q.type === 'radio' || q.type === 'single_choice'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label v-for="opt in q.options" :key="opt.id" class="cursor-pointer group block select-none">
-                                        <input 
-                                            type="radio" 
-                                            :name="'question_'+q.id" 
-                                            :value="opt.option_text" 
-                                            v-model="form.answers[q.id]" 
-                                            :required="q.is_required && isQuestionVisible(q.id)" 
-                                            class="sr-only"
-                                        >
-                                        <div 
-                                            class="h-full p-5 rounded-2xl font-bold text-lg transition-all duration-200 flex flex-col items-center justify-center text-center shadow-xs"
-                                            :class="[
-                                                form.answers[q.id] === opt.option_text
-                                                    ? 'bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]' 
-                                                    : 'bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C] hover:shadow-sm'
-                                            ]"
-                                        >
-                                            <span>{{ opt.option_text }}</span>
-                                            <!-- Input Teks Ekstra untuk opsi 'Lainnya' pada Radio / Single Choice -->
-                                            <div 
-                                                v-if="form.answers[q.id] === opt.option_text && (opt.option_text.toLowerCase().includes('lainnya') || opt.option_text.toLowerCase().includes('tuliskan') || opt.option_text.includes('...'))" 
-                                                class="w-full mt-4" 
-                                                @click.stop
-                                            >
-                                                <input 
-                                                    type="text"
-                                                    v-model="form.answers[q.id + '_custom']"
-                                                    placeholder="Tuliskan di sini..."
-                                                    class="w-full rounded-xl bg-white text-gray-900 placeholder-gray-400 p-3.5 font-bold shadow-inner focus:ring-2 focus:ring-[#FFD700] text-center text-base border-0"
-                                                    required
-                                                >
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <!-- Tipe Checkbox / Multiple Choice -->
-                                <div v-else-if="q.type === 'checkbox' || q.type === 'multiple_choice'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label v-for="opt in q.options" :key="opt.id" class="cursor-pointer group block select-none">
-                                        <input 
-                                            type="checkbox" 
-                                            :value="opt.option_text" 
-                                            v-model="form.answers[q.id]" 
-                                            class="sr-only"
-                                        >
-                                        <div 
-                                            class="h-full p-5 rounded-2xl font-bold text-lg transition-all duration-200 flex flex-col items-center justify-center text-center shadow-xs"
-                                            :class="[
-                                                Array.isArray(form.answers[q.id]) && form.answers[q.id].includes(opt.option_text)
-                                                    ? 'bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]' 
-                                                    : 'bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C] hover:shadow-sm'
-                                            ]"
-                                        >
-                                            <span>{{ opt.option_text }}</span>
-                                            <!-- Input Teks Ekstra untuk opsi 'Lainnya' pada Checkbox / Multiple Choice -->
-                                            <div 
-                                                v-if="Array.isArray(form.answers[q.id]) && form.answers[q.id].includes(opt.option_text) && (opt.option_text.toLowerCase().includes('lainnya') || opt.option_text.includes('...'))" 
-                                                class="w-full mt-4" 
-                                                @click.stop
-                                            >
-                                                <input 
-                                                    type="text"
-                                                    v-model="form.answers[q.id + '_custom']"
-                                                    placeholder="Tuliskan di sini..."
-                                                    class="w-full rounded-xl bg-white text-gray-900 placeholder-gray-400 p-3.5 font-bold shadow-inner focus:ring-2 focus:ring-[#FFD700] text-center text-base border-0"
-                                                    required
-                                                >
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <!-- Tipe Radio dengan Input Teks / Angka (radio_input / radio_text) -->
-                                <div v-else-if="q.type === 'radio_input' || q.type === 'radio_text'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label v-for="opt in q.options" :key="opt.id" class="cursor-pointer group block select-none">
-                                        <input 
-                                            type="radio" 
-                                            :name="'question_'+q.id" 
-                                            :value="opt.option_text" 
-                                            v-model="form.answers[q.id].selected" 
-                                            @change="handleRadioOptionSelect(q.id, opt.id)"
-                                            class="sr-only"
-                                        >
-                                        <div 
-                                            class="p-5 rounded-2xl font-bold text-lg transition-all duration-200 flex flex-col items-center justify-center text-center shadow-xs"
-                                            :class="[
-                                                form.answers[q.id]?.selected === opt.option_text
-                                                    ? 'bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]' 
-                                                    : 'bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C] hover:shadow-sm'
-                                            ]"
-                                        >
-                                            <span>{{ opt.option_text }}</span>
-                                            <div 
-                                                v-if="form.answers[q.id]?.selected === opt.option_text && (opt.option_text.includes('...') || opt.option_text.includes('…') || opt.option_text.toLowerCase().includes('lainnya'))" 
-                                                class="w-full mt-4" 
-                                                @click.stop
-                                            >
-                                                <input 
-                                                    :type="q.type === 'radio_input' ? 'number' : 'text'"
-                                                    :value="getRadioInputVal(q.id, opt.id)"
-                                                    @input="setRadioInputVal(q.id, opt.id, $event.target.value)"
-                                                    :placeholder="q.type === 'radio_input' ? 'Masukkan angka...' : 'Tuliskan di sini...'"
-                                                    @keydown="q.type === 'radio_input' ? filterNumberInput($event) : null"
-                                                    class="w-full rounded-xl bg-white text-gray-900 placeholder-gray-400 p-3.5 font-bold shadow-inner focus:ring-2 focus:ring-[#FFD700] text-center text-base border-0"
-                                                    required
-                                                >
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <!-- Tipe Multiple Number (F13 dll) -->
-                                <div v-else-if="q.type === 'multiple_number'" class="space-y-4">
-                                    <!-- Petunjuk Pengisian Satuan Ribuan -->
-                                    <div class="flex items-center gap-2.5 p-3.5 bg-emerald-50/90 border border-emerald-200/70 rounded-2xl text-xs sm:text-sm text-emerald-900 shadow-2xs">
-                                        <svg class="w-5 h-5 text-[#005B3C] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>
-                                            <strong>Petunjuk Pengisian:</strong> Masukkan nominal dalam satuan <strong>ribuan rupiah</strong> (akhiran <code class="bg-white px-1.5 py-0.5 rounded font-mono font-bold text-emerald-800 border border-emerald-200">.000</code> otomatis). Contoh: masukkan <span class="font-bold text-emerald-950 underline">5000</span> untuk <strong>Rp 5.000.000</strong>, atau <span class="font-bold text-emerald-950 underline">750</span> untuk <strong>Rp 750.000</strong>.
-                                        </span>
-                                    </div>
-
-                                    <!-- Daftar Opsi Input Finansial -->
-                                    <div v-for="opt in q.options" :key="opt.id" class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/90 rounded-2xl gap-3 shadow-xs border border-gray-100 hover:border-gray-200 transition-colors">
-                                        <div class="space-y-1">
-                                            <label class="font-bold text-gray-800 text-base">
-                                                {{ opt.option_text }}
-                                            </label>
-                                            <div class="text-xs text-gray-500 font-medium">
-                                                Konversi: <span class="font-bold text-[#005B3C]">{{ getMultipleNumberItemPreview(form.answers[q.id]?.[opt.code]) }}</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="flex flex-col items-end gap-1 w-full sm:w-72">
-                                            <div class="relative w-full flex items-center rounded-xl bg-white border border-gray-200 shadow-xs focus-within:ring-2 focus-within:ring-[#005B3C] focus-within:border-transparent transition-all overflow-hidden">
-                                                <span class="pl-3.5 pr-1 font-bold text-gray-400 select-none text-base">Rp</span>
-                                                <input 
-                                                    type="number" 
-                                                    v-model="form.answers[q.id][opt.code]"
-                                                    @keydown="filterNumberInput"
-                                                    min="0"
-                                                    placeholder="0"
-                                                    class="w-full py-2.5 px-2 bg-transparent font-mono font-bold border-0 focus:ring-0 text-right text-lg text-gray-900 placeholder-gray-300"
-                                                >
-                                                <span class="pr-3.5 pl-1.5 font-mono font-bold text-gray-500 select-none text-base bg-gray-100/80 py-2.5 border-l border-gray-200">.000</span>
-                                            </div>
-                                            <!-- Peringatan jika alumni mengetik angka sangat besar (misal 5.000.000 padahal cukup 5000) -->
-                                            <div v-if="form.answers[q.id]?.[opt.code] >= 1000000" class="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md text-right w-full">
-                                                ⚠️ Nilai terbaca di atas Rp 1 Miliar. Jika maksud Anda Rp 5.000.000, cukup ketik <strong>5000</strong>.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Kartu Ringkasan Total Salary (Total Pendapatan) -->
-                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 bg-linear-to-r from-emerald-50 via-teal-50 to-emerald-100/60 rounded-2xl border-2 border-[#005B3C]/30 shadow-xs gap-3">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 rounded-xl bg-[#005B3C] text-white flex items-center justify-center shrink-0 shadow-xs">
-                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs uppercase tracking-wider font-extrabold text-[#005B3C]">
-                                                    Total Akumulasi
-                                                </div>
-                                                <div class="text-base font-black text-gray-900">
-                                                    Total Pendapatan (Total Salary)
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-right sm:pl-4">
-                                            <div class="text-xl sm:text-2xl font-black font-mono text-[#005B3C] tracking-tight">
-                                                {{ formatRupiah(getMultipleNumberTotal(q)) }}
-                                            </div>
-                                            <div class="text-[11px] text-gray-500 font-medium">
-                                                *Otomatis dihitung & tersimpan ke database
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Tipe Matrix (Skala 1-5) -->
-                                <div v-else-if="q.type === 'matrix'" class="overflow-x-auto">
-                                    <div class="min-w-max space-y-3">
-                                        <div class="flex px-4 py-2.5 bg-gray-100 rounded-xl font-black text-gray-500 text-sm">
-                                            <div class="w-1/2 uppercase">Aspek</div>
-                                            <div class="flex-1 flex justify-between px-4">
-                                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-                                            </div>
-                                        </div>
-                                        <div v-for="opt in q.options" :key="opt.id" class="flex items-center px-4 py-3.5 bg-gray-50/70 rounded-2xl hover:bg-emerald-50/50 transition-colors shadow-xs">
-                                            <div class="w-1/2 font-bold text-gray-800 pr-4">{{ opt.option_text }}</div>
-                                            <div class="flex-1 flex justify-between px-4">
-                                                <label v-for="i in 5" :key="i" class="cursor-pointer relative">
-                                                    <input 
-                                                        type="radio" 
-                                                        :name="'q_'+q.id+'_opt_'+opt.id" 
-                                                        :value="i" 
-                                                        v-model="form.answers[q.id][opt.id]" 
-                                                        :required="q.is_required" 
-                                                        class="sr-only"
-                                                    >
-                                                    <div 
-                                                        class="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm transition-all transform shadow-xs"
-                                                        :class="[
-                                                            form.answers[q.id][opt.id] === i
-                                                                ? 'bg-[#005B3C] text-white scale-110 shadow-sm'
-                                                                : 'bg-white text-gray-500 hover:bg-emerald-100/80 hover:text-[#005B3C]'
-                                                        ]"
-                                                    >
-                                                        {{ i }}
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Tipe Matrix Dual -->
-                                <div v-else-if="q.type === 'matrix_dual'" class="overflow-x-auto">
-                                    <div class="min-w-max rounded-3xl overflow-hidden shadow-xs">
-                                        <table class="w-full text-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th rowspan="2" class="w-1/3 px-4 py-4 text-left font-black text-gray-600 uppercase bg-gray-100">Kompetensi</th>
-                                                    <th colspan="5" class="px-2 py-3 text-center font-black text-white bg-[#005B3C] uppercase">(A) Saat Lulus</th>
-                                                    <th colspan="5" class="px-2 py-3 text-center font-black text-[#005B3C] bg-[#FFD700] uppercase">(B) Kontribusi PT</th>
-                                                </tr>
-                                                <tr>
-                                                    <th v-for="i in 5" :key="'a'+i" class="bg-green-100 py-2 text-[#005B3C] w-10 text-center font-black">{{ i }}</th>
-                                                    <th v-for="i in 5" :key="'b'+i" class="bg-yellow-100 py-2 text-yellow-800 w-10 text-center font-black">{{ i }}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white divide-y divide-gray-100">
-                                                <tr v-for="opt in q.options" :key="opt.id" class="hover:bg-gray-50">
-                                                    <td class="px-4 py-4 font-bold text-gray-800">{{ opt.option_text }}</td>
-                                                    <td v-for="i in 5" :key="'a_opt'+i" class="text-center p-2">
-                                                        <label class="cursor-pointer block">
-                                                            <input type="radio" :name="'q_'+q.id+'_opt_'+opt.id+'_A'" :value="i" v-model="form.answers[q.id][opt.id].A" :required="q.is_required" class="sr-only">
-                                                            <div 
-                                                                class="mx-auto w-8 h-8 rounded-full flex items-center justify-center font-bold transition-all shadow-xs"
-                                                                :class="[
-                                                                    form.answers[q.id][opt.id].A === i 
-                                                                        ? 'bg-[#005B3C] text-white shadow-sm' 
-                                                                        : 'bg-gray-100 text-transparent hover:bg-gray-200'
-                                                                ]"
-                                                            >✓</div>
-                                                        </label>
-                                                    </td>
-                                                    <td v-for="i in 5" :key="'b_opt'+i" class="text-center p-2 bg-yellow-50/20">
-                                                        <label class="cursor-pointer block">
-                                                            <input type="radio" :name="'q_'+q.id+'_opt_'+opt.id+'_B'" :value="i" v-model="form.answers[q.id][opt.id].B" :required="q.is_required" class="sr-only">
-                                                            <div 
-                                                                class="mx-auto w-8 h-8 rounded-full flex items-center justify-center font-bold transition-all shadow-xs"
-                                                                :class="[
-                                                                    form.answers[q.id][opt.id].B === i 
-                                                                        ? 'bg-[#FFD700] text-[#005B3C] shadow-sm' 
-                                                                        : 'bg-gray-100 text-transparent hover:bg-yellow-100'
-                                                                ]"
-                                                            >✓</div>
-                                                        </label>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
+                                    :question="q"
+                                    :form="form"
+                                    :is-visible="isQuestionVisible(q.id)"
+                                    :is-paired="true"
+                                />
                             </div>
+
+                            <!-- Pertanyaan Tunggal Ukuran Penuh -->
+                            <template v-else>
+                                <KartuPertanyaan 
+                                    v-for="q in group.items"
+                                    :key="q.id"
+                                    :question="q"
+                                    :form="form"
+                                    :is-visible="isQuestionVisible(q.id)"
+                                    :is-paired="false"
+                                />
+                            </template>
                         </template>
-                    </template>
-                </div>
+                    </div>
 
-                    <!-- Floating Navigations (Bottom Left and Right) -->
-                    <!-- Tombol Kembali (Kiri Bawah) -->
-                    <button 
-                        type="button"
-                        @click="prevSection"
-                        :disabled="activeSectionIndex === 0"
-                        class="fixed left-4 md:left-8 bottom-8 z-40 w-16 h-16 rounded-full flex justify-center items-center bg-[#FFD700] text-[#005B3C] shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:pointer-events-none group border-0"
-                        title="Kembali ke Bagian Sebelumnya"
-                    >
-                        <svg class="w-8 h-8 pr-1 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    
-                    <!-- Tombol Lanjutkan/Simpan (Kanan Bawah) -->
-                    <button 
-                        type="submit"
-                        :disabled="form.processing"
-                        class="fixed right-4 md:right-8 bottom-8 z-40 w-16 h-16 rounded-full flex justify-center items-center bg-[#005B3C] text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group border-0"
-                        :title="isLastVisibleSection ? 'Selesai & Simpan Seluruh Kuesioner' : 'Lanjutkan ke Bagian Berikutnya'"
-                    >
-                        <svg v-if="!isLastVisibleSection" class="w-8 h-8 pl-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M9 5l7 7-7 7"></path></svg>
-                        <svg v-else class="w-8 h-8 pl-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                    </button>
-
+                    <!-- 6. Tombol Navigasi Desktop & Mobile (< Kembali & > Lanjut/Selesai) -->
+                    <Navigasi 
+                        :active-section-index="activeSectionIndex"
+                        :total-sections="questionnaire.sections.length"
+                        :is-last-visible-section="isLastVisibleSection"
+                        :is-processing="form.processing"
+                        @prev="prevSection"
+                    />
                 </form>
             </div>
-
         </main>
     </div>
 </template>
-
-<style scoped>
-/* Menyembunyikan Scrollbar bawaan browser pada Stepper */
-.custom-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-.custom-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-</style>

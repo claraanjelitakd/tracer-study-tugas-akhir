@@ -73,11 +73,11 @@ onUnmounted(() => {
         <!-- Input field that shows the selected value but toggles the dropdown -->
         <div 
             @click="toggleDropdown"
-            class="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 text-gray-900 focus-within:bg-white focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200 transition-all font-medium cursor-pointer flex justify-between items-center"
+            class="w-full rounded-xl border border-gray-200 bg-gray-50/90 p-3.5 sm:p-4 text-sm sm:text-base text-gray-900 focus-within:bg-white focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200 transition-all font-medium cursor-pointer flex justify-between items-center shadow-xs"
         >
-            <span v-if="modelValue" class="text-green-800">{{ selectedOptionText }}</span>
+            <span v-if="modelValue" class="text-green-800 font-bold">{{ selectedOptionText }}</span>
             <span v-else class="text-gray-400">{{ placeholder }}</span>
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
         
         <!-- Hidden input for HTML required validation -->

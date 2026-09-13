@@ -122,6 +122,7 @@ class SimpanJawabanController extends Controller
                     $answerText = implode(', ', $processedArray); // Varchar rapi untuk export
                     break;
 
+                case 'rating_5':
                 case 'single_choice':
                 case 'radio':
                     if (is_string($jawaban) || is_numeric($jawaban)) {
@@ -231,9 +232,11 @@ class SimpanJawabanController extends Controller
                             $parts[] = "{$label}: {$formattedVal}";
                         }
 
-                        // Simpan total salary akumulatif pada answer_json dan sertakan di answer_text
+                        // Simpan total salary akumulatif pada answer_json dan sertakan di answer_text jika opsi lebih dari 1
                         $cleanJson['total'] = $total;
-                        $parts[] = 'Total Pendapatan: Rp '.number_format($total, 0, ',', '.');
+                        if ($question->options->count() > 1) {
+                            $parts[] = 'Total Pendapatan: Rp '.number_format($total, 0, ',', '.');
+                        }
 
                         $answerJson = $cleanJson;
                         $answerText = implode(', ', $parts);

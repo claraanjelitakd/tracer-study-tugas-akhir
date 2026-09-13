@@ -27,8 +27,8 @@ class DaftarPertanyaanController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Ambil seluruh pertanyaan beserta relasi section, opsi, dan prodi
-        $questions = Question::with(['section.questionnaire', 'options', 'prodi'])
+        // 1. Ambil seluruh pertanyaan beserta relasi section dan opsi
+        $questions = Question::with(['section.questionnaire', 'options'])
             ->orderBy('order', 'asc')
             ->get();
 

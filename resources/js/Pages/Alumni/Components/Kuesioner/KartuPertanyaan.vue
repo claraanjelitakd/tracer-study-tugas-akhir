@@ -1,0 +1,483 @@
+<!--
+  Komponen: Kartu Butir Pertanyaan Kuesioner Tracer Study Alumni
+  File: resources/js/Pages/Alumni/Components/Kuesioner/KartuPertanyaan.vue
+  Fungsi: Merender kartu butir pertanyaan individu beserta seluruh varian tipe input:
+          - rating_5 (skala skor 1-5 dengan panduan)
+          - searchable_select (dropdown pencarian bidang pekerjaan)
+          - single_choice / radio (pilihan tunggal dengan input kustom)
+          - multiple_choice / checkbox (pilihan ganda dengan input kustom)
+          - radio_input / radio_text (opsi radio dengan input kolom)
+          - multiple_number (input nominal penghasilan & kalkulasi gaji)
+          - number (angka)
+          - text (teks bebas)
+-->
+<script setup>
+import SearchableSelect from '@/components/form/searchable-select.vue';
+
+const props = defineProps({
+    question: {
+        type: Object,
+        required: true,
+    },
+    form: {
+        type: Object,
+        required: true,
+    },
+    isVisible: {
+        type: Boolean,
+        default: true,
+    },
+    isPaired: {
+        type: Boolean,
+        default: false,
+    },
+});
+
+// Helper pembersih teks instruksi dari teks pertanyaan
+const getCleanQuestionText = (text) => {
+    if (!text) return '';
+    return text
+        .replace(/(\s*[\(\[\{]?\s*(jawaban\s+bisa\s+lebih\s+dari\s+satu|pilih(lah)?\s+satu\s+atau\s+lebih|pilih(lah)?\s+satu\s+jawaban|pilih(lah)?\s+salah\s+satu)\s*[\)\]\}]?\.?)/gi, '')
+        .trim();
+};
+
+// Mencegah karakter aneh pada input angka
+const filterNumberInput = (event) => {
+    if (['e', 'E', '+', '-', '.'].includes(event.key)) {
+        event.preventDefault();
+    }
+};
+
+// Format angka ke mata uang Rupiah standar
+const formatRupiah = (val) => {
+    const num = Number(val) || 0;
+    return 'Rp ' + num.toLocaleString('id-ID');
+};
+
+// Menghitung total salary / total nominal untuk pertanyaan multiple_number (F13 dll)
+const getMultipleNumberTotal = (q) => {
+    if (!props.form.answers[q.id] || typeof props.form.answers[q.id] !== 'object') return 0;
+    let total = 0;
+    q.options?.forEach(opt => {
+        const val = props.form.answers[q.id][opt.code];
+        if (val !== null && val !== '' && !isNaN(val)) {
+            const num = parseInt(val, 10);
+            if (num > 0) {
+                total += (num < 1000000 ? num * 1000 : num);
+            }
+        }
+    });
+    return total;
+};
+
+// Mendapatkan nilai nominal rupiah penuh terkonversi untuk preview per item multiple_number
+const getMultipleNumberItemPreview = (val) => {
+    if (val === null || val === '' || isNaN(val)) return 'Rp 0';
+    const num = parseInt(val, 10);
+    if (num <= 0) return 'Rp 0';
+    const actual = num < 1000000 ? num * 1000 : num;
+    return formatRupiah(actual);
+};
+
+// Panduan teks skala penilaian 1 s/d 5 (Likert Scale)
+const getScaleGuide = (code) => {
+    const c = (code || '').toUpperCase();
+
+    if (c.startsWith('F19')) {
+        return { min: 'Tidak Sama Sekali', max: 'Sangat Besar' };
+    }
+    if (c.startsWith('F21')) {
+        return { min: 'Sangat Buruk', max: 'Sangat Baik' };
+    }
+    if (c.startsWith('F20') || c.startsWith('F22')) {
+        return { min: 'Sangat Rendah', max: 'Sangat Tinggi' };
+    }
+    return { min: 'Tidak Sama Sekali / Sangat Buruk', max: 'Sangat Baik / Sangat Besar' };
+};
+
+// Helper pemisah teks opsi yang memiliki titik-titik (...)
+const getSplitDotsText = (text) => {
+    if (!text) return { hasDots: false, before: '', after: '' };
+    const dotPattern = /\.{2,}|…/;
+    if (!dotPattern.test(text)) {
+        return { hasDots: false, before: text, after: '' };
+    }
+    const parts = text.split(dotPattern);
+    return {
+        hasDots: true,
+        before: parts[0] ? parts[0].trim() : '',
+        after: parts[1] ? parts[1].trim() : ''
+    };
+};
+
+// Helper radio_input
+const getRadioInputVal = (qId, optId) => {
+    if (!props.form.answers[qId] || typeof props.form.answers[qId] !== 'object') return '';
+    if (!props.form.answers[qId].inputs) return '';
+    return props.form.answers[qId].inputs[optId] ?? '';
+};
+
+const setRadioInputVal = (qId, optId, val, optText = null) => {
+    if (!props.form.answers[qId] || typeof props.form.answers[qId] !== 'object') {
+        props.form.answers[qId] = { selected: '', input: '', inputs: {} };
+    }
+    if (optText) {
+        props.form.answers[qId].selected = optText;
+    }
+    if (!props.form.answers[qId].inputs) {
+        props.form.answers[qId].inputs = {};
+    }
+    props.form.answers[qId].inputs[optId] = val;
+    props.form.answers[qId].input = val;
+};
+
+const handleRadioOptionSelect = (qId, optId, optText = null) => {
+    if (!props.form.answers[qId] || typeof props.form.answers[qId] !== 'object') {
+        props.form.answers[qId] = { selected: '', input: '', inputs: {} };
+    }
+    if (optText) {
+        props.form.answers[qId].selected = optText;
+    }
+    if (!props.form.answers[qId].inputs) {
+        props.form.answers[qId].inputs = {};
+    }
+    props.form.answers[qId].input = props.form.answers[qId].inputs[optId] ?? '';
+};
+</script>
+
+<template>
+    <div 
+        v-show="isVisible" 
+        class="bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm relative z-0"
+        :class="[
+            isPaired ? 'flex flex-col justify-between' : 'mb-4 sm:mb-6'
+        ]"
+        :style="{ zIndex: question.type === 'searchable_select' ? 10 : 1 }"
+    >
+        <!-- Header Soal: Kode & Teks Pertanyaan -->
+        <h2 class="text-base sm:text-xl md:text-2xl font-black text-gray-800 mb-4 sm:mb-6 leading-snug sm:leading-relaxed flex items-start gap-2.5 sm:gap-4">
+            <span class="shrink-0 bg-[#FFD700] text-[#005B3C] px-2.5 py-0.5 sm:px-3.5 sm:py-1 rounded-lg sm:rounded-xl text-xs sm:text-base font-black shadow-xs">
+                {{ question.code }}
+            </span>
+            <span>
+                {{ getCleanQuestionText(question.question_text) }} 
+                <span v-if="question.is_required" class="text-red-500 font-black">*</span>
+            </span>
+        </h2>
+
+        <!-- TIPE INPUT: Teks Biasa -->
+        <div v-if="question.type === 'text'">
+            <input 
+                type="text" 
+                v-model="form.answers[question.id]" 
+                :required="question.is_required && isVisible"
+                class="w-full rounded-xl sm:rounded-2xl bg-gray-50/90 p-3.5 sm:p-5 text-gray-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#005B3C] transition-all text-sm sm:text-lg border-0 shadow-xs"
+                placeholder="Ketik jawabanmu di sini..."
+            >
+        </div>
+
+        <!-- TIPE INPUT: Angka / Number -->
+        <div v-else-if="question.type === 'number'" :class="{'mt-3 sm:mt-4': isPaired}">
+            <input 
+                type="number" 
+                v-model="form.answers[question.id]" 
+                :required="question.is_required && isVisible"
+                @keydown="filterNumberInput"
+                min="0"
+                class="w-full rounded-xl sm:rounded-2xl bg-gray-50/90 p-3.5 sm:p-5 text-gray-900 font-black font-mono focus:bg-white focus:ring-2 focus:ring-[#005B3C] transition-all text-lg sm:text-2xl text-center border-0 shadow-xs"
+                :class="isPaired ? 'sm:text-2xl' : 'sm:max-w-xs sm:text-xl'"
+                placeholder="0"
+            >
+        </div>
+
+        <!-- TIPE INPUT: Searchable Select -->
+        <div v-else-if="question.type === 'searchable_select'" class="relative">
+            <SearchableSelect 
+                v-model="form.answers[question.id]" 
+                :options="question.options" 
+                :required="question.is_required && isVisible" 
+                placeholder="Cari bidang pekerjaan..." 
+            />
+        </div>
+
+        <!-- TIPE INPUT: Skala Penilaian / Rating 1 s/d 5 -->
+        <div v-else-if="question.type === 'rating_5'" class="space-y-3 sm:space-y-4">
+            <!-- Kotak Panduan Skor 1 s/d 5 -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 sm:p-3.5 bg-emerald-50/70 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold text-emerald-950 shadow-2xs gap-1.5 sm:gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg bg-[#005B3C] text-white flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0 shadow-2xs">1</span>
+                    <span>Skor 1: <strong>{{ getScaleGuide(question.code).min }}</strong></span>
+                </div>
+                <div class="flex items-center gap-2 sm:justify-end">
+                    <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg bg-[#005B3C] text-white flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0 shadow-2xs">5</span>
+                    <span>Skor 5: <strong>{{ getScaleGuide(question.code).max }}</strong></span>
+                </div>
+            </div>
+
+            <!-- Baris Tombol Angka 1 s/d 5 -->
+            <div class="p-2 sm:p-4 md:p-6 bg-gray-50/90 rounded-xl sm:rounded-2xl shadow-xs">
+                <div class="flex items-center justify-between max-w-xl mx-auto gap-1.5 sm:gap-3 md:gap-4">
+                    <label 
+                        v-for="score in 5" 
+                        :key="score" 
+                        class="cursor-pointer select-none flex-1 flex flex-col items-center group"
+                    >
+                        <input 
+                            type="radio" 
+                            :name="'question_' + question.id" 
+                            :value="score" 
+                            v-model="form.answers[question.id]" 
+                            :required="question.is_required && isVisible" 
+                            class="sr-only"
+                        >
+                        <div 
+                            class="w-full h-11 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-base sm:text-lg md:text-xl shadow-xs transition-all active:scale-95"
+                            :class="[
+                                Number(form.answers[question.id]) === score
+                                    ? 'bg-[#005B3C] text-white'
+                                    : 'bg-white text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C]'
+                            ]"
+                        >
+                            {{ score }}
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIPE INPUT: Pilihan Tunggal / Radio -->
+        <div v-else-if="question.type === 'radio' || question.type === 'single_choice'">
+            <div class="inline-block mb-3 sm:mb-4 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-emerald-50/80 border border-emerald-200/70 text-[11px] sm:text-xs font-bold text-emerald-800 shadow-2xs">
+                Hanya bisa memilih satu jawaban
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-4">
+                <label v-for="opt in question.options" :key="opt.id" class="cursor-pointer group block select-none">
+                    <input 
+                        type="radio" 
+                        :name="'question_'+question.id" 
+                        :value="opt.option_text" 
+                        v-model="form.answers[question.id]" 
+                        :required="question.is_required && isVisible" 
+                        class="sr-only"
+                    >
+                    <div 
+                        class="h-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-200 flex flex-col items-center justify-center text-center shadow-xs"
+                        :class="[
+                            form.answers[question.id] === opt.option_text
+                                ? 'bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]' 
+                                : 'bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C] hover:shadow-sm'
+                        ]"
+                    >
+                        <div v-if="getSplitDotsText(opt.option_text).hasDots" class="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 leading-relaxed">
+                            <span v-if="getSplitDotsText(opt.option_text).before">{{ getSplitDotsText(opt.option_text).before }}</span>
+                            <input 
+                                type="text"
+                                v-model="form.answers[question.id + '_custom']"
+                                @click.stop="form.answers[question.id] = opt.option_text"
+                                @focus="form.answers[question.id] = opt.option_text"
+                                placeholder="..."
+                                class="w-14 sm:w-20 py-0.5 sm:py-1.5 px-1.5 sm:px-2 text-center font-black rounded-lg sm:rounded-xl text-xs sm:text-base font-mono shadow-xs focus:outline-none transition-all"
+                                :class="[
+                                    form.answers[question.id] === opt.option_text
+                                        ? 'bg-white text-gray-900 ring-2 ring-[#FFD700] shadow-sm'
+                                        : 'bg-white text-gray-800 border border-gray-300 focus:ring-2 focus:ring-[#005B3C]'
+                                ]"
+                                :required="question.is_required && form.answers[question.id] === opt.option_text"
+                            >
+                            <span v-if="getSplitDotsText(opt.option_text).after">{{ getSplitDotsText(opt.option_text).after }}</span>
+                        </div>
+                        <span v-else>{{ opt.option_text }}</span>
+
+                        <div 
+                            v-if="!getSplitDotsText(opt.option_text).hasDots && form.answers[question.id] === opt.option_text && (opt.option_text.toLowerCase().includes('lainnya') || opt.option_text.toLowerCase().includes('tuliskan') || opt.option_text.includes('...') || opt.option_text.includes('…'))" 
+                            class="w-full mt-2.5 sm:mt-4" 
+                            @click.stop
+                        >
+                            <input 
+                                type="text" 
+                                v-model="form.answers[question.id + '_custom']" 
+                                placeholder="Tuliskan di sini..." 
+                                class="w-full rounded-lg sm:rounded-xl bg-white text-gray-900 placeholder-gray-400 p-2.5 sm:p-3.5 font-bold shadow-inner focus:ring-2 focus:ring-[#FFD700] text-center text-sm sm:text-base border-0" 
+                                required
+                            >
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- TIPE INPUT: Pilihan Ganda / Checkbox -->
+        <div v-else-if="question.type === 'checkbox' || question.type === 'multiple_choice'">
+            <div class="inline-block mb-3 sm:mb-4 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-emerald-100/70 border border-emerald-300/80 text-[11px] sm:text-xs font-bold text-[#005B3C] shadow-2xs">
+                Jawaban bisa lebih dari satu
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-4">
+                <label v-for="opt in question.options" :key="opt.id" class="cursor-pointer group block select-none">
+                    <input 
+                        type="checkbox" 
+                        :value="opt.option_text" 
+                        v-model="form.answers[question.id]" 
+                        class="sr-only"
+                    >
+                    <div 
+                        class="h-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-200 flex flex-col items-center justify-center text-center shadow-xs"
+                        :class="[
+                            Array.isArray(form.answers[question.id]) && form.answers[question.id].includes(opt.option_text)
+                                ? 'bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]' 
+                                : 'bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C] hover:shadow-sm'
+                        ]"
+                    >
+                        <div v-if="getSplitDotsText(opt.option_text).hasDots" class="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 leading-relaxed">
+                            <span v-if="getSplitDotsText(opt.option_text).before">{{ getSplitDotsText(opt.option_text).before }}</span>
+                            <input 
+                                type="text"
+                                v-model="form.answers[question.id + '_custom']"
+                                @click.stop="() => { if (!Array.isArray(form.answers[question.id])) form.answers[question.id] = []; if (!form.answers[question.id].includes(opt.option_text)) form.answers[question.id].push(opt.option_text); }"
+                                @focus="() => { if (!Array.isArray(form.answers[question.id])) form.answers[question.id] = []; if (!form.answers[question.id].includes(opt.option_text)) form.answers[question.id].push(opt.option_text); }"
+                                placeholder="..."
+                                class="w-14 sm:w-20 py-0.5 sm:py-1.5 px-1.5 sm:px-2 text-center font-black rounded-lg sm:rounded-xl text-xs sm:text-base font-mono shadow-xs focus:outline-none transition-all"
+                                :class="[
+                                    Array.isArray(form.answers[question.id]) && form.answers[question.id].includes(opt.option_text)
+                                        ? 'bg-white text-gray-900 ring-2 ring-[#FFD700] shadow-sm'
+                                        : 'bg-white text-gray-800 border border-gray-300 focus:ring-2 focus:ring-[#005B3C]'
+                                ]"
+                            >
+                            <span v-if="getSplitDotsText(opt.option_text).after">{{ getSplitDotsText(opt.option_text).after }}</span>
+                        </div>
+                        <span v-else>{{ opt.option_text }}</span>
+
+                        <div 
+                            v-if="!getSplitDotsText(opt.option_text).hasDots && Array.isArray(form.answers[question.id]) && form.answers[question.id].includes(opt.option_text) && (opt.option_text.toLowerCase().includes('lainnya') || opt.option_text.toLowerCase().includes('tuliskan') || opt.option_text.includes('...') || opt.option_text.includes('…'))" 
+                            class="w-full mt-2.5 sm:mt-4" 
+                            @click.stop
+                        >
+                            <input 
+                                type="text" 
+                                v-model="form.answers[question.id + '_custom']" 
+                                placeholder="Tuliskan di sini..." 
+                                class="w-full rounded-lg sm:rounded-xl bg-white text-gray-900 placeholder-gray-400 p-2.5 sm:p-3.5 font-bold shadow-inner focus:ring-2 focus:ring-[#FFD700] text-center text-sm sm:text-base border-0" 
+                                required
+                            >
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- TIPE INPUT: Radio Input / Radio Text -->
+        <div v-else-if="question.type === 'radio_input' || question.type === 'radio_text'">
+            <div class="inline-block mb-3 sm:mb-4 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-emerald-50/80 border border-emerald-200/70 text-[11px] sm:text-xs font-bold text-emerald-800 shadow-2xs">
+                Hanya bisa memilih satu jawaban
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-4">
+                <label v-for="opt in question.options" :key="opt.id" class="cursor-pointer group block select-none">
+                    <input 
+                        type="radio" 
+                        :name="'question_'+question.id" 
+                        :value="opt.option_text" 
+                        v-model="form.answers[question.id].selected" 
+                        @change="handleRadioOptionSelect(question.id, opt.id, opt.option_text)" 
+                        class="sr-only"
+                    >
+                    <div 
+                        class="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-200 flex flex-col items-center justify-center text-center shadow-xs"
+                        :class="[
+                            form.answers[question.id]?.selected === opt.option_text
+                                ? 'bg-[#005B3C] text-white shadow-md hover:bg-[#00482f]' 
+                                : 'bg-gray-50/90 text-gray-700 hover:bg-emerald-50 hover:text-[#005B3C] hover:shadow-sm'
+                        ]"
+                    >
+                        <div v-if="getSplitDotsText(opt.option_text).hasDots" class="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 leading-relaxed">
+                            <span v-if="getSplitDotsText(opt.option_text).before">{{ getSplitDotsText(opt.option_text).before }}</span>
+                            <input 
+                                :type="question.type === 'radio_input' ? 'number' : 'text'"
+                                :value="getRadioInputVal(question.id, opt.id)"
+                                @input="setRadioInputVal(question.id, opt.id, $event.target.value, opt.option_text)"
+                                @click.stop="handleRadioOptionSelect(question.id, opt.id, opt.option_text)"
+                                @focus="handleRadioOptionSelect(question.id, opt.id, opt.option_text)"
+                                @keydown="question.type === 'radio_input' ? filterNumberInput($event) : null"
+                                min="0"
+                                placeholder="..."
+                                class="w-14 sm:w-20 py-0.5 sm:py-1.5 px-1.5 sm:px-2 text-center font-black rounded-lg sm:rounded-xl text-xs sm:text-base font-mono shadow-xs focus:outline-none transition-all"
+                                :class="[
+                                    form.answers[question.id]?.selected === opt.option_text
+                                        ? 'bg-white text-gray-900 ring-2 ring-[#FFD700] shadow-sm'
+                                        : 'bg-white text-gray-800 border border-gray-300 focus:ring-2 focus:ring-[#005B3C]'
+                                ]"
+                                :required="question.is_required && form.answers[question.id]?.selected === opt.option_text"
+                            >
+                            <span v-if="getSplitDotsText(opt.option_text).after">{{ getSplitDotsText(opt.option_text).after }}</span>
+                        </div>
+                        <span v-else>{{ opt.option_text }}</span>
+
+                        <div 
+                            v-if="!getSplitDotsText(opt.option_text).hasDots && form.answers[question.id]?.selected === opt.option_text && (opt.option_text.toLowerCase().includes('lainnya') || opt.option_text.toLowerCase().includes('tuliskan') || opt.option_text.includes('...') || opt.option_text.includes('…'))" 
+                            class="w-full mt-2.5 sm:mt-4" 
+                            @click.stop
+                        >
+                            <input 
+                                :type="question.type === 'radio_input' ? 'number' : 'text'"
+                                :value="getRadioInputVal(question.id, opt.id)"
+                                @input="setRadioInputVal(question.id, opt.id, $event.target.value, opt.option_text)"
+                                :placeholder="question.type === 'radio_input' ? 'Masukkan angka...' : 'Tuliskan di sini...'"
+                                @keydown="question.type === 'radio_input' ? filterNumberInput($event) : null"
+                                class="w-full rounded-lg sm:rounded-xl bg-white text-gray-900 placeholder-gray-400 p-2.5 sm:p-3.5 font-bold shadow-inner focus:ring-2 focus:ring-[#FFD700] text-center text-sm sm:text-base border-0"
+                                required
+                            >
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- TIPE INPUT: Multiple Number (Take Home Pay Gaji F13) -->
+        <div v-else-if="question.type === 'multiple_number'" class="space-y-4 sm:space-y-6">
+            <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-900 flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm">
+                <span class="text-base sm:text-lg">💡</span>
+                <div>
+                    <p class="font-bold">Panduan Pengisian Penghasilan (Satuan Ribuan):</p>
+                    <p class="text-[11px] sm:text-xs text-amber-800 mt-0.5">
+                        Ketik dalam ribuan rupiah. Contoh: Jika gaji <strong>Rp 5.000.000</strong>, cukup ketik <strong>5000</strong> di kolom yang sesuai.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2.5 sm:gap-4">
+                <div 
+                    v-for="opt in question.options" 
+                    :key="opt.id"
+                    class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-5 bg-gray-50/90 rounded-xl sm:rounded-2xl gap-2 sm:gap-4 shadow-xs"
+                >
+                    <div class="flex-1">
+                        <div class="font-bold text-gray-800 text-sm sm:text-base">{{ opt.option_text }}</div>
+                        <div v-if="form.answers[question.id]?.[opt.code]" class="text-xs font-bold text-[#005B3C] mt-0.5">
+                            Terbaca: {{ getMultipleNumberItemPreview(form.answers[question.id]?.[opt.code]) }}
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-72">
+                        <div class="relative w-full flex items-center rounded-lg sm:rounded-xl bg-white border border-gray-200 shadow-xs focus-within:ring-2 focus-within:ring-[#005B3C] focus-within:border-transparent transition-all overflow-hidden">
+                            <span class="pl-3 pr-1 font-bold text-gray-400 select-none text-sm sm:text-base">Rp</span>
+                            <input 
+                                type="number" 
+                                v-model="form.answers[question.id][opt.code]"
+                                @keydown="filterNumberInput"
+                                min="0"
+                                placeholder="0"
+                                class="w-full py-2 sm:py-2.5 px-2 bg-transparent font-mono font-bold border-0 focus:ring-0 text-right text-base sm:text-lg text-gray-900 placeholder-gray-300"
+                            >
+                            <span class="pr-3 pl-1.5 font-mono font-bold text-gray-500 select-none text-sm sm:text-base bg-gray-100/80 py-2 sm:py-2.5 border-l border-gray-200">.000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Take Home Pay -->
+            <div class="flex items-center justify-between p-3.5 sm:p-5 bg-emerald-50 rounded-xl sm:rounded-2xl border border-emerald-200/60 shadow-xs">
+                <div class="font-black text-[#005B3C] text-sm sm:text-base">Total Penghasilan (Take Home Pay):</div>
+                <div class="font-black text-[#005B3C] text-base sm:text-xl font-mono">
+                    {{ formatRupiah(getMultipleNumberTotal(question)) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

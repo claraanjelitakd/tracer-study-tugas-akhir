@@ -3,6 +3,8 @@
 namespace App\Services\Kuesioner;
 
 use App\Models\Alumni;
+use App\Models\ProdiQuestion;
+use App\Models\ProdiResponse;
 use App\Models\Question;
 use App\Models\Response;
 
@@ -77,6 +79,53 @@ class KuesionerSyncService
             } else {
                 Response::updateOrCreate(
                     ['alumni_id' => $alumni->id, 'question_id' => $question->id],
+                    [
+                        'answer_text' => (string) $val,
+                        'answer_json' => null,
+                    ]
+                );
+            }
+        }
+
+        // Sinkronkan juga data akademik alumni ke kuesioner program studi
+        self::syncProdiResponses($alumni);
+    }
+
+    /**
+     * Menyinkronkan data akademik alumni (Nama, NIM, Tahun Kelulusan)
+     * secara otomatis ke tabel `prodi_responses`.
+     */
+    public static function syncProdiResponses(Alumni $alumni): void
+    {
+        if (! $alumni->prodi_id) {
+            return;
+        }
+
+        $nama = $alumni->dataAkademik?->nama ?? $alumni->user?->name;
+        $nim = $alumni->nim ?? $alumni->dataAkademik?->nim;
+        $tahunLulus = $alumni->dataAkademik?->tahun_akademik_lulus ?? $alumni->dataAkademik?->tahun_lulus;
+
+        $prodiQuestions = ProdiQuestion::where('prodi_id', $alumni->prodi_id)->get();
+
+        foreach ($prodiQuestions as $q) {
+            $code = $q->code;
+            $txt = strtolower(trim($q->question_text));
+
+            $val = null;
+            if ($code === 'PSI-1-01' || $txt === 'nama') {
+                $val = $nama;
+            } elseif ($code === 'PSI-1-02' || $txt === 'nim') {
+                $val = $nim;
+            } elseif ($code === 'PSI-1-03' || $txt === 'tahun kelulusan' || $txt === 'tahun lulus') {
+                $val = $tahunLulus;
+            }
+
+            if ($val !== null && trim((string) $val) !== '') {
+                ProdiResponse::updateOrCreate(
+                    [
+                        'alumni_id' => $alumni->id,
+                        'prodi_question_id' => $q->id,
+                    ],
                     [
                         'answer_text' => (string) $val,
                         'answer_json' => null,

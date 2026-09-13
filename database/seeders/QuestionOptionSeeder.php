@@ -20,10 +20,6 @@ class QuestionOptionSeeder extends Seeder
     public function run(): void
     {
         $options = [
-            // F2D1 (Khusus Teologi / Filsafat Keilahian)
-            ['question_code' => 'F2D1', 'code' => 'F2D1-01', 'option_text' => 'Gerejawi'],
-            ['question_code' => 'F2D1', 'code' => 'F2D1-02', 'option_text' => 'Non Gerejawi'],
-
             // F2G
             ['question_code' => 'F2G', 'code' => 'F2G-01', 'option_text' => 'Direksi / Top Manager'],
             ['question_code' => 'F2G', 'code' => 'F2G-02', 'option_text' => 'Midle Manager'],
@@ -78,7 +74,7 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F10', 'code' => 'F10-02', 'option_text' => 'Tidak, tapi saya sedang menunggu hasil lamaran kerja', 'jump_to' => 'F17-1'],
             ['question_code' => 'F10', 'code' => 'F10-03', 'option_text' => 'Ya, saya akan mulai bekerja dalam 2 minggu ke depan', 'jump_to' => null],
             ['question_code' => 'F10', 'code' => 'F10-04', 'option_text' => 'Ya, tapi saya belum pasti akan bekerja dalam 2 minggu ke depan', 'jump_to' => null],
-            ['question_code' => 'F10', 'code' => 'F10-05', 'option_text' => 'Lainnya, tuliskan', 'jump_to' => 'F17-1'],
+            ['question_code' => 'F10', 'code' => 'F10-05', 'option_text' => 'Lainnya, tuliskan', 'jump_to' => null],
 
             // F11
             ['question_code' => 'F11', 'code' => 'F11-01', 'option_text' => 'Instansi pemerintah (termasuk BUMN)'],
@@ -88,9 +84,7 @@ class QuestionOptionSeeder extends Seeder
             ['question_code' => 'F11', 'code' => 'F11-05', 'option_text' => 'Lainnya, tuliskan'],
 
             // F13
-            ['question_code' => 'F13', 'code' => 'F13-01', 'option_text' => 'Dari Pekerjaan Utama'],
-            ['question_code' => 'F13', 'code' => 'F13-02', 'option_text' => 'Dari Lembur dan Tips'],
-            ['question_code' => 'F13', 'code' => 'F13-03', 'option_text' => 'Dari Pekerjaan Lainnya'],
+            ['question_code' => 'F13', 'code' => 'F13-01', 'option_text' => 'Take Home Pay'],
 
             // F14
             ['question_code' => 'F14', 'code' => 'F14-01', 'option_text' => 'Sangat Erat'],
@@ -235,82 +229,8 @@ class QuestionOptionSeeder extends Seeder
             ];
         }
 
-        // F17-1 sampai F17-54 (Rating 1-5)
-        $f17Ratings = [
-            ['code' => '01', 'option_text' => 'Sangat Rendah'],
-            ['code' => '02', 'option_text' => 'Rendah'],
-            ['code' => '03', 'option_text' => 'Cukup'],
-            ['code' => '04', 'option_text' => 'Tinggi'],
-            ['code' => '05', 'option_text' => 'Sangat Tinggi'],
-        ];
-
-        for ($i = 1; $i <= 54; $i++) {
-            foreach ($f17Ratings as $r) {
-                $options[] = [
-                    'question_code' => "F17-{$i}",
-                    'code' => "F17-{$i}-{$r['code']}",
-                    'option_text' => $r['option_text'],
-                ];
-            }
-        }
-
-        // F19-1 sampai F19-6 (Rating 1-5)
-        $f19Ratings = [
-            ['code' => '1', 'option_text' => 'Tidak Sama Sekali'],
-            ['code' => '2', 'option_text' => '2'],
-            ['code' => '3', 'option_text' => '3'],
-            ['code' => '4', 'option_text' => '4'],
-            ['code' => '5', 'option_text' => 'Sangat Besar'],
-        ];
-        for ($i = 1; $i <= 6; $i++) {
-            foreach ($f19Ratings as $r) {
-                $options[] = [
-                    'question_code' => "F19-{$i}",
-                    'code' => "F19-{$i}-{$r['code']}",
-                    'option_text' => $r['option_text'],
-                ];
-            }
-        }
-
-        // F20-1 sampai F20-5 (Rating 1-5, F20-6 adalah text input)
-        $f20Ratings = [
-            ['code' => '1', 'option_text' => 'Sangat Buruk'],
-            ['code' => '2', 'option_text' => '2'],
-            ['code' => '3', 'option_text' => '3'],
-            ['code' => '4', 'option_text' => '4'],
-            ['code' => '5', 'option_text' => 'Sangat Baik'],
-        ];
-        for ($i = 1; $i <= 5; $i++) {
-            foreach ($f20Ratings as $r) {
-                $options[] = [
-                    'question_code' => "F20-{$i}",
-                    'code' => "F20-{$i}-{$r['code']}",
-                    'option_text' => $r['option_text'],
-                ];
-            }
-        }
-
-        // F21-1 sampai F21-9 (Rating 1-5)
-        for ($i = 1; $i <= 9; $i++) {
-            foreach ($f20Ratings as $r) {
-                $options[] = [
-                    'question_code' => "F21-{$i}",
-                    'code' => "F21-{$i}-{$r['code']}",
-                    'option_text' => $r['option_text'],
-                ];
-            }
-        }
-
-        // F22-1 sampai F22-7 (Rating 1-5)
-        for ($i = 1; $i <= 7; $i++) {
-            foreach ($f20Ratings as $r) {
-                $options[] = [
-                    'question_code' => "F22-{$i}",
-                    'code' => "F22-{$i}-{$r['code']}",
-                    'option_text' => $r['option_text'],
-                ];
-            }
-        }
+        // Catatan: Pertanyaan skala rating (F17, F19, F20, F21, F22) tidak membutuhkan opsi di question_options,
+        // melainkan langsung menampung nilai angka range 1 s/d 5 yang dipilih alumni melalui panduan skala frontend.
 
         // F24A: Sumber dana pembiayaan kuliah S1 di UKDW (Wajib)
         $f24aList = [

@@ -63,6 +63,18 @@ defineProps({
         type: Array,
         default: () => [],
     },
+    prodiQuestionsCount: {
+        type: Number,
+        default: 0,
+    },
+    prodiAnsweredCount: {
+        type: Number,
+        default: 0,
+    },
+    prodiCompleted: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 /**
@@ -107,7 +119,7 @@ const logout = () => {
         </nav>
 
         <!-- Main Content -->
-        <main class="relative z-10 max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8 mt-2">
+        <main class="relative z-10 max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 mt-2">
             
             <!-- Welcome Header -->
             <transition appear name="fade-down">
@@ -117,12 +129,12 @@ const logout = () => {
                 </div>
             </transition>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                 <!-- ======================================================= -->
                 <!-- CARD 1: STATUS PROFIL & BIODATA                         -->
                 <!-- ======================================================= -->
                 <transition appear name="fade-up-1">
-                    <div class="bg-white rounded-3xl p-8 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
+                    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#0D542B]/10 text-[#0D542B]">
@@ -137,8 +149,8 @@ const logout = () => {
                                 </span>
                             </div>
                             
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Profil & Biodata</h3>
-                            <p class="text-gray-500 text-sm leading-relaxed mb-6">Kelola identitas diri, data akademik, riwayat pekerjaan, dan informasi personal Anda lainnya di sini.</p>
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Profil & Biodata</h3>
+                            <p class="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">Kelola identitas diri, data akademik, riwayat pekerjaan, dan informasi personal Anda lainnya di sini.</p>
                             
                             <!-- Progress Bar & Persentase Profil -->
                             <div class="bg-slate-50 rounded-2xl p-4 mb-6">
@@ -151,12 +163,12 @@ const logout = () => {
                                 </div>
                                 <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
                                     <span>{{ profileFilledCount }} dari {{ profileTotalCount }} data terisi</span>
-                                    <span v-if="!profileCompleted && profileMissingFields.length > 0" class="text-amber-800 font-semibold">{{ profileMissingFields.length }} data belum lengkap</span>
+                                    <span v-if="!profileCompleted && profileMissingFields.length > 0" class="text-amber-800 font-semibold">{{ profileMissingFields.length }} belum lengkap</span>
                                 </div>
                             </div>
                         </div>
 
-                        <Link href="/alumni/profile" class="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-bold rounded-xl text-white bg-[#0D542B] hover:bg-[#093f20] transition-colors shadow-sm">
+                        <Link href="/alumni/profile" class="inline-flex items-center justify-center w-full px-5 py-3.5 text-sm font-bold rounded-xl text-white bg-[#0D542B] hover:bg-[#093f20] transition-colors shadow-sm">
                             Kelola Data Profil
                             <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </Link>
@@ -167,7 +179,7 @@ const logout = () => {
                 <!-- CARD 2: STATUS KUESIONER TRACER STUDY                   -->
                 <!-- ======================================================= -->
                 <transition appear name="fade-up-2">
-                    <div class="bg-white rounded-3xl p-8 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
+                    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#0D542B]/10 text-[#0D542B]">
@@ -182,27 +194,82 @@ const logout = () => {
                                 </span>
                             </div>
                             
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Kuesioner Tracer Study</h3>
-                            <p class="text-gray-500 text-sm leading-relaxed mb-6">Isi kuesioner resmi dari universitas untuk memberikan umpan balik (<em>feedback</em>) yang berharga bagi pengembangan kurikulum.</p>
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Kuesioner Tracer Study</h3>
+                            <p class="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">Isi kuesioner resmi dari universitas untuk memberikan umpan balik (<em>feedback</em>) bagi pengembangan kurikulum.</p>
                             
                             <!-- Progress Bar & Persentase Kuesioner Wajib -->
                             <div class="bg-slate-50 rounded-2xl p-4 mb-6">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-bold text-gray-600 uppercase tracking-wider">Progress Kuesioner Wajib</span>
+                                    <span class="text-xs font-bold text-gray-600 uppercase tracking-wider">Kuesioner Universitas</span>
                                     <span class="text-sm font-extrabold text-[#0D542B]">{{ questionnairePercentage }}%</span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                                     <div class="bg-[#0D542B] h-2.5 rounded-full transition-all duration-500" :style="{ width: `${questionnairePercentage}%` }"></div>
                                 </div>
                                 <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                                    <span>{{ questionnaireAnsweredCount }} dari {{ questionnaireTotalCount }} pertanyaan wajib</span>
-                                    <span v-if="!questionnaireCompleted && questionnaireMissing.length > 0" class="text-amber-800 font-semibold">{{ questionnaireMissing.length }} butir belum dijawab</span>
+                                    <span>{{ questionnaireAnsweredCount }} dari {{ questionnaireTotalCount }} soal wajib</span>
+                                    <span v-if="!questionnaireCompleted && questionnaireMissing.length > 0" class="text-amber-800 font-semibold">{{ questionnaireMissing.length }} belum</span>
                                 </div>
                             </div>
                         </div>
 
-                        <Link href="/alumni/kuesioner" class="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-bold rounded-xl text-white bg-[#0D542B] hover:bg-[#093f20] transition-colors shadow-sm">
-                            Mulai Isi Kuesioner
+                        <Link href="/alumni/kuesioner" class="inline-flex items-center justify-center w-full px-5 py-3.5 text-sm font-bold rounded-xl text-white bg-[#0D542B] hover:bg-[#093f20] transition-colors shadow-sm">
+                            Isi Kuesioner Umum
+                            <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </Link>
+                    </div>
+                </transition>
+
+                <!-- ======================================================= -->
+                <!-- CARD 3: KUESIONER PROGRAM STUDI                         -->
+                <!-- ======================================================= -->
+                <transition appear name="fade-up-2">
+                    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-amber-50 text-amber-700 font-black text-xl">
+                                    🎓
+                                </div>
+                                
+                                <span v-if="prodiCompleted && prodiQuestionsCount > 0" class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-[#0D542B]">
+                                    Sudah Diselesaikan
+                                </span>
+                                <span v-else-if="prodiQuestionsCount === 0" class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                                    Belum Ada Soal
+                                </span>
+                                <span v-else class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#FDC700] text-amber-950">
+                                    Belum Lengkap
+                                </span>
+                            </div>
+                            
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Kuesioner Program Studi</h3>
+                            <p class="text-gray-500 text-xs sm:text-sm leading-relaxed mb-6">
+                                Evaluasi khusus kurikulum, materi kuliah, dan fasilitas di Program Studi <strong>{{ alumni?.prodi?.nama_prodi || 'Anda' }}</strong>.
+                            </p>
+                            
+                            <!-- Status Pengisian Kuesioner Prodi -->
+                            <div class="bg-slate-50 rounded-2xl p-4 mb-6">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-bold text-gray-600 uppercase tracking-wider">Status Kuesioner Prodi</span>
+                                    <span class="text-sm font-extrabold text-[#0D542B]">
+                                        {{ prodiQuestionsCount > 0 ? Math.round((prodiAnsweredCount / prodiQuestionsCount) * 100) : 0 }}%
+                                    </span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                    <div 
+                                        class="bg-[#0D542B] h-2.5 rounded-full transition-all duration-500" 
+                                        :style="{ width: `${prodiQuestionsCount > 0 ? (prodiAnsweredCount / prodiQuestionsCount) * 100 : 0}%` }"
+                                    ></div>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
+                                    <span>{{ prodiAnsweredCount }} dari {{ prodiQuestionsCount }} soal terisi</span>
+                                    <span class="font-semibold text-emerald-800">{{ alumni?.prodi?.nama_prodi }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Link href="/alumni/kuesioner-prodi" class="inline-flex items-center justify-center w-full px-5 py-3.5 text-sm font-bold rounded-xl text-white bg-[#0D542B] hover:bg-[#093f20] transition-colors shadow-sm">
+                            Buka Kuesioner Prodi
                             <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </Link>
                     </div>

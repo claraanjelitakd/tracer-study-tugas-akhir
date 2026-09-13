@@ -28,7 +28,6 @@ class SimpanPertanyaanController extends Controller
     {
         $validated = $request->validate([
             'question_section_id' => 'required|exists:question_sections,id',
-            'prodi_id' => 'nullable|exists:prodis,id',
             'code' => 'required|string|unique:questions,code|max:50',
             'question_text' => 'required|string',
             'type' => 'required|string',
@@ -46,21 +45,6 @@ class SimpanPertanyaanController extends Controller
         // Simpan data pertanyaan baru
         $question = Question::create($validated);
 
-        // Jika tipe pertanyaan adalah skala rating (rating_5 atau rating), otomatis buatkan 5 opsi skala penilaian standar (1-5)
-        if (in_array($question->type, ['rating_5', 'rating'])) {
-            $defaultRatings = [
-                ['code' => $question->code.'-01', 'option_text' => 'Sangat Rendah', 'order' => 1],
-                ['code' => $question->code.'-02', 'option_text' => 'Rendah', 'order' => 2],
-                ['code' => $question->code.'-03', 'option_text' => 'Cukup', 'order' => 3],
-                ['code' => $question->code.'-04', 'option_text' => 'Tinggi', 'order' => 4],
-                ['code' => $question->code.'-05', 'option_text' => 'Sangat Tinggi', 'order' => 5],
-            ];
-
-            foreach ($defaultRatings as $opt) {
-                $question->options()->create($opt);
-            }
-        }
-
         return redirect()->back()->with('success', 'Pertanyaan baru berhasil ditambahkan.');
     }
 
@@ -76,7 +60,6 @@ class SimpanPertanyaanController extends Controller
 
         $validated = $request->validate([
             'question_section_id' => 'required|exists:question_sections,id',
-            'prodi_id' => 'nullable|exists:prodis,id',
             'code' => 'required|string|max:50|unique:questions,code,'.$question->id,
             'question_text' => 'required|string',
             'type' => 'required|string',
@@ -91,21 +74,6 @@ class SimpanPertanyaanController extends Controller
         }
 
         $question->update($validated);
-
-        // Jika tipe diperbarui ke skala rating dan belum memiliki opsi, otomatis buatkan 5 opsi skala penilaian
-        if (in_array($question->type, ['rating_5', 'rating']) && $question->options()->count() === 0) {
-            $defaultRatings = [
-                ['code' => $question->code.'-01', 'option_text' => 'Sangat Rendah', 'order' => 1],
-                ['code' => $question->code.'-02', 'option_text' => 'Rendah', 'order' => 2],
-                ['code' => $question->code.'-03', 'option_text' => 'Cukup', 'order' => 3],
-                ['code' => $question->code.'-04', 'option_text' => 'Tinggi', 'order' => 4],
-                ['code' => $question->code.'-05', 'option_text' => 'Sangat Tinggi', 'order' => 5],
-            ];
-
-            foreach ($defaultRatings as $opt) {
-                $question->options()->create($opt);
-            }
-        }
 
         return redirect()->back()->with('success', 'Pertanyaan berhasil diperbarui.');
     }

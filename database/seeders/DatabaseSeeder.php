@@ -59,6 +59,7 @@ class DatabaseSeeder extends Seeder
             QuestionSeeder::class,
             QuestionOptionSeeder::class,
             QuestionMappingSeeder::class,
+            ProdiQuestionnaireSeeder::class,
         ]);
     }
 }

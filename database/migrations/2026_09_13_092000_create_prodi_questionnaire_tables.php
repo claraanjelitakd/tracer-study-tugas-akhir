@@ -1,0 +1,73 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // 1. Tabel Section Khusus Kuesioner Program Studi
+        Schema::create('prodi_question_sections', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('prodi_id')->constrained('prodis')->cascadeOnDelete();
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->integer('order')->default(1);
+            $table->timestamps();
+        });
+
+        // 2. Tabel Butir Pertanyaan Khusus Kuesioner Program Studi
+        Schema::create('prodi_questions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('prodi_id')->constrained('prodis')->cascadeOnDelete();
+            $table->foreignId('prodi_question_section_id')->constrained('prodi_question_sections')->cascadeOnDelete();
+            $table->string('code')->comment('Contoh: PSI-01, PTI-01');
+            $table->text('question_text');
+            $table->string('type')->default('single_choice')->comment('single_choice, multiple_choice, text, number, rating_5, radio_input');
+            $table->boolean('is_required')->default(true);
+            $table->integer('order')->default(1);
+            $table->timestamps();
+
+            $table->unique(['prodi_id', 'code']);
+        });
+
+        // 3. Tabel Pilihan Opsi Jawaban Khusus Pertanyaan Program Studi
+        Schema::create('prodi_question_options', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('prodi_question_id')->constrained('prodi_questions')->cascadeOnDelete();
+            $table->string('code')->nullable();
+            $table->string('option_text');
+            $table->string('jump_to')->nullable();
+            $table->integer('order')->default(1);
+            $table->timestamps();
+        });
+
+        // 4. Tabel Respon / Jawaban Alumni Khusus Kuesioner Program Studi
+        Schema::create('prodi_responses', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('alumni_id')->constrained('alumnis')->cascadeOnDelete();
+            $table->foreignId('prodi_question_id')->constrained('prodi_questions')->cascadeOnDelete();
+            $table->text('answer_text')->nullable();
+            $table->json('answer_json')->nullable();
+            $table->timestamps();
+
+            $table->unique(['alumni_id', 'prodi_question_id']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('prodi_responses');
+        Schema::dropIfExists('prodi_question_options');
+        Schema::dropIfExists('prodi_questions');
+        Schema::dropIfExists('prodi_question_sections');
+    }
+};

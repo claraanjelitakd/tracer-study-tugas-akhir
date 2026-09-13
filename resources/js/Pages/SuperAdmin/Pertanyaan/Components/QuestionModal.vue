@@ -28,10 +28,6 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    prodis: {
-        type: Array,
-        default: () => [],
-    },
     defaultSectionId: {
         type: [Number, String],
         default: '',
@@ -48,7 +44,6 @@ const emit = defineEmits(['close', 'saved']);
 const form = useForm({
     id: null,
     question_section_id: '',
-    prodi_id: '',
     code: '',
     question_text: '',
     type: 'single_choice',
@@ -79,8 +74,8 @@ const questionTypeGroups = [
     {
         group: 'Skala & Penilaian',
         types: [
-            { value: 'rating_5', label: 'Skala linier / Rating (1-5 / F17)', icon: '⭐', hint: 'Skala penilaian 1 s/d 5. Lima opsi (Sangat Rendah s/d Sangat Tinggi) akan OTOMATIS dibuatkan oleh sistem.' },
-            { value: 'multiple_number', label: 'Isian Rincian Gaji / Angka (F13)', icon: '💰', hint: 'Isian beberapa kolom angka (seperti gaji pokok, lembur) yang otomatis menjumlahkan total pendapatan.' },
+            { value: 'rating_5', label: 'Skala linier / Rating (1-5 / Likert)', icon: '⭐', hint: 'Skala penilaian 1 s/d 5. Menampung nilai angka murni (1-5) dengan panduan minimum dan maksimum tanpa perlu menambah opsi manual.' },
+            { value: 'multiple_number', label: 'Isian Gaji / Angka (F13)', icon: '💰', hint: 'Isian kolom angka gaji (Take Home Pay) dalam satuan ribuan rupiah.' },
             { value: 'matrix', label: 'Kisi pilihan ganda (Matriks)', icon: '⊞', hint: 'Tabel matriks evaluasi skala rating 1 s/d 5 per baris aspek.' },
             { value: 'matrix_dual', label: 'Petak evaluasi ganda (Dual Matrix A vs B)', icon: '▦', hint: 'Tabel evaluasi ganda (Kompetensi vs Kontribusi PT).' },
         ],
@@ -120,7 +115,6 @@ watch(() => props.show, (isOpen) => {
         if (props.isEdit && props.question) {
             form.id = props.question.id;
             form.question_section_id = props.question.question_section_id;
-            form.prodi_id = props.question.prodi_id || '';
             form.code = props.question.code;
             form.question_text = props.question.question_text;
             form.type = props.question.type;
@@ -130,7 +124,6 @@ watch(() => props.show, (isOpen) => {
             form.reset();
             form.id = null;
             form.question_section_id = props.defaultSectionId || (props.sections[0]?.id || '');
-            form.prodi_id = '';
             form.code = '';
             form.question_text = '';
             form.type = 'single_choice';
@@ -302,7 +295,7 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <!-- Grid: Kode & Target Prodi -->
+                <!-- Grid: Kode & Nomor Urut Posisi -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Kode Pertanyaan -->
                     <div>
@@ -321,52 +314,6 @@ const handleSubmit = () => {
                         </p>
                     </div>
 
-                    <!-- Target Prodi -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Target Program Studi
-                        </label>
-                        <select
-                            v-model="form.prodi_id"
-                            class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#005B3C] focus:border-transparent text-sm bg-gray-50/50"
-                        >
-                            <option value="">Semua Program Studi (Umum)</option>
-                            <option v-for="prodi in prodis" :key="prodi.id" :value="prodi.id">
-                                [{{ prodi.kode_prodi }}] {{ prodi.nama_prodi }}
-                            </option>
-                        </select>
-                        <p v-if="form.errors.prodi_id" class="text-xs text-red-500 mt-1 font-semibold">
-                            {{ form.errors.prodi_id }}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Grid: Tipe Pertanyaan & Urutan -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Tipe Pertanyaan -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Tipe Pertanyaan <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            v-model="form.type"
-                            required
-                            class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#005B3C] focus:border-transparent text-sm bg-gray-50/50"
-                        >
-                            <optgroup v-for="group in questionTypeGroups" :key="group.group" :label="group.group">
-                                <option v-for="t in group.types" :key="t.value" :value="t.value">
-                                    {{ t.icon }} {{ t.label }}
-                                </option>
-                            </optgroup>
-                        </select>
-                        <p v-if="form.errors.type" class="text-xs text-red-500 mt-1 font-semibold">
-                            {{ form.errors.type }}
-                        </p>
-                        <p v-else-if="getSelectedTypeHint" class="text-[11px] text-gray-500 mt-1.5 leading-relaxed font-medium">
-                            {{ getSelectedTypeHint }}
-                        </p>
-                    </div>
-
                     <!-- Nomor Urut -->
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -376,12 +323,37 @@ const handleSubmit = () => {
                             type="number"
                             v-model.number="form.order"
                             min="1"
+                            placeholder="Otomatis urutan berikutnya"
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#005B3C] focus:border-transparent text-sm bg-gray-50/50"
                         />
                         <p v-if="form.errors.order" class="text-xs text-red-500 mt-1 font-semibold">
                             {{ form.errors.order }}
                         </p>
                     </div>
+                </div>
+
+                <!-- Tipe Pertanyaan -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Tipe Pertanyaan <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        v-model="form.type"
+                        required
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#005B3C] focus:border-transparent text-sm bg-gray-50/50"
+                    >
+                        <optgroup v-for="group in questionTypeGroups" :key="group.group" :label="group.group">
+                            <option v-for="t in group.types" :key="t.value" :value="t.value">
+                                {{ t.icon }} {{ t.label }}
+                            </option>
+                        </optgroup>
+                    </select>
+                    <p v-if="form.errors.type" class="text-xs text-red-500 mt-1 font-semibold">
+                        {{ form.errors.type }}
+                    </p>
+                    <p v-else-if="getSelectedTypeHint" class="text-[11px] text-gray-500 mt-1.5 leading-relaxed font-medium">
+                        {{ getSelectedTypeHint }}
+                    </p>
                 </div>
 
                 <!-- Status Wajib Diisi -->

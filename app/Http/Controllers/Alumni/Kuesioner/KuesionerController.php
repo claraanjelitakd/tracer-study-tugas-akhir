@@ -40,16 +40,11 @@ class KuesionerController extends Controller
         // Section 1 (Identitas) & Section 2 (Perusahaan & Atasan) tidak perlu diisi ulang
         // karena sudah terisi dari profil alumni dan tersimpan otomatis di responses.
         $kuesioner = Questionnaire::where('is_active', true)
-            ->with(['sections' => function ($query) use ($alumniProdiId) {
+            ->with(['sections' => function ($query) {
                 $query->where('order', '>=', 3)
                     ->orderBy('order', 'asc')
-                    ->with(['questions' => function ($qQuery) use ($alumniProdiId) {
-                        $qQuery->where(function ($sub) use ($alumniProdiId) {
-                            $sub->whereNull('prodi_id');
-                            if ($alumniProdiId) {
-                                $sub->orWhere('prodi_id', $alumniProdiId);
-                            }
-                        })->orderBy('order', 'asc')
+                    ->with(['questions' => function ($qQuery) {
+                        $qQuery->orderBy('order', 'asc')
                             ->with('options');
                     }]);
             }])

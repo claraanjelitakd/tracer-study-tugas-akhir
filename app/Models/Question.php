@@ -28,7 +28,6 @@ class Question extends Model
 
     protected $fillable = [
         'question_section_id',
-        'prodi_id',
         'code',
         'question_text',
         'type',
@@ -39,14 +38,6 @@ class Question extends Model
     protected $casts = [
         'is_required' => 'boolean',
     ];
-
-    /**
-     * Program studi target khusus (jika pertanyaan spesifik untuk prodi tertentu).
-     */
-    public function prodi()
-    {
-        return $this->belongsTo(Prodi::class, 'prodi_id');
-    }
 
     /**
      * Bagian / Section kuesioner tempat pertanyaan ini berada.

@@ -213,3 +213,36 @@ STANDAR DOKUMENTASI KODE & ALUR HUBUNGAN BACKEND-INERTIA-FRONTEND (STEP 9)
    - **Integrasi SweetAlert2**:
      * Konfirmasi hapus pertanyaan dan opsi jawaban dialog interaktif (`Swal.fire`).
      * Notifikasi keberhasilan dan error validasi dengan styling hijau emerald UKDW (`#005B3C`).
+
+7. Arsitektur Kuesioner Khusus Program Studi & Harmonisasi Modul Admin Prodi (STEP 10):
+   - **Pemisahan Database Kuesioner Prodi**:
+     * Kolom `prodi_id` dihapus dari tabel kuesioner umum universitas (`questions`), sehingga kuesioner universitas murni untuk tingkat universitas.
+     * Dibangun arsitektur tabel khusus prodi yang hierarkis dan independen:
+       - `prodi_question_sections`: Menyimpan bagian/seksi kuesioner prodi (`id`, `prodi_id`, `title`, `description`, `order`).
+       - `prodi_questions`: Menyimpan butir pertanyaan khusus prodi (`id`, `prodi_id`, `prodi_question_section_id`, `code`, `question_text`, `type`, `is_required`, `order`).
+       - `prodi_question_options`: Menyimpan pilihan opsi jawaban butir pertanyaan prodi.
+       - `prodi_responses`: Menyimpan respon dan jawaban alumni khusus kuesioner program studi (`alumni_id`, `prodi_question_id`, `answer_text`, `answer_json`).
+   - **Auto-Prefill & Sinkronisasi Otomatis Data Akademik**:
+     * 3 butir pertanyaan identitas utama (`Nama`, `NIM`, `Tahun Kelulusan` / kode `PSI-1-01`, `PSI-1-02`, `PSI-1-03`) secara otomatis diambil dari pangkalan Data Akademik (`data_akademiks`) alumni.
+     * Di frontend alumni (`KuesionerProdi.vue`), field ditampilkan dalam format input khusus `readonly` dengan badge hijau resmi: *"✓ Data Akademik - Kolom ini diambil secara otomatis dari pangkalan Data Akademik resmi Anda"*, sehingga alumni tidak perlu mengetik ulang data diri.
+     * Di backend (`KuesionerProdiController.php`), nilai secara otomatis diprefill pada `$initialAnswers` dan disinkronkan ke tabel `prodi_responses` (`updateOrCreate`), serta dilengkapi fallback otomatis saat formulir dikirimkan (`simpanJawaban`).
+   - **Harmonisasi Modul Admin Prodi (Disetarakan dengan Super Admin)**:
+     * `Dashboard.vue`: Header hijau solid UKDW `#0D542B`, 4 kartu KPI berlatar putih bersih (Total Alumni Prodi, Mengisi Tracer Univ, Mengisi Kuesioner Prodi, Profil Lengkap), 2 modul pintasan cepat, dan tabel aktivitas alumni.
+     * `KelolaSectionProdiController.php` & `AdminProdi/Section/Index.vue`: Modul kelola seksi kuesioner prodi lengkap dengan CRUD, pencarian, dan reorder posisi urutan section (naik/turun).
+     * `AdminProdi/Pertanyaan/Index.vue`: Modul kelola butir pertanyaan prodi yang bersih dari ikon 3D dan emoji (📁, 🗑️, ✎, ❓, ✕), digantikan dengan tombol teks elegan (`Edit`, `Hapus`, `+ Tambah Opsi`) dan badge rapi.
+     * `DaftarAlumniProdiController.php` & `AdminProdi/Alumni/Index.vue`: Direktori alumni khusus prodi dengan filter pencarian, filter tahun lulus, dan tombol aksi "Lihat Detail" mengarah ke `/prodi/alumni/{id}`.
+     * `AdminProdi/Alumni/Show.vue`: Halaman detail audit alumni prodi dengan 3 tab: Kuesioner Khusus Prodi, Kuesioner Tracer Universitas, dan Detail Profil Mahasiswa.
+     * `SuperAdmin/Alumni/Show.vue`: Ditambahkan tab *"Kuesioner Khusus Prodi"* sehingga Super Admin juga dapat memantau dan mengaudit hasil kuesioner program studi setiap alumni secara komprehensif.
+
+8. Arsitektur Modular Kuesioner Tracer Study Alumni (STEP 11):
+   - **Pemisahan Komponen Monolitik (`resources/js/Pages/Alumni/Kuesioner.vue`)**:
+     * Komponen induk `Kuesioner.vue` (sebelumnya 1.621 baris) didekomposisi menjadi arsitektur modular yang rapi di folder `resources/js/Pages/Alumni/Components/Kuesioner/`.
+     * Komponen Anak Mandiri:
+       1. `Navbar.vue`: Menangani header sticky atas, logo resmi UKDW, dan navigasi tombol Kembali ke Dashboard.
+       2. `Stepper.vue`: Menangani navigasi tahapan kuesioner dengan bulatan angka 1..N, judul seksi, indikator centang selesai, dan auto-scroll horizontal.
+       3. `Banner.vue`: Menangani kartu banner hijau judul bagian aktif ("Bagian X dari Y") dan instruksi pengisian.
+       4. `TabelF17.vue`: Menangani tabel perbandingan kompetensi dual-matrix F17 (Kolom A: Kemampuan Diri vs Kolom B: Kontribusi Kampus) secara terisolasi.
+       5. `KartuPertanyaan.vue`: Menangani kartu pertanyaan individual dan seluruh varian input (`rating_5`, `searchable_select`, `radio`, `checkbox`, `radio_input`, `multiple_number`, `number`, `text`, serta layout 2 kolom berdampingan F6 & F7).
+       6. `Navigasi.vue`: Menangani tombol navigasi desktop melayang (< Kembali & > Lanjut/Selesai) serta fixed bottom bar di smartphone.
+     * Komponen induk `Kuesioner.vue` kini ramping (~490 baris) dan bertindak murni sebagai orkestrator form Inertia, alur jump logic, dan persistensi sesi lokal (`localStorage`).
+
